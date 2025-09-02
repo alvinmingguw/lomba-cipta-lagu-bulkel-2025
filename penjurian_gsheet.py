@@ -1556,74 +1556,80 @@ if nav == "📝 Penilaian":
             text_for_score = strip_chords(text_for_score)
         st.caption(f"Skor tema (prioritas THEME_SCORE_PRIORITY): **{theme_score(text_for_score):.2f}**")
 
-    # ---------- RUBRIK ----------
+    # ==== Context utk RUBRIK ====
+    # Ambil judul lagu yang sudah dipilih di header form.
+    try:
+        current_title = judul          # variabel yang kamu pakai di header
+    except NameError:
+        # fallback kalau variabel `judul` belum ada (mis. saat awal load)
+        current_title = st.session_state.get("pick_song") or list(SONGS.keys())[0]
+
+    pick = current_title
+    aset = SONGS.get(pick, {})
+    pengarang = aset.get("author", "")
+
+    # Saran otomatis berdasarkan logika terbaru
+    SARAN = build_suggestions(pick, aset)
+
+    # (opsional) fallback emoji kalau belum ada
+    SCORE_EMOJI = globals().get("SCORE_EMOJI", {5:"🟩",4:"🟩",3:"🟨",2:"🟧",1:"🟥"})
+
+    # Supaya bagian lain yang masih refer ke `judul` tetap aman:
+    judul = pick
+
+
+    # ---------- RUBRIK (layout mobile-friendly: expander per-aspek) ----------
     st.markdown("---")
     st.subheader(f"Rubrik Penilaian ({THEME})")
 
-    # helper kecil buat format angka
-    def fmt_num(x, nd=2):
-        try:
-            f = float(x)
-            return str(int(round(f))) if abs(f - round(f)) < 1e-9 else f"{f:.{nd}f}"
-        except Exception:
-            return str(x)
-
-    # Bangun saran otomatis dari logika terbaru —> gunakan judul & aset terpilih
-    SARAN = build_suggestions(judul, aset)
-
-    # Saran otomatis (tidak menimpa nilai yang sudah diisi manual)
+    # tombol saran tetap
     if st.button("✨ Terapkan saran (hanya yang kosong)"):
         for k, v in SARAN.items():
-            wkey = f"rate::{judul}::{k}"
-            if st.session_state.get(wkey) is None:   # hanya yang masih kosong
+            wkey = f"rate::{pick}::{k}"
+            if st.session_state.get(wkey) is None:
                 st.session_state[wkey] = int(v)
         st.rerun()
 
-
-    hc = st.columns([1.1, 2.0, .7, 1.1, 1.1, 1.1, 1.1, 1.1])
-    with hc[0]: st.markdown("<div class='rubrik-head rubrik-cell'>Nilai</div>", unsafe_allow_html=True)
-    with hc[1]: st.markdown("<div class='rubrik-head rubrik-cell'>Aspek</div>", unsafe_allow_html=True)
-    with hc[2]: st.markdown("<div class='rubrik-head rubrik-cell'>Bobot %</div>", unsafe_allow_html=True)
-    for i, lab in zip(range(3,8), ["5","4","3","2","1"]):
-        with hc[i]: st.markdown(f"<div class='rubrik-head rubrik-cell' style='text-align:center'>{lab}</div>", unsafe_allow_html=True)
-
     scores_ui, sum_rows, total_ui = {}, [], 0.0
-    for r in RUBRIK:
-        c = st.columns([1.1, 2.0, .7, 1.1, 1.1, 1.1, 1.1, 1.1], gap="small")
-        wkey = f"rate::{judul}::{r['key']}" 
-        opts = list(range(int(r["min"]), int(r["max"])+1))
 
-        with c[0]:
-            # Biarkan selectbox membaca nilai dari session_state via key=wkey (tanpa set index manual).
-            val = st.selectbox(
+    for r in RUBRIK:
+        wkey = f"rate::{pick}::{r['key']}"
+        opts = list(range(int(r["min"]), int(r["max"]) + 1))
+        cur_val = st.session_state.get(wkey, None)
+
+        with st.expander(f"{r['aspek']}  •  Bobot {int(r['bobot'])}%", expanded=True):
+            # pilih nilai (radio lebih pas di mobile)
+            val = st.radio(
                 "Nilai",
                 options=[None] + opts,
-                key=wkey,
-                label_visibility="collapsed",
+                index=( [None] + opts ).index(cur_val) if cur_val in ([None] + opts) else 0,
                 format_func=lambda x: "— pilih —" if x is None else f"{SCORE_EMOJI.get(int(x),'')} {x}",
+                key=wkey,
+                horizontal=True if len(opts) <= 5 else False
             )
-            # Tampilkan saran hanya jika masih kosong
             if r["key"] in SARAN and st.session_state.get(wkey) is None:
                 st.caption(f"Saran: **{SARAN[r['key']]}**")
+
+            # deskripsi level (5 → 1) dengan kotak berwarna
+            for score in [5,4,3,2,1]:
+                desc = r["desc"].get(score, "")
+                if desc:
+                    st.markdown(
+                        f"<div class='cell-box r{score}' style='margin:.25rem 0'>{desc}</div>",
+                        unsafe_allow_html=True
+                    )
+
             scores_ui[r["key"]] = None if val is None else int(val)
 
-        with c[1]:
-            st.markdown(f"<div class='rubrik-cell rubrik-col-aspek'>{r['aspek']}</div>", unsafe_allow_html=True)
-        with c[2]:
-            st.markdown(f"<div class='rubrik-cell rubrik-col-bobot'>{int(r['bobot'])}</div>", unsafe_allow_html=True)
-        for idx, score in enumerate([5,4,3,2,1], start=3):
-            desc = r['desc'][score]
-            with c[idx]:
-                st.markdown(f"<div class='rubrik-cell'><div class='cell-box r{score}'>{desc or '&nbsp;'}</div></div>",
-                            unsafe_allow_html=True)
-
-        v = scores_ui[r["key"]] or 0
-        w = (v / max(r["max"],1)) * r["bobot"]
-        total_ui += w
-        sum_rows.append([r["aspek"], r["bobot"], v if v else "-", f"{w:.2f}"])
+            # subtotal terbobot
+            v = scores_ui[r["key"]] or 0
+            w = (v / max(r["max"], 1)) * r["bobot"]
+            sum_rows.append([r["aspek"], r["bobot"], v if v else "-", f"{w:.2f}"])
+            total_ui += w
 
     all_ok = all(scores_ui.get(k) is not None for k in [x["key"] for x in RUBRIK])
-    st.markdown(f"**Total skor sementara:** {fmt_num(total_ui)} / 100")
+    st.markdown(f"**Total skor sementara:** {total_ui:.2f} / 100")
+
 
     if "confirm_open" not in st.session_state:
         st.session_state["confirm_open"] = False
