@@ -75,6 +75,51 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def render_rubrik(rubrik, saran):
+    st.markdown("""
+        <style>
+        .rubrik-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .rubrik-table th, .rubrik-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            font-size: 0.9rem;
+        }
+        .rubrik-table th {
+            background: #f8f8f8;
+            text-align: center;
+        }
+        .rubrik-cell {
+            min-width: 120px;
+            word-wrap: break-word;
+        }
+        /* mobile responsive */
+        @media (max-width: 768px) {
+            .rubrik-table, .rubrik-table thead, .rubrik-table tbody, .rubrik-table th, .rubrik-table td, .rubrik-table tr {
+                display: block;
+                width: 100%;
+            }
+            .rubrik-table tr { margin-bottom: 1rem; }
+            .rubrik-table td { border: none; }
+            .rubrik-table th { display: none; }
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<table class='rubrik-table'>", unsafe_allow_html=True)
+    st.markdown("<thead><tr><th>Nilai</th><th>Aspek</th><th>Bobot</th><th>Deskripsi</th></tr></thead>", unsafe_allow_html=True)
+    st.markdown("<tbody>", unsafe_allow_html=True)
+
+    for r in RUBRIK:
+        with st.expander(f"{r['aspek']} (Bobot {r['bobot']}%)"):
+            for score, desc in r['desc'].items():
+                st.markdown(f"**{score}** → {desc}")
+
+    st.markdown("</tbody></table>", unsafe_allow_html=True)
+
+
 # ---------- Assets (opsional) ----------
 BANNER = "assets/banner.png"
 LOGO   = "assets/logo.png"
@@ -171,17 +216,6 @@ def drive_get_meta(file_id: str, fields="id,name,mimeType,size,webContentLink"):
         return meta or {}
     except Exception:
         return {}
-    
-def _gdrive_stream_url(file_id: str) -> str | None:
-    """Prefer webContentLink (jika share public) lalu fallback ke uc?export=download"""
-    meta = drive_get_meta(file_id, fields="id,name,mimeType,size,webContentLink")
-    if not meta:
-        return None
-    if meta.get("webContentLink"):  # butuh 'Anyone with link'
-        # webContentLink bentuknya .../uc?id=...&export=download, aman untuk <audio>
-        return meta["webContentLink"]
-    return drive_direct_url(file_id)
-
 
 @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
 def drive_download_bytes(file_id: str) -> bytes | None:
