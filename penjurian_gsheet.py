@@ -27,7 +27,7 @@ from reportlab.lib.units import cm
 from reportlab.lib.utils import ImageReader
 from typing import Callable, Tuple
 from collections import Counter
-import seaborn as sns
+# import seaborn as sns
 import matplotlib.pyplot as plt
 try:
     import plotly.express as px
