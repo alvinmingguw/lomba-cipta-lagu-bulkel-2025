@@ -1667,43 +1667,70 @@ if nav == "📝 Penilaian":
     st.markdown(f"**Total skor sementara:** {total_ui:.2f} / 100")
 
 
-    if "confirm_open" not in st.session_state:
-        st.session_state["confirm_open"] = False
+    # --- KONFIRMASI & SUBMIT ---
 
-    existing_row = load_existing_scores_for(active_juri, judul, pengarang, R_KEYS)
-    if existing_row:
-        st.info(
-            f"Anda sudah pernah menilai **{judul}** sebagai juri **{active_juri}**. "
-            f"Menekan **Konfirmasi & Simpan** akan **memperbarui** penilaian tersebut."
-        )
-    else:
-        st.caption("Belum ada penilaian Anda untuk lagu ini. Menyimpan akan membuat entri baru.")
+# reset panel konfirmasi kalau user ganti lagu/juri (opsional tapi membantu)
+ss = st.session_state
+modal_key = f"__confirm_open::{active_juri}::{judul}"
+if modal_key not in ss:
+    ss[modal_key] = False
 
-    st.button("💾 Tinjau & Submit", disabled=not all_ok, on_click=lambda: st.session_state.update(confirm_open=True))
-    # st.button("💾 Tinjau & Submit", on_click=lambda: st.session_state.update(confirm_open=True))
+existing_row = load_existing_scores_for(active_juri, judul, pengarang, R_KEYS)
+if existing_row:
+    st.info(
+        f"Anda sudah pernah menilai **{judul}** sebagai juri **{active_juri}**. "
+        f"Menekan **Konfirmasi & Simpan** akan **memperbarui** penilaian tersebut."
+    )
+else:
+    st.caption("Belum ada penilaian Anda untuk lagu ini. Menyimpan akan membuat entri baru.")
 
+if not all_ok:
+    st.warning("Lengkapi semua nilai dulu sebelum submit.")
 
-    if st.session_state["confirm_open"]:
-        st.markdown("### ✅ Konfirmasi Penilaian")
-        st.write(f"**Juri:** {active_juri} • **Judul:** {judul}" + (f" • **Pengarang:** _{pengarang}_" if (SHOW_AUTHOR and pengarang) else ""))
-        df_confirm = pd.DataFrame(sum_rows, columns=["Aspek","Bobot %","Nilai","Skor Terbobot"])
-        for col in ["Bobot %","Nilai","Skor Terbobot"]:
-            df_confirm[col] = df_confirm[col].apply(fmt_num)
+st.button(
+    "💾 Tinjau & Submit",
+    type="primary",
+    disabled=not all_ok,
+    on_click=lambda: ss.update({modal_key: True})
+)
+
+if ss[modal_key]:
+    st.markdown("### ✅ Konfirmasi Penilaian")
+    st.write(
+        f"**Juri:** {active_juri} • **Judul:** {judul}"
+        + (f" • **Pengarang:** _{pengarang}_" if (SHOW_AUTHOR and pengarang) else "")
+    )
+
+    df_confirm = pd.DataFrame(sum_rows, columns=["Aspek","Bobot %","Nilai","Skor Terbobot"])
+    for col in ["Bobot %","Nilai","Skor Terbobot"]:
+        df_confirm[col] = df_confirm[col].apply(fmt_num)
+
+    # Tampilkan tabel tanpa index (fallback mobile -> dataframe)
+    try:
         st.table(df_confirm.style.hide(axis="index"))
-        st.write(f"**Total:** {fmt_num(total_ui)} / 100")
+    except Exception:
+        st.dataframe(df_confirm, hide_index=True, use_container_width=True)
 
-        c_ok, c_cancel = st.columns(2)
-        with c_ok:
-            if st.button("✅ Konfirmasi & Simpan"):
-                # SELALU ambil worksheet & DF TERBARU di sini (hindari _auth_request, dan pastikan var ada)
-                ws_pen_fresh = _ensure_ws(open_sheet(), "Penilaian", ["timestamp","juri","judul","author","total"])
-                pen_df_latest = ws_to_df(ws_pen_fresh)
-                headers = ensure_pen_headers(ws_pen_fresh, R_KEYS)
+    st.write(f"**Total:** {fmt_num(total_ui)} / 100")
 
-                # cek apakah baris sudah ada
-                rownum = find_pen_row_index_df(pen_df_latest, active_juri, judul, pengarang)
+    c_ok, c_cancel = st.columns([1,1])
+    with c_ok:
+        if st.button("✅ Konfirmasi & Simpan", key=f"btn_save::{modal_key}"):
+            # Ambil worksheet & DF terbaru
+            ws_pen_fresh = _ensure_ws(open_sheet(), "Penilaian", ["timestamp","juri","judul","author","total"])
+            pen_df_latest = ws_to_df(ws_pen_fresh)
+            headers = ensure_pen_headers(ws_pen_fresh, R_KEYS)
 
-                if is_edit_mode and rownum:
+            # cek apakah baris sudah ada
+            rownum = find_pen_row_index_df(pen_df_latest, active_juri, judul, pengarang)
+
+            if rownum and not is_edit_mode:
+                st.error(
+                    f"Anda sudah punya penilaian untuk **{judul}** sebagai **{active_juri}**. "
+                    f"Gunakan ikon ✏️ di **Riwayat penilaian** untuk mengedit."
+                )
+            else:
+                if rownum:
                     # UPDATE
                     update_pen_row(
                         ws_pen_fresh, headers, rownum,
@@ -1712,12 +1739,6 @@ if nav == "📝 Penilaian":
                     )
                     st.success("Perubahan disimpan.")
                 else:
-                    if rownum:
-                        st.error(
-                            f"Anda sudah punya penilaian untuk **{judul}** sebagai **{active_juri}**. "
-                            f"Gunakan ikon ✏️ di **Riwayat penilaian** untuk mengedit."
-                        )
-                        st.stop()
                     # APPEND baru
                     append_pen_row(
                         ws_pen_fresh, headers,
@@ -1725,20 +1746,20 @@ if nav == "📝 Penilaian":
                         {k: scores_ui[k] for k in R_KEYS}, total_ui
                     )
                     st.success("Penilaian tersimpan.")
-                
-                st.session_state.pop(f"__prefilled_auto::{active_juri}::{judul}::{pengarang}", None)
 
-                # reset state + rerun
+                # bersihkan state
+                ss.pop(f"__prefilled_auto::{active_juri}::{judul}::{pengarang}", None)
                 for r in RUBRIK:
-                    st.session_state.pop(f"rate::{judul}::{r['key']}", None)
-                st.session_state["confirm_open"] = False
-                st.session_state.pop("__edit_target", None)
-                st.session_state.pop("__prefilled", None)
+                    ss.pop(f"rate::{judul}::{r['key']}", None)
+                ss[modal_key] = False
+                ss.pop("__edit_target", None)
+                ss.pop("__prefilled", None)
                 st.cache_data.clear()
                 st.rerun()
 
-        with c_cancel:
-            st.button("❌ Batal", on_click=lambda: st.session_state.update(confirm_open=False))
+    with c_cancel:
+        st.button("❌ Batal", on_click=lambda: ss.update({modal_key: False}))
+
 
 # =========================
 # Page: Analisis Syair
