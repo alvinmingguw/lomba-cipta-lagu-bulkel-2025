@@ -15,6 +15,7 @@ from googleapiclient.http import MediaIoBaseDownload
 from gspread.utils import rowcol_to_a1
 import numpy as np
 from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
@@ -1274,6 +1275,10 @@ MUSIC_RAW_MAP, (_MUSIC_BIN_FUNC, _MUSIC_BIN_CUTS) = _compute_all_music_raw()
 # =========================
 def show_winner_only():
     st.markdown("## ⛔️ Form Ditutup")
+    try:
+        st.image("assets/FLYER_01.png", use_column_width=True)
+    except Exception:
+        pass
     st.info("Terima kasih. Penjurian sudah ditutup.")
     winners = []
     if AUTO_WIN and not pen_df.empty:
