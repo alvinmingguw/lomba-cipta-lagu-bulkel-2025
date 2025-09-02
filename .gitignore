@@ -43,6 +43,7 @@ htmlcov/
 
 ######## Local data / artifacts (do not commit) ########
 files/
+files_xxx
 files_backup/
 files_anon/
 not_used/
