@@ -1555,6 +1555,57 @@ if nav == "📝 Penilaian":
         if src_sc in ("syair_chord","full_score","extract_notasi"):
             text_for_score = strip_chords(text_for_score)
         st.caption(f"Skor tema (prioritas THEME_SCORE_PRIORITY): **{theme_score(text_for_score):.2f}**")
+        
+    
+    # ========= UI helper: selectable rubric cards =========
+    RUBRIK_COLORS = {5:"#DCFCE7", 4:"#E9FDF0", 3:"#FEF9C3", 2:"#FFE9E1", 1:"#FDE2E2"}  # bg
+    RUBRIK_BORDERS = {5:"#16A34A", 4:"#22C55E", 3:"#F59E0B", 2:"#F97316", 1:"#EF4444"}  # border
+
+    def render_rubrik_row_as_cards(r: dict, *, judul: str, saran_map: dict):
+        """
+        r: item rubrik {'key','aspek','bobot','min','max','desc':{1..5:str}}
+        judul: judul lagu aktif → dipakai untuk session_state key
+        saran_map: dict seperti {'tema':4,'lirik':3,...} untuk caption saran.
+        """
+        wkey  = f"rate::{judul}::{r['key']}"
+        cur   = st.session_state.get(wkey)  # None atau 1..5
+
+        with st.expander(f"{r['aspek']} • Bobot {int(r['bobot'])}%"):
+            # Baris skor yang sekarang (optional)
+            top_cols = st.columns([1, 6, 1.2])
+            with top_cols[0]:
+                st.caption("Nilai")
+            with top_cols[1]:
+                if cur is None:
+                    st.markdown("**— pilih salah satu deskripsi di bawah —**")
+                else:
+                    st.markdown(f"**{cur}**")
+            with top_cols[2]:
+                if (r["key"] in saran_map) and (cur is None):
+                    st.caption(f"Saran: **{int(saran_map[r['key']])}**")
+
+            # Render 5 → 1 sebagai kartu bisa diklik
+            for score in [5,4,3,2,1]:
+                txt = r['desc'].get(score) or ""
+                if not txt:
+                    continue
+                selected = (cur == score)
+                bg = RUBRIK_COLORS[score]
+                br = RUBRIK_BORDERS[score]
+                style = (
+                    f"width:100%; text-align:left; padding:.9rem 1rem; "
+                    f"border-radius:10px; border:2px solid {br if selected else '#e5e7eb'}; "
+                    f"background:{bg if selected else '#fff'}; cursor:pointer;"
+                )
+                # gunakan button agar bisa klik di mobile
+                if st.button(txt, key=f"{wkey}::opt::{score}", use_container_width=True):
+                    st.session_state[wkey] = score  # simpan ANGKA saja
+                    st.experimental_rerun()
+                # hiasan visual (ubah label button jadi kosong, pindah teks ke markdown)
+                st.markdown(
+                    f"<div style='{style}'>{txt}</div>",
+                    unsafe_allow_html=True
+                )
 
     # ==== Context utk RUBRIK ====
     # Ambil judul lagu yang sudah dipilih di header form.
@@ -1582,7 +1633,7 @@ if nav == "📝 Penilaian":
     st.markdown("---")
     st.subheader(f"Rubrik Penilaian ({THEME})")
 
-    # tombol saran tetap
+    # Saran otomatis (TIDAK menimpa input yang sudah diisi)
     if st.button("✨ Terapkan saran (hanya yang kosong)"):
         for k, v in SARAN.items():
             wkey = f"rate::{pick}::{k}"
@@ -1590,44 +1641,21 @@ if nav == "📝 Penilaian":
                 st.session_state[wkey] = int(v)
         st.rerun()
 
+
     scores_ui, sum_rows, total_ui = {}, [], 0.0
 
     for r in RUBRIK:
+        render_rubrik_row_as_cards(r, judul=pick, saran_map=SARAN)
         wkey = f"rate::{pick}::{r['key']}"
-        opts = list(range(int(r["min"]), int(r["max"]) + 1))
-        cur_val = st.session_state.get(wkey, None)
+        val  = st.session_state.get(wkey)
+        scores_ui[r["key"]] = None if val is None else int(val)
 
-        with st.expander(f"{r['aspek']}  •  Bobot {int(r['bobot'])}%", expanded=True):
-            # pilih nilai (radio lebih pas di mobile)
-            val = st.radio(
-                "Nilai",
-                options=[None] + opts,
-                index=( [None] + opts ).index(cur_val) if cur_val in ([None] + opts) else 0,
-                format_func=lambda x: "— pilih —" if x is None else f"{SCORE_EMOJI.get(int(x),'')} {x}",
-                key=wkey,
-                horizontal=True if len(opts) <= 5 else False
-            )
-            if r["key"] in SARAN and st.session_state.get(wkey) is None:
-                st.caption(f"Saran: **{SARAN[r['key']]}**")
+        v = scores_ui[r["key"]] or 0
+        w = (v / max(int(r["max"]),1)) * float(r["bobot"])
+        total_ui += w
+        sum_rows.append([r["aspek"], r["bobot"], v if v else "-", f"{w:.2f}"])
 
-            # deskripsi level (5 → 1) dengan kotak berwarna
-            for score in [5,4,3,2,1]:
-                desc = r["desc"].get(score, "")
-                if desc:
-                    st.markdown(
-                        f"<div class='cell-box r{score}' style='margin:.25rem 0'>{desc}</div>",
-                        unsafe_allow_html=True
-                    )
-
-            scores_ui[r["key"]] = None if val is None else int(val)
-
-            # subtotal terbobot
-            v = scores_ui[r["key"]] or 0
-            w = (v / max(r["max"], 1)) * r["bobot"]
-            sum_rows.append([r["aspek"], r["bobot"], v if v else "-", f"{w:.2f}"])
-            total_ui += w
-
-    all_ok = all(scores_ui.get(k) is not None for k in [x["key"] for x in RUBRIK])
+    all_ok = all(scores_ui.get(x["key"]) is not None for x in RUBRIK)
     st.markdown(f"**Total skor sementara:** {total_ui:.2f} / 100")
 
 
