@@ -54,6 +54,7 @@ temp/
 *.tmp
 *.bak
 ~$*.xlsx
+generate_certificates.py
 
 # Large binaries (kept outside git; deploy via Drive/Sheets instead)
 *.zip

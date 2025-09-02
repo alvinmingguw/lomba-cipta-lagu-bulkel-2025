@@ -1,6 +1,7 @@
 # Data & Scientific Computing
 matplotlib
 numpy
+openpyxl
 pandas
 
 # Google Cloud & API
