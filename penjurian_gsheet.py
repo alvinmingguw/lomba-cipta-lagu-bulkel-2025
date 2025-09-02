@@ -1709,7 +1709,7 @@ if ss[modal_key]:
     try:
         st.table(df_confirm.style.hide(axis="index"))
     except Exception:
-        st.dataframe(df_confirm, hide_index=True, use_container_width=True)
+        st.dataframe(df_confirm, hide_index=True, width='stretch')
 
     st.write(f"**Total:** {fmt_num(total_ui)} / 100")
 
