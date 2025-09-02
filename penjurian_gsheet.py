@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Penjurian Lagu - Streamlit + GSheet + GDrive.
+# Penjurian Lagu - Streamlit + GSheet + GDrive
 
 import os, io, re, unicodedata, datetime, base64, zipfile, tempfile, math
 import requests
