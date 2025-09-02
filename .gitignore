@@ -1,0 +1,87 @@
+# ==============================
+# Git Ignore for Streamlit app
+# Lomba Cipta Lagu (GKI Perumnas)
+# ==============================
+
+######## OS / Editors ########
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+######## Python ########
+__pycache__/
+*.py[cod]
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+######## Streamlit ########
+.streamlit/secrets.toml
+.streamlit/state/
+.streamlit/cache/
+.streamlit/logs/
+.st_cache*
+.st_cach*
+.st_session*
+.st_state*
+.st_artifacts/
+
+######## Local data / artifacts (do not commit) ########
+files/
+files_backup/
+files_anon/
+not_used/
+logs/
+tmp/
+temp/
+*.log
+*.tmp
+*.bak
+~$*.xlsx
+
+# Large binaries (kept outside git; deploy via Drive/Sheets instead)
+*.zip
+*.mp3
+*.m4a
+*.wav
+*.flac
+*.pdf
+
+######## Credentials & secrets (specific patterns) ########
+*service_account*.json
+credentials*.json
+*_creds.json
+*.pem
+*.key
+.env
+.env.*
+secrets.*
+.streamlit/*.yaml
+.streamlit/*.yml
+
+######## Build / Distribution ########
+dist/
+build/
+git_init.sh
+
+######## Jupyter / IPython ########
+.ipynb_checkpoints/
+
+######## Project-specific (generated/working files) ########
+/PENILAIAN_LOMBA_CIPTA_LAGU.xlsx
+/penilaian.csv

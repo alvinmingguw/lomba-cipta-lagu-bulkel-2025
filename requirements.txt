@@ -1,0 +1,11 @@
+requests
+pandas
+streamlit
+pymupdf
+gspread
+google-auth
+google-auth-httplib2
+google-api-python-client
+numpy
+matplotlib
+reportlab
