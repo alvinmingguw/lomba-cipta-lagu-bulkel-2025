@@ -1705,12 +1705,18 @@ if ss[modal_key]:
     for col in ["Bobot %","Nilai","Skor Terbobot"]:
         df_confirm[col] = df_confirm[col].apply(fmt_num)
 
-    # Tampilkan tabel tanpa index (fallback mobile -> dataframe)
-    try:
-        st.table(df_confirm.style.hide(axis="index"))
-    except Exception:
-        st.dataframe(df_confirm, hide_index=True, width='stretch')
-
+    st.dataframe(
+        df_confirm,
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "Aspek": st.column_config.TextColumn("Aspek", width="stretch"),
+            "Bobot %": st.column_config.NumberColumn("Bobot %", format="%d"),
+            "Nilai": st.column_config.NumberColumn("Nilai", format="%d"),
+            "Skor Terbobot": st.column_config.NumberColumn("Skor Terbobot", format="%.2f"),
+        },
+    )
+    
     st.write(f"**Total:** {fmt_num(total_ui)} / 100")
 
     c_ok, c_cancel = st.columns([1,1])
