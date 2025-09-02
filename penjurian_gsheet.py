@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-# Penjurian Lagu - GSheet (Drive + Prioritas Sumber + Gate Form)
-# Versi: 2025-09-02 (Audio GDrive streaming-first + Skor Lirik & Musik baru)
+# Penjurian Lagu - Streamlit + GSheet + GDrive
 
 import os, io, re, unicodedata, datetime, base64, zipfile, tempfile, math
 import requests
@@ -27,7 +26,6 @@ from reportlab.lib.units import cm
 from reportlab.lib.utils import ImageReader
 from typing import Callable, Tuple
 from collections import Counter
-import seaborn as sns
 import matplotlib.pyplot as plt
 try:
     import plotly.express as px
@@ -227,8 +225,6 @@ def streamable_gdrive_audio_src(file_id: str):
 
     # 1) coba URL langsung (paling ringan)
     url = drive_direct_url(file_id)
-    # Banyak kasus audio < 100MB + share "Anyone with link" akan play lancar.
-    # Kita tidak HEAD dulu untuk hemat; biarkan browser handle.
     return {"mode":"url", "url": url, "mime": pick_audio_format(mime, url)}
 
 # =========================
@@ -630,7 +626,7 @@ def strip_chords(text: str) -> str:
 
 # --- Kekuatan Lirik (HYBRID, konteks keluarga/rohani, manusiawi) ---
 
-# Kamus ringan (bisa nanti dipindah ke Google Sheet)
+# Kamus ringan
 _EMO_WORDS = {
     "positif": ["kasih","doa","syukur","sukacita","rukun","pengharapan","setia","mengampuni","peduli","damai"],
     "keluarga": ["keluarga","orang tua","ayah","bunda","ibu","anak","rumah","bersama","rumah tangga"]
@@ -648,7 +644,6 @@ _SECTION_TOKENS = ["reff","refrein","chorus","verse","bait","bridge","pre-chorus
 _STOPWORDS_ID = {"yang","dan","di","ke","kau","ku","mu","oh","la","na","ini","itu","karena","untuk","dengan","dalam","pada","ada"}
 
 def _norm_id(s: str) -> str:
-    # pakai normalizer kamu kalau sudah ada; fallback sederhana:
     s = s.lower()
     try:
         import unicodedata
@@ -1082,6 +1077,33 @@ def find_pen_row_index_df(pen_df: pd.DataFrame, juri: str, judul: str, author: s
     idx = df.index[m].tolist()
     return (idx[0] + 2) if idx else None
 
+def load_existing_scores_for_df(pen_df: pd.DataFrame, juri: str, judul: str, author: str, rubrik_keys):
+    if pen_df is None or pen_df.empty:
+        return {}
+    df = pen_df.rename(columns=lambda c: VARIANTS.get(c, c)).copy()
+    q = (df["juri"] == juri) & (df["judul"] == judul)
+    if "author" in df.columns:
+        df = df[q & (df["author"].fillna("") == (author or ""))]
+    else:
+        df = df[q]
+    if df.empty:
+        return {}
+    if "timestamp" in df.columns:
+        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+        df = df.sort_values("timestamp").tail(1)
+    row = df.iloc[0]
+    out = {}
+    for k in rubrik_keys:
+        v = row.get(k)
+        if v is None or str(v).strip() == "":
+            continue
+        try:
+            out[k] = int(float(v))
+        except:
+            pass
+    return out
+
+
 def load_existing_scores_for(juri, judul, author, rubrik_keys):
     ws_pen2 = _ensure_ws(open_sheet(), "Penilaian", ["timestamp","juri","judul","author","total"])
     df = ws_to_df(ws_pen2)
@@ -1375,10 +1397,12 @@ if nav == "📝 Penilaian":
     genre = detect_genre(chord_sequence_from_sources(aset, CHORD_SOURCE_PRIORITY))
     st.markdown(f"**Detected Genre:** {genre}")
 
-    # Prefill nilai existing (sekali untuk kombinasi ini)
+    # --- Prefill nilai existing (fresh, bukan cache awal) ---
     prefill_key = f"__prefilled_auto::{active_juri}::{judul}::{pengarang}"
     if not st.session_state.get(prefill_key, False):
-        prev_scores = load_existing_scores_for(active_juri, judul, pengarang, R_KEYS)
+        ws_pen_fresh = _ensure_ws(open_sheet(), "Penilaian", ["timestamp","juri","judul","author","total"])
+        pen_df_latest = ws_to_df(ws_pen_fresh)
+        prev_scores = load_existing_scores_for_df(pen_df_latest, active_juri, judul, pengarang, R_KEYS)
         if prev_scores:
             limits = {r["key"]: (int(r["min"]), int(r["max"])) for r in RUBRIK}
             for k, v in prev_scores.items():
@@ -1387,6 +1411,7 @@ if nav == "📝 Penilaian":
                     st.session_state[f"rate::{judul}::{k}"] = int(v)
             st.caption("Nilai sebelumnya dimuat otomatis. Silakan ubah jika perlu.")
         st.session_state[prefill_key] = True
+
 
     # Mode edit dari Riwayat
     edit_tg = st.session_state.get("__edit_target")
@@ -1518,21 +1543,17 @@ if nav == "📝 Penilaian":
         except Exception:
             return str(x)
 
-    # Bangun saran otomatis dari logika terbaru
-    pick = st.selectbox("Pilih lagu", list(SONGS.keys()), key="pick_song")
-    aset = SONGS[pick] if 'SONGLS' in globals() else SONGS[pick]  # pakai SONGS saja jika tak ada SONGLS
-    SARAN = build_suggestions(pick, aset)
-
-    judul = pick
-    pengarang = aset.get("author", "")
+    # Bangun saran otomatis dari logika terbaru —> gunakan judul & aset terpilih
+    SARAN = build_suggestions(judul, aset)
 
     # Saran otomatis (tidak menimpa nilai yang sudah diisi manual)
     if st.button("✨ Terapkan saran (hanya yang kosong)"):
         for k, v in SARAN.items():
             wkey = f"rate::{judul}::{k}"
-            if st.session_state.get(wkey) is None:   # cuma isi yang masih None
+            if st.session_state.get(wkey) is None:   # hanya yang masih kosong
                 st.session_state[wkey] = int(v)
         st.rerun()
+
 
     hc = st.columns([1.1, 2.0, .7, 1.1, 1.1, 1.1, 1.1, 1.1])
     with hc[0]: st.markdown("<div class='rubrik-head rubrik-cell'>Nilai</div>", unsafe_allow_html=True)
@@ -1544,7 +1565,7 @@ if nav == "📝 Penilaian":
     scores_ui, sum_rows, total_ui = {}, [], 0.0
     for r in RUBRIK:
         c = st.columns([1.1, 2.0, .7, 1.1, 1.1, 1.1, 1.1, 1.1], gap="small")
-        wkey = f"rate::{judul}::{r['key']}"
+        wkey = f"rate::{judul}::{r['key']}" 
         opts = list(range(int(r["min"]), int(r["max"])+1))
 
         with c[0]:
@@ -2061,7 +2082,6 @@ elif nav == "📊 Hasil & Analitik":
 
         # Exports
         # (fungsi export_excel_lengkap/export_pdf_rekap/export_pdf_winners/export_certificates_zip
-        #  disalin dari versi sebelumnya — tidak diubah, jadi aman dipakai)
         @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
         def make_bar_png(series_or_df, title="", width=900, height=400):
             plt.figure(figsize=(width/100, height/100), dpi=100)

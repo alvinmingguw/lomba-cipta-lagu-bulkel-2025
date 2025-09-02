@@ -1,11 +1,22 @@
-requests
+# Data & Scientific Computing
+matplotlib
+numpy
 pandas
-streamlit
-pymupdf
+
+# Google Cloud & API
 gspread
+google-api-python-client
 google-auth
 google-auth-httplib2
-google-api-python-client
-numpy
-matplotlib
+google-auth-oauthlib
+
+# PDF Handling
+pymupdf
 reportlab
+
+# Web & API
+requests
+streamlit
+
+# Visualization
+plotly
