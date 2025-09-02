@@ -2729,7 +2729,7 @@ elif nav == "📊 Hasil & Analitik":
             tight = ranking2[ranking2["lead_to_next"] > 0].sort_values("lead_to_next")
             if not tight.empty:
                 bullets.append(
-                    f"⚔️ <b>Pertarungan terketat</b>: <b>{tight.iloc[0]['judul']}</b> "
+                    f"⚔️ <b>Persaingan terketat</b>: <b>{tight.iloc[0]['judul']}</b> "
                     f"unggul <span style='color:#8E44AD'>+{_fmt_num(tight.iloc[0]['lead_to_next'])}</span> poin"
                 )
 
@@ -2737,7 +2737,7 @@ elif nav == "📊 Hasil & Analitik":
         if 'melt' in locals() and not melt.empty:
             by_aspek = melt.groupby("Aspek")["nilai"].mean().sort_values(ascending=False)
             bullets.append(f"💪 <b>Aspek terkuat</b>: <b>{by_aspek.index[0]}</b>")
-            bullets.append(f"🧩 <b>Aspek terlemah</b>: <b>{by_aspek.index[-1]}</b>")
+            bullets.append(f"🧩 <bAspek yang perlu ditingkatkan</b>: <b>{by_aspek.index[-1]}</b>")
 
         # 3) Konsistensi antar juri per lagu (SD kecil = lebih sepakat)
         if "total" in p.columns:
@@ -2752,7 +2752,7 @@ elif nav == "📊 Hasil & Analitik":
                     f"(SD {_fmt_num(most_cons['std_total'])})"
                 )
                 bullets.append(
-                    f"⚠️ <b>Paling kontroversial</b>: <b>{most_div['judul']}</b> "
+                    f"⚠️ <b>Paling beragam penilaian</b>: <b>{most_div['judul']}</b> "
                     f"(SD {_fmt_num(most_div['std_total'])})"
                 )
 
@@ -2766,7 +2766,7 @@ elif nav == "📊 Hasil & Analitik":
                 key_to_name = {r["key"]: r["aspek"] for r in RUBRIK}
                 top_key = corr_series.index[0]
                 bullets.append(
-                    f"🎯 <b>Aspek paling menentukan total</b>: "
+                    f"🎯 <b>Aspek dengan pengaruh terbesar pada skor total</b>: "
                     f"<b>{key_to_name.get(top_key, top_key)}</b> "
                     f"(r={_fmt_num(corr_series.iloc[0])})"
                 )
