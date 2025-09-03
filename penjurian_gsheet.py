@@ -2321,6 +2321,42 @@ if nav_selection == "🔎 Analisis Syair":
             """)
         st.markdown("---")
 
+
+        def get_lyric_dna_scores(lyrics_text: str) -> dict:
+            """Menghitung 5 dimensi skor (0-100) untuk membuat spider chart DNA Lirik."""
+            if not lyrics_text:
+                return {"Relevansi Tema": 0, "Kualitas Puitis": 0, "Orisinalitas": 0, "Struktur Jelas": 0, "Kekayaan Kata": 0}
+
+            t_norm = _norm_id(lyrics_text)
+            words = t_norm.split()
+            
+            # 1. Relevansi Tema (skor 0-100 dari fungsi yang sudah ada)
+            relevansi_tema = theme_score(lyrics_text)
+
+            # 2. Kualitas Puitis (berdasarkan jumlah imagery, 4 kata dianggap 100%)
+            imagery_hits = sum(1 for kw in _IMAGERY_V2 if kw in t_norm)
+            kualitas_puitis = min(100.0, (imagery_hits / 4.0) * 100.0)
+
+            # 3. Orisinalitas (100 - penalti klise, setiap klise mengurangi 25 poin)
+            cliche_hits = sum(1 for c in _CLICHES if c in t_norm)
+            orisinalitas = max(0.0, 100.0 - (cliche_hits * 25.0))
+
+            # 4. Struktur Jelas (berdasarkan jumlah penanda bagian, 3 penanda dianggap 100%)
+            tokens = sum(1 for tok in _SECTION_TOKENS if tok in t_norm)
+            struktur_jelas = min(100.0, (tokens / 3.0) * 100.0)
+
+            # 5. Kekayaan Kata (berdasarkan TTR, TTR 0.65 dianggap 100%)
+            ttr = len(set(words)) / len(words) if words else 0
+            kekayaan_kata = min(100.0, (ttr / 0.65) * 100.0)
+
+            return {
+                "Relevansi Tema": relevansi_tema,
+                "Kualitas Puitis": kualitas_puitis,
+                "Orisinalitas": orisinalitas,
+                "Struktur Jelas": struktur_jelas,
+                "Kekayaan Kata": kekayaan_kata
+            }
+            
         # --- 1. Data Processing dengan Skor v2 ---
         # (Gunakan @st.cache_data agar tidak dihitung ulang setiap interaksi)
         @st.cache_data
@@ -2334,17 +2370,21 @@ if nav_selection == "🔎 Analisis Syair":
                 src_sc, txt = _pick_text_variant(aset, LYRICS_SCORE_PRIORITY, _ex_sy, _ex_no)
                 txt_clean = strip_chords(txt) if src_sc in ("syair_chord", "full_score", "extract_notasi") else txt
                 
+                dna_scores = get_lyric_dna_scores(txt_clean) # Panggil fungsi baru
+
                 rows.append({
                     "Judul": t,
                     "Pengarang": aset.get("author", ""),
                     "Syair": txt_clean,
                     # "Skor Tema (1-5)": theme_score(txt_clean) if txt_clean else 0.0,
                     "Skor Tema (1-5)": _map_0_100_to_1_5(theme_score(txt_clean)) if txt_clean else 1,
-                    "Kekuatan Lirik (1-5)": _lyrics_strength_score_v2(txt_clean) if txt_clean else 1
-                })
+                    "Kekuatan Lirik (1-5)": _lyrics_strength_score_v2(txt_clean) if txt_clean else 1,
+                     "LyricDNA": dna_scores
+})
             return pd.DataFrame(rows).sort_values(["Kekuatan Lirik (1-5)", "Skor Tema (1-5)"], ascending=False).reset_index(drop=True)
 
         df_lyrics = process_lyrics_data()
+        
         
         # --- Fungsi Helper Baru untuk Analisis Naratif Tema ---
         def explain_theme_v2(text: str, score: float) -> str:
@@ -2435,10 +2475,27 @@ if nav_selection == "🔎 Analisis Syair":
                         """, unsafe_allow_html=True)
 
                     with col2:
+                        st.subheader("DNA Lirik (Spider Chart)")
+                        dna_data = row["LyricDNA"]
+
+                        fig = go.Figure(go.Scatterpolar(
+                            r=list(dna_data.values()),
+                            theta=list(dna_data.keys()),
+                            fill='toself',
+                            name=judul
+                        ))
+                        fig.update_layout(
+                            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                            showlegend=False,
+                            margin=dict(l=40, r=40, t=40, b=40),
+                            height=300
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
                         st.subheader("Skor & Analisis Naratif")
                         with st.container(border=True):
                             st.metric("Skor Tema (Relevansi Literal)", f"{int(row['Skor Tema (1-5)'])}/5")
-                            st.markdown(explain_theme_v2(row["Syair"], row['Skor Tema (1-5)']), unsafe_allow_html=True)
+                            st.markdown(explain_theme_v2(row["Syair"], int(row['Skor Tema (1-5)'])), unsafe_allow_html=True)
                         with st.container(border=True):
                             st.metric("Skor Kekuatan Lirik (Kualitas Puitis)", f"{row['Kekuatan Lirik (1-5)']}/5")
                             st.markdown(explain_lyrics_strength_v2(row["Syair"]), unsafe_allow_html=True)
