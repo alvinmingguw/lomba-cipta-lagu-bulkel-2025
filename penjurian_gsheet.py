@@ -1534,7 +1534,7 @@ def load_existing_scores_for(juri, judul, author, rubrik_keys):
 
 def update_pen_row(ws, headers, rownum: int, juri, judul, author, scores: dict, total: float):
     row = {h:"" for h in headers}
-    row["timestamp"] = datetime.now(ZoneInfo("Asia/Jakarta")).isoformat(timespec="seconds")
+    row["timestamp"] = datetime.datetime.now(ZoneInfo("Asia/Jakarta")).isoformat(timespec="seconds")
     row["juri"] = juri; row["judul"] = judul; row["author"] = author
     for k, v in scores.items():
         if k in headers: row[k] = v
@@ -1547,7 +1547,7 @@ def ensure_pen_headers(ws, rubrik_keys):
 
 def append_pen_row(ws, headers, juri, judul, author, scores, total):
     row = {h:"" for h in headers}
-    row["timestamp"] = datetime.now(ZoneInfo("Asia/Jakarta")).isoformat(timespec="seconds")
+    row["timestamp"] = datetime.datetime.now(ZoneInfo("Asia/Jakarta")).isoformat(timespec="seconds")
     row["juri"] = juri
     row["judul"] = judul
     row["author"] = author
