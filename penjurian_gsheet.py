@@ -2596,16 +2596,33 @@ if nav_selection == "🎼 Analisis Musik":
 
                     with col1:
                         st.subheader("DNA Musikal (Spider Chart)")
-                        # SPIDER CHART LAMA YANG LEBIH BAIK
-                        akor_unik_pct = min(100.0, (r["Jumlah_Akor_Unik"]/12.0)*100.0)
-                        transisi_unik_pct  = min(100.0, (r["Transisi_Unik"]/15.0)*100.0)
+
+                        # --- PENYESUAIAN SKALA UNTUK VISUALISASI YANG LEBIH BAIK ---
+                        # Definisikan nilai "maksimum realistis" untuk setiap metrik.
+                        # Nilai ini akan dianggap sebagai 100% di grafik, sehingga chart lebih "gampang mentok".
+                        # Anda bisa mengubah angka-angka ini sesuai selera.
+                        MAX_AKOR_UNIK = 8.0       # Lagu dengan 8 akor unik sudah dianggap sangat kaya (skor 100)
+                        MAX_TRANSISI_UNIK = 10.0  # Lagu dengan 10 transisi unik sudah sangat variatif (skor 100)
+                        MAX_EXTENSIONS_PCT = 25.0 # 25% akor extension sudah sangat jazzy (skor 100)
+                        MAX_SLASH_PCT = 30.0      # 30% slash chord sudah sangat dinamis (skor 100)
+                        MAX_NONDIATONIK_PCT = 20.0# 20% akor non-diatonik sudah sangat berani (skor 100)
+
+                        # Hitung nilai baru yang sudah diskalakan (0-100)
+                        # min(100.0, ...) memastikan skor tidak akan lebih dari 100
+                        skor_akor_unik = min(100.0, (r["Jumlah_Akor_Unik"] / MAX_AKOR_UNIK) * 100.0)
+                        skor_transisi_unik = min(100.0, (r["Transisi_Unik"] / MAX_TRANSISI_UNIK) * 100.0)
+                        skor_extensions = min(100.0, (r["%Extensions_num"] / MAX_EXTENSIONS_PCT) * 100.0)
+                        skor_slash = min(100.0, (r["%Slash_num"] / MAX_SLASH_PCT) * 100.0)
+                        skor_nondi = min(100.0, (r["%NonDiatonik_num"] / MAX_NONDIATONIK_PCT) * 100.0)
+
                         radar_vals = {
-                            "Akor Unik": akor_unik_pct, 
-                            "Transisi Unik": transisi_unik_pct, 
-                            "Extensions %": r["%Extensions_num"], 
-                            "Slash Chords %": r["%Slash_num"], 
-                            "Non-Diatonik %": r["%NonDiatonik_num"]
+                            "Akor Unik": skor_akor_unik,
+                            "Transisi Unik": skor_transisi_unik,
+                            "Extensions %": skor_extensions,
+                            "Slash Chords %": skor_slash,
+                            "Non-Diatonik %": skor_nondi
                         }
+
                         fig = go.Figure(go.Scatterpolar(r=list(radar_vals.values()), theta=list(radar_vals.keys()), fill='toself', name=judul))
                         fig.update_layout(showlegend=False, polar=dict(radialaxis=dict(visible=True, range=[0,100])), margin=dict(l=60, r=60, t=40, b=40))
                         st.plotly_chart(fig, use_container_width=True)
