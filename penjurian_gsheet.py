@@ -2745,10 +2745,13 @@ if nav_selection == "🧮 Nilai Saya":
         st.markdown("---")
 
         # --- 3. Layout Dua Kolom untuk Daftar Lagu ---
-        col_sudah, col_belum = st.columns(2)
+    col_sudah, col_belum = st.columns(2)
 
-        with col_sudah:
-            st.subheader(f"✅ Sudah Dinilai ({sudah})")
+    with col_sudah:
+        st.subheader(f"✅ Sudah Dinilai ({sudah})")
+
+        # BUNGKUS DAFTAR DENGAN st.expander
+        with st.expander("Tampilkan/Sembunyikan Daftar", expanded=False):
             if not sudah_dinilai_titles:
                 st.info("Belum ada lagu yang Anda nilai.")
             else:
@@ -2756,7 +2759,7 @@ if nav_selection == "🧮 Nilai Saya":
                 sorted_graded = sorted(sudah_dinilai_titles, key=lambda t: float(mine_scores[t].get('total', 0)), reverse=True)
                 for judul_lagu in sorted_graded:
                     data_lagu = mine_scores[judul_lagu]
-                    
+
                     with st.container(border=True):
                         c1s, c2s = st.columns([4, 1])
                         with c1s:
@@ -2765,7 +2768,7 @@ if nav_selection == "🧮 Nilai Saya":
                             if SHOW_AUTHOR and auth:
                                 line += f" • _{auth}_"
                             st.markdown(line)
-                            
+
                             score_total = pd.to_numeric(data_lagu.get('total', 0))
                             st.markdown(f"##### Skor Total: <span style='color: #16A34A; font-weight: bold;'>{score_total:.2f}</span>", unsafe_allow_html=True)
 
