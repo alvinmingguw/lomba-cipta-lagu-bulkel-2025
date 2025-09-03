@@ -73,8 +73,25 @@ st.markdown("""
     text-align:center;
   }
   .block-container{ max-width:1300px; }
+  
+  /* Full-width audio */
+      .stAudio { width: 100% !important; }
+
+      /* Kurangi jarak antar elemen di mobile */
+      @media (max-width: 640px) {
+        .block-container { padding-top: 0.5rem; padding-bottom: 3.5rem; }
+        .stTabs [data-baseweb="tab-list"] { gap: .25rem; }
+        .stTabs [data-baseweb="tab"] { padding: .35rem .6rem; font-size: 0.92rem; }
+      }
+      
 </style>
 """, unsafe_allow_html=True)
+
+if st.session_state.pop("__scroll_top", False):
+    components.html(
+        "<script>window.scrollTo({top: 0, behavior: 'smooth'});</script>",
+        height=0,
+    )
 
 def render_rubrik(rubrik, saran):
     st.markdown("""
@@ -1330,7 +1347,7 @@ with st.container():
         st.image(BANNER, width='stretch')
     except Exception:
         pass
-    nav = st.radio("Menu", NAV_OPTS, horizontal=True, label_visibility="collapsed", key="nav")
+    # nav = st.radio("Menu", NAV_OPTS, horizontal=True, label_visibility="collapsed", key="nav")
     st.markdown(f"### 📝 Form Penilaian Juri (**{st.session_state.get('active_juri','-')}**)")  
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1341,29 +1358,38 @@ phrases, keywords = parse_keywords(kw_df)
 theme_score, highlight_matches = make_theme_functions(phrases, keywords)
 VARIANTS = parse_variants(variants_df)
 
+
 # ==== Sidebar: juri aktif ====
 with st.sidebar:
-    st.markdown("### 👤 Juri aktif")
-    # Pastikan ada default yang pasti terset
-    if "active_juri" not in st.session_state or not st.session_state["active_juri"]:
-        if JURIS:
-            st.session_state["active_juri"] = JURIS[0]
+    st.markdown("### 🧑‍⚖️ Juri aktif")
+    # init sekali
+    if "active_juri" not in st.session_state:
+        st.session_state.active_juri = None
 
-    active_juri = st.selectbox(
+    juri_list = sorted(list(JURIS))  # asumsi kamu sudah punya set/list nama juri
+    pick_juri = st.selectbox(
         "Pilih juri",
-        JURIS,
-        index=(JURIS.index(st.session_state["active_juri"]) if st.session_state["active_juri"] in JURIS else 0),
-        key="active_juri"
+        options=["— pilih juri —"] + juri_list,
+        index=(0 if st.session_state.active_juri is None
+               else 1 + juri_list.index(st.session_state.active_juri)),
+        help="Pilihan ini berlaku untuk semua menu.",
     )
-    colA, colB = st.columns(2)
-    with colA:
-        if st.button("🔁 Ganti Juri (reset pilihan)", width='stretch'):
-            for k in list(st.session_state.keys()):
-                if k.startswith("rate::"): st.session_state.pop(k, None)
-            st.session_state["confirm_open"] = False
+
+    if pick_juri != "— pilih juri —":
+        if pick_juri != st.session_state.active_juri:
+            st.session_state.active_juri = pick_juri
+            # reset nilai rubrik ketika ganti juri (opsional):
+            for r in RUBRIK:
+                st.session_state.pop(f"rate::*::{r['key']}", None)
             st.rerun()
-    with colB:
-        st.caption("Berlaku di semua menu")
+    else:
+        st.session_state.active_juri = None
+
+# guard kecil
+active_juri = st.session_state.active_juri
+if not active_juri:
+    st.warning("Silakan pilih **juri** di sidebar untuk mulai menilai.")
+    st.stop()
 
 # =========================
 # Halaman: Penilaian
@@ -1395,8 +1421,14 @@ def _draw_black_header(canvas_obj, doc, title, subtitle=None):
         canvas_obj.setFillColor(colors.HexColor("#D4AF37"))
         canvas_obj.drawString(40, H-60, subtitle)
     canvas_obj.restoreState()
+    
+# ==== NAV: tabs (gantikan radio NAV lama) ====
+tab_pen, tab_syair, tab_musik, tab_nilai, tab_analitik = st.tabs(
+    ["📝 Penilaian", "🔎 Analisis Syair", "🎼 Analisis Musik", "🧮 Nilai Saya", "📊 Hasil & Analitik"]
+)
 
-if nav == "📝 Penilaian":
+with tab_pen:
+    # st.markdown(f"## 📝 Form Penilaian Juri ({active_juri})")
     labels = [f"{t} — {SONGS[t]['author']}" if (SHOW_AUTHOR and SONGS[t]['author']) else t for t in TITLES]
     
     # ====== PEMILIHAN LAGU (state-stable by title, not by label) ======
@@ -1418,7 +1450,7 @@ if nav == "📝 Penilaian":
     judul = st.selectbox(
         "Pilih Lagu",
         TITLES,
-        index=(TITLES.index(st.session_state["selected_title"]) if st.session_state["selected_title"] in TITLES else 0),
+        # index=(TITLES.index(st.session_state["selected_title"]) if st.session_state["selected_title"] in TITLES else 0),
         format_func=_format_title,
         key="selected_title",
     )
@@ -1681,7 +1713,13 @@ if nav == "📝 Penilaian":
         ss[modal_key] = False
 
     existing_row = load_existing_scores_for(active_juri, judul, pengarang, R_KEYS)
-    if existing_row:
+    just_saved = st.session_state.pop("__just_saved", False)
+
+    # saat save sukses
+    st.session_state["__just_saved"] = True  # set bersama __scroll_top
+
+    # waktu render:
+    if existing_row and not just_saved:        
         st.info(
             f"Anda sudah pernah menilai **{judul}** sebagai juri **{active_juri}**. "
             f"Menekan **Konfirmasi & Simpan** akan **memperbarui** penilaian tersebut."
@@ -1765,7 +1803,8 @@ if nav == "📝 Penilaian":
                     ss[modal_key] = False
                     ss.pop("__edit_target", None)
                     ss.pop("__prefilled", None)
-                    st.cache_data.clear()
+                    # st.cache_data.clear()
+                    st.session_state["__scroll_top"] = True
                     st.rerun()
 
         with c_cancel:
@@ -1775,7 +1814,7 @@ if nav == "📝 Penilaian":
 # =========================
 # Page: Analisis Syair
 # =========================
-elif nav == "🔍 Analisis Syair":
+with tab_syair:
     st.title("🔍 Analisis Syair terhadap Tema")
     st.caption(f"Tema: **{THEME}** — frasa/keyword dari sheet `Keywords`.")
 
@@ -1853,7 +1892,7 @@ elif nav == "🔍 Analisis Syair":
 # =========================
 # Page: Analisis Musik (Plotly, multi-chart)
 # =========================
-elif nav == "🎼 Analisis Musik":
+with tab_musik:
     st.title("🎼 Analitik Musik (Chord)")
 
     rows = []
@@ -1998,7 +2037,7 @@ elif nav == "🎼 Analisis Musik":
 # =========================
 # Page: Nilai Saya
 # =========================
-elif nav == "🧾 Nilai Saya":
+with tab_nilai:
     st.title("🧾 Nilai Saya")
     st.caption(f"Juri aktif: **{active_juri}** (ubah di panel kiri)")
 
@@ -2064,7 +2103,7 @@ elif nav == "🧾 Nilai Saya":
 # =========================
 # Page: Hasil & Analitik
 # =========================
-elif nav == "📊 Hasil & Analitik":
+with tab_analitik:
     st.title("📊 Hasil & Analitik")
     ws_pen2 = _ensure_ws(open_sheet(), "Penilaian", ["timestamp","juri","judul","author","total"])
     pen_df2 = ws_to_df(ws_pen2)
