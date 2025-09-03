@@ -14,6 +14,7 @@ google-auth-oauthlib
 # PDF Handling
 pymupdf
 reportlab
+kaleido
 
 # Web & API
 requests
@@ -21,3 +22,9 @@ streamlit
 
 # Visualization
 plotly
+
+#Excel export
+xlsxwriter
+
+# Machine Learning for Text Analysis
+scikit-learn
