@@ -1643,7 +1643,7 @@ MUSIC_RAW_MAP, (_MUSIC_BIN_FUNC, _MUSIC_BIN_CUTS) = _compute_all_music_raw()
 def show_winner_only():
     st.markdown("## ⛔️ Form Ditutup")
     try:
-        st.image("assets/FLYER_01.png", use_container_width=True)
+        st.RLImage("assets/FLYER_01.png", use_container_width=True)
     except Exception:
         pass
     st.info("Terima kasih. Penjurian sudah ditutup.")
@@ -1694,7 +1694,7 @@ if "nav" not in st.session_state:
 with st.container():
     st.markdown("<div class='app-sticky'>", unsafe_allow_html=True)
     try:
-        st.image(BANNER, width='stretch')
+        st.RLImage(BANNER, width='stretch')
     except Exception:
         pass
     # nav = st.radio("Menu", NAV_OPTS, horizontal=True, label_visibility="collapsed", key="nav")
@@ -1973,14 +1973,14 @@ if nav_selection == "📝 Penilaian":
         # SYAIR (PDF)
         with st.expander("📝 Syair (klik untuk buka)", expanded=False):
             png = pdf_first_page_png_bytes(aset["syair"], dpi=160)
-            if png: st.image(png, caption="Preview halaman 1", width='stretch')
+            if png: st.RLImage(png, caption="Preview halaman 1", width='stretch')
             if st.toggle("Tampilkan PDF penuh di halaman ini", key=f"t_full_syair::{judul}"):
                 embed_pdf(aset["syair"], height=720)
 
         # NOTASI (PDF)
         with st.expander("📄 Notasi (klik untuk buka)", expanded=False):
             png = pdf_first_page_png_bytes(aset["notasi"], dpi=160)
-            if png: st.image(png, caption="Preview halaman 1", width='stretch')
+            if png: st.RLImage(png, caption="Preview halaman 1", width='stretch')
             if st.toggle("Tampilkan PDF penuh di halaman ini", key=f"t_full_notasi::{judul}"):
                 embed_pdf(aset["notasi"], height=720)
 
@@ -2797,91 +2797,509 @@ if nav_selection == "🧮 Nilai Saya":
                             if st.button("➡️ Nilai Sekarang", key=f"rate_{judul_lagu}", use_container_width=True, type="primary"):
                                 jump_to("📝 Penilaian", judul_lagu)
     
-# =========================
+# ====================================================================
 # Page: Hasil & Analitik
-# =========================
+# ====================================================================
 if nav_selection == "📊 Hasil & Analitik":
+    
+    # Sertifikat
+    def _safe_img(path):
+        try:
+            if not path or not os.path.exists(path): 
+                return None
+            with open(path, "rb") as f:
+                return ImageReader(io.BytesIO(f.read()))
+        except Exception:
+            return None
+    
+    def _fit_centered_text(c, text, y, max_width, font="Helvetica-Bold", start_size=36, min_size=16):
+        from reportlab.pdfbase import pdfmetrics
+        size = start_size
+        while pdfmetrics.stringWidth(text, font, size) > max_width and size > min_size:
+            size -= 1
+        c.setFont(font, size)
+        c.drawCentredString(landscape(A4)[0] / 2, y, text)
+    
+    # --- FUNGSI HELPER (Didefinisikan di dalam scope nav_selection) ---
+    @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
+    def _process_penilaian_data(df_raw: pd.DataFrame):
+        """Memproses data mentah menjadi format yang siap dianalisis dan divisualisasi."""
+        if df_raw.empty or "judul" not in df_raw.columns:
+            return None, None, None, None, None, None, None
+            
+        p = df_raw.rename(columns=lambda c: VARIANTS.get(c, c)).copy()
+
+        for col in ["timestamp", "total"] + [r["key"] for r in RUBRIK]:
+            if col in p.columns:
+                if col == "timestamp":
+                    p[col] = pd.to_datetime(p[col], errors="coerce")
+                else:
+                    p[col] = pd.to_numeric(p[col], errors="coerce")
+        
+        if "total" not in p.columns:
+            total_calc = np.zeros(len(p), dtype=float)
+            for r in RUBRIK:
+                k, mx, wb = r["key"], r["max"], r["bobot"]
+                if k in p.columns:
+                    total_calc += (p[k].fillna(0) / max(mx, 1)) * wb
+            p["total"] = total_calc
+
+        avg = p.groupby("judul", as_index=False)["total"].mean(numeric_only=True)
+        if SHOW_AUTHOR:
+            avg["Pengarang"] = avg["judul"].map(lambda t: SONGS.get(t, {}).get("author", ""))
+
+        ranking = avg.sort_values("total", ascending=False).reset_index(drop=True)
+        ranking["lead_to_next"] = ranking["total"] - ranking["total"].shift(-1)
+        
+        by_song = p.groupby("judul").agg(
+            mean_total=("total", "mean"),
+            std_total=("total", "std"),
+            n_juri=("juri", "nunique")
+        ).reset_index()
+
+        jstat = None
+        if "juri" in p.columns:
+            jstat = p.groupby("juri").agg(
+                rata2=("total", "mean"),
+                std=("total", "std"),
+                n=("total", "count")
+            ).reset_index()
+
+        present_keys = [r["key"] for r in RUBRIK if r["key"] in p.columns]
+        corr_aspek = None
+        if present_keys:
+            corr_aspek = p[present_keys + ["total"]].corr(numeric_only=True)["total"].drop("total").sort_values(ascending=False)
+
+        return p, ranking, by_song, jstat, corr_aspek, present_keys, avg
+
+    def _create_bar_chart(df, x, y, x_title, y_title, text=None):
+        try:
+            fig = px.bar(df, x=x, y=y, text=text, title=None)
+            fig.update_layout(xaxis_title=x_title, yaxis_title=y_title)
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception:
+            st.dataframe(df)
+
+    def _create_scatter_chart(df, x, y, size, hover_name, x_title, y_title):
+        try:
+            bubble = px.scatter(df, x=x, y=y, size=size, hover_name=hover_name, title=None)
+            bubble.update_layout(xaxis_title=x_title, yaxis_title=y_title)
+            st.plotly_chart(bubble, use_container_width=True)
+        except Exception:
+            st.dataframe(df)
+            
+    def _fmt_num(x, nd=2):
+        try:
+            f = float(x)
+            if abs(f - round(f)) < 1e-9:
+                return str(int(round(f)))
+            return f"{f:.{nd}f}"
+        except Exception:
+            return str(x)
+
+    def _build_pen_full_df(pen_df_raw: pd.DataFrame) -> pd.DataFrame:
+        if pen_df_raw is None or pen_df_raw.empty:
+            return pd.DataFrame(columns=["timestamp","juri","judul","author"] + [r["key"] for r in RUBRIK] + ["total"])
+        df = pen_df_raw.copy().rename(columns=lambda c: VARIANTS.get(c, c))
+        if "timestamp" in df.columns:
+            df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+        for r in RUBRIK:
+            k = r["key"]
+            if k in df.columns:
+                df[k] = pd.to_numeric(df[k], errors="coerce")
+        if "total" not in df.columns:
+            total_calc = np.zeros(len(df), dtype=float)
+            for r in RUBRIK:
+                k, mx, wb = r["key"], r["max"], r["bobot"]
+                if k in df.columns:
+                    total_calc += (pd.to_numeric(df[k], errors="coerce").fillna(0) / max(mx, 1)) * wb
+            df["total"] = total_calc
+        else:
+            df["total"] = pd.to_numeric(df["total"], errors="coerce")
+        base_cols = ["timestamp","juri","judul","author"]
+        rub_cols  = [r["key"] for r in RUBRIK if r["key"] in df.columns]
+        others    = [c for c in df.columns if c not in base_cols + rub_cols + ["total"]]
+        ordered   = [c for c in base_cols if c in df.columns] + rub_cols + ["total"] + others
+        return df[ordered]
+        
+    def winner_reasons_df(pen_df_raw: pd.DataFrame, top_title: str):
+        df_full = _build_pen_full_df(pen_df_raw)
+        if df_full.empty or top_title not in set(df_full["judul"]):
+            return pd.DataFrame(), "Data penilaian belum cukup untuk analisis alasan pemenang."
+        rub_cols = [r["key"] for r in RUBRIK if r["key"] in df_full.columns]
+        agg = df_full.groupby("judul", as_index=False)[rub_cols + ["total"]].mean(numeric_only=True)
+        order = agg.sort_values("total", ascending=False).reset_index(drop=True)
+        top_row = order.iloc[0]
+        run_row = order.iloc[1] if len(order) > 1 else None
+        med = {}
+        for k in rub_cols:
+            med[k] = df_full[k].median(skipna=True)
+        med_series = pd.Series(med, name="Median")
+        win_series = top_row[rub_cols]; win_series.name = "Pemenang"
+        run_series = (run_row[rub_cols] if run_row is not None else pd.Series({k: np.nan for k in rub_cols}))
+        run_series.name = "Runner-up"
+        comp = pd.concat([win_series, run_series, med_series], axis=1)
+        comp["Keunggulan_vs_Runner"] = comp["Pemenang"] - comp["Runner-up"]
+        comp["Keunggulan_vs_Median"] = comp["Pemenang"] - comp["Median"]
+        comp = comp.reset_index().rename(columns={"index": "Aspek"})
+        top_aspek = comp.sort_values("Keunggulan_vs_Runner", ascending=False).head(3)
+        bullets = []
+        for _, r in top_aspek.iterrows():
+            asp = r["Aspek"]
+            adv = r["Keunggulan_vs_Runner"]
+            bullets.append(f"- Unggul pada **{asp}** sebesar **{adv:+.2f}** poin dibanding runner-up.")
+        if not bullets:
+            bullets = ["- Poin total tertinggi."]
+        reason_text = f"'{top_title}' menang karena:\n" + "\n".join(bullets)
+        return comp, reason_text
+    
+    @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
+    def make_bar_png(series_or_df, title="", width=900, height=400):
+        plt.figure(figsize=(width/100, height/100), dpi=100)
+        if isinstance(series_or_df, pd.Series):
+            series_or_df.plot(kind="bar")
+        else:
+            series_or_df.plot(kind="bar")
+        plt.title(title)
+        plt.tight_layout()
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        plt.close()
+        buf.seek(0)
+        return buf.getvalue()
+
+    @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
+    def export_excel_lengkap(pen_df2: pd.DataFrame) -> bytes:
+        df_full = _build_pen_full_df(pen_df2)
+        df_full["total"] = pd.to_numeric(df_full["total"], errors="coerce")
+        buf = io.BytesIO()
+        try:
+            writer = pd.ExcelWriter(buf, engine="xlsxwriter")
+        except Exception:
+            writer = pd.ExcelWriter(buf)
+        df_full.to_excel(writer, index=False, sheet_name="Penilaian (Raw)")
+        avg = df_full.groupby("judul", as_index=False)["total"].mean().sort_values("total", ascending=False)
+        if SHOW_AUTHOR:
+            avg["Pengarang"] = avg["judul"].map(lambda t: SONGS.get(t,{}).get("author",""))
+            avg = avg[["judul","Pengarang","total"]]
+        avg.to_excel(writer, index=False, sheet_name="Ranking Rata2")
+        rub_cols = [r["key"] for r in RUBRIK if r["key"] in df_full.columns]
+        if rub_cols:
+            per_aspek = df_full[["judul"] + rub_cols].groupby("judul", as_index=False).mean(numeric_only=True)
+            name_map  = {r["key"]: r["aspek"] for r in RUBRIK}
+            per_aspek = per_aspek.rename(columns=name_map)
+            per_aspek.to_excel(writer, index=False, sheet_name="Rata2 per Aspek")
+            ringkas_aspek = per_aspek.drop(columns=["judul"]).mean().sort_values(ascending=False).reset_index()
+            ringkas_aspek.columns = ["Aspek","Rata2"]
+            ringkas_aspek.to_excel(writer, index=False, sheet_name="Ringkas Aspek")
+        music_rows = []
+        for t, aset in SONGS.items():
+            seq = chord_sequence_from_sources(aset, CHORD_SOURCE_PRIORITY)
+            uniq = list(dict.fromkeys(seq))
+            bigrams = list(zip(seq, seq[1:])) if len(seq)>1 else []
+            ext_rate = sum(1 for c in seq if re.search(r'\d', c)) / max(1,len(seq))
+            slash_rate = sum(1 for c in seq if "/" in c) / max(1,len(seq))
+            nondi_rate = sum(1 for c in seq if re.match(r'^[A-G](#|b)', c)) / max(1,len(seq))
+            raw = 0.0
+            key_name, key_conf = detect_key_from_chords(seq)
+            music_rows.append({
+                "Judul": t,
+                "Pengarang": aset.get("author",""),
+                "Akor_Unik": ", ".join(uniq) if uniq else "-",
+                "Jumlah_Akor_Unik": len(set(uniq)),
+                "Transisi_Unik": len(set(bigrams)),
+                "Ext%": f"{ext_rate*100:.1f}%",
+                "Slash%": f"{slash_rate*100:.1f}%",
+                "NonDiatonik%": f"{nondi_rate*100:.1f}%",
+                "Key": key_name,
+                "KeyConf": key_conf,
+                "Skor_Kekayaan(1-5)": int(_map_0_100_to_1_5(min(100, max(0, raw))))
+            })
+        pd.DataFrame(music_rows).to_excel(writer, index=False, sheet_name="Musik")
+        writer.close()
+        return buf.getvalue()
+
+    @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
+    def export_pdf_rekap(pen_df2: pd.DataFrame) -> bytes:
+        df_full = _build_pen_full_df(pen_df2)
+        df_full["total"] = pd.to_numeric(df_full["total"], errors="coerce")
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=40, rightMargin=40, topMargin=36, bottomMargin=36)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name="H1", fontSize=18, leading=22, spaceAfter=12, alignment=1))
+        styles.add(ParagraphStyle(name="H2", fontSize=13, leading=16, spaceBefore=8, spaceAfter=6))
+        styles.add(ParagraphStyle(name="Small", fontSize=9, leading=12, textColor=colors.grey))
+        story = []
+        story.append(Paragraph("Rekap Penilaian Lomba Cipta Lagu", styles["H1"]))
+        story.append(Paragraph(datetime.datetime.now().strftime("%d %B %Y %H:%M"), styles["Small"]))
+        story.append(Spacer(1, 8))
+        avg = df_full.groupby("judul", as_index=False)["total"].mean().sort_values("total", ascending=False)
+        story.append(Paragraph("🏆 Ranking (Rata-rata per Lagu)", styles["H2"]))
+        top = avg.head(15)
+        tbl = Table([["Judul", "Total (0–100)"]] + [[r["judul"], f"{r['total']:.2f}"] for _, r in top.iterrows()], colWidths=[11.0 * cm, 4.0 * cm])
+        tbl.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey),("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),("ALIGN", (1, 1), (1, -1), "RIGHT")]))
+        story.append(tbl)
+        story.append(Spacer(1, 8))
+        if not top.empty:
+            chart_png = make_bar_png(top.set_index("judul")["total"], title="Top 10 Total Rata-rata")
+            story.append(RLImage(io.BytesIO(chart_png), width=16 * cm, height=7 * cm))
+            story.append(Spacer(1, 10))
+        rub_cols = [r["key"] for r in RUBRIK if r["key"] in df_full.columns]
+        if rub_cols:
+            per_aspek = df_full[rub_cols].mean().sort_values(ascending=False)
+            name_map = {r["key"]: r["aspek"] for r in RUBRIK}
+            per_aspek.index = [name_map.get(k, k) for k in per_aspek.index]
+            chart2 = make_bar_png(per_aspek, title="Rata-rata per Aspek")
+            story.append(Paragraph("📈 Rata-rata Nilai per Aspek", styles["H2"]))
+            story.append(RLImage(io.BytesIO(chart2), width=16 * cm, height=7 * cm))
+        music_rows = []
+        for t, aset in SONGS.items():
+            seq = chord_sequence_from_sources(aset, CHORD_SOURCE_PRIORITY)
+            key_name, _ = detect_key_from_chords(seq)
+            genre = detect_genre(seq)
+            music_rows.append({"Judul": t, "Genre": genre, "Key": key_name})
+        m = pd.DataFrame(music_rows)
+        if not m.empty:
+            genre_counts = m["Genre"].value_counts()
+            story.append(Paragraph("Distribusi Genre", styles["H2"]))
+            img_genre = make_bar_png(genre_counts, title="Count per Genre")
+            story.append(RLImage(io.BytesIO(img_genre), width=16*cm, height=7*cm))
+            story.append(Spacer(1, 8))
+            key_counts = m["Key"].value_counts()
+            story.append(Paragraph("Distribusi Nada Dasar (Key)", styles["H2"]))
+            img_key = make_bar_png(key_counts, title="Count per Key")
+            story.append(RLImage(io.BytesIO(img_key), width=16*cm, height=7*cm))
+        doc.build(story)
+        return buf.getvalue()
+
+    @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
+    def export_pdf_winners(pen_df2: pd.DataFrame, top_n: int = WIN_N) -> bytes:
+        def per_song_profile(df_full: pd.DataFrame, song: str):
+            tmp = df_full[df_full["judul"] == song].copy()
+            tmp["total"] = pd.to_numeric(tmp["total"], errors="coerce")
+            mean_total = float(tmp["total"].mean())
+            std_total  = float(tmp["total"].std(ddof=0)) if len(tmp) > 1 else float("nan")
+            n_judges   = int(tmp["juri"].nunique()) if "juri" in tmp.columns else int(len(tmp))
+            contr = {}
+            for r in RUBRIK:
+                k, mx, wb = r["key"], r["max"], r["bobot"]
+                if k in tmp.columns:
+                    m = pd.to_numeric(tmp[k], errors="coerce").mean()
+                    if pd.notna(m): contr[r["aspek"]] = (m / max(mx, 1)) * wb
+            contr_s = pd.Series(contr).sort_values(ascending=False) if contr else pd.Series(dtype=float)
+            base = {}
+            for r in RUBRIK:
+                k, mx, wb = r["key"], r["max"], r["bobot"]
+                if k in pen_df2.columns:
+                    m = pd.to_numeric(pen_df2[k], errors="coerce").mean()
+                    if pd.notna(m): base[r["aspek"]] = (m / max(mx, 1)) * wb
+            base_s = pd.Series(base).sort_values(ascending=False) if base else pd.Series(dtype=float)
+            delta = (contr_s - base_s).sort_values(ascending=False) if not contr_s.empty else pd.Series(dtype=float)
+            strengths = delta.head(2).dropna()
+            weaknesses = delta.tail(2).dropna()
+            return {"mean_total": mean_total, "std_total": std_total, "n_judges": n_judges, "contrib": contr_s, "delta": delta, "strengths": strengths, "weaknesses": weaknesses}
+
+        df_full = _build_pen_full_df(pen_df2)
+        df_full["total"] = pd.to_numeric(df_full["total"], errors="coerce")
+        table = df_full.groupby("judul", as_index=False)["total"].mean().sort_values("total", ascending=False).reset_index(drop=True)
+        winners = table.head(top_n).reset_index(drop=True)
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=86, bottomMargin=36)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name="H1C", fontSize=18, leading=22, alignment=1, spaceAfter=10))
+        styles.add(ParagraphStyle(name="Kecil", fontSize=9, textColor=colors.grey))
+        styles.add(ParagraphStyle(name="Sub", fontSize=12, leading=16, spaceBefore=8, spaceAfter=4))
+        story = []
+        story.append(Paragraph("Daftar Pemenang", styles["H1C"]))
+        rows = [["Peringkat","Judul","Total","Pengarang","Selisih ke berikutnya"]]
+        winners = winners.copy()
+        winners["lead_to_next"] = winners["total"] - winners["total"].shift(-1)
+        for i, r in winners.iterrows():
+            author = SONGS.get(r["judul"],{}).get("author","")
+            lead = r["lead_to_next"] if pd.notna(r["lead_to_next"]) else np.nan
+            rows.append([i+1, r["judul"], f"{r['total']:.2f}", author, (f"+{lead:.2f}" if np.isfinite(lead) else "—")])
+        tbl = Table(rows, colWidths=[2*cm, 7.2*cm, 2.8*cm, 4.2*cm, 3.3*cm])
+        tbl.setStyle(TableStyle([("GRID",(0,0),(-1,-1),0.3,colors.lightgrey),("BACKGROUND",(0,0),(-1,0),colors.whitesmoke),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("ALIGN",(2,1),(2,-1),"RIGHT"),("ALIGN",(4,1),(4,-1),"RIGHT"),]))
+        story.append(tbl); story.append(Spacer(1, 8))
+        chart_top = _bar_png(winners.set_index("judul")["total"], title="Skor Rata-rata Pemenang")
+        story.append(RLImage(io.BytesIO(chart_top), width=16*cm, height=7*cm))
+        story.append(PageBreak())
+        for i, r in winners.iterrows():
+            title = r["judul"]
+            stats = per_song_profile(df_full, title)
+            rank_txt = f"Juara {i+1}"
+            story.append(Paragraph(f"{rank_txt} — {title}", styles["H1C"]))
+            story.append(Paragraph(f"Pengarang: <b>{SONGS.get(title,{}).get('author','')}</b>", styles["Normal"]))
+            story.append(Spacer(1, 6))
+            lead = r["lead_to_next"] if pd.notna(r["lead_to_next"]) else None
+            bullets = []
+            bullets.append(f"Skor rata-rata: <b>{stats['mean_total']:.2f}</b> " + (f"(unggul <b>{lead:.2f}</b> poin dari peringkat berikutnya)" if lead and lead>0 else "(unggul tipis)"))
+            def label_consistency(std):
+                if not np.isfinite(std): return "—"
+                if std < 2: return "Sangat konsisten"
+                if std < 4: return "Cukup konsisten"
+                if std < 6: return "Variatif antar juri"
+                return "Sangat variatif"
+            bullets.append(f"Ketersepakatan juri: <b>{label_consistency(stats['std_total'])}</b> (deviasi {stats['std_total']:.2f}; {stats['n_judges']} juri).")
+            if not stats["strengths"].empty:
+                stext = ", ".join([f"<b>{k}</b> (+{v:.2f})" for k,v in stats["strengths"].items()])
+                bullets.append(f"Kekuatan utama: {stext}.")
+            if not stats["weaknesses"].empty:
+                wtext = ", ".join([f"<b>{k}</b> ({v:.2f})" for k,v in stats["weaknesses"].items()])
+                bullets.append(f"Area perbaikan: {wtext}.")
+            seq_win = chord_sequence_from_sources(SONGS[title], CHORD_SOURCE_PRIORITY)
+            key_name, _ = detect_key_from_chords(seq_win)
+            genre = detect_genre(seq_win)
+            story.append(Paragraph(f"Genre terdeteksi: <b>{genre}</b> • Nada dasar: <b>{key_name}</b>", styles["Normal"]))
+            story.append(Spacer(1, 6))
+            story.append(Paragraph("Kenapa lagu ini menang?", styles["Sub"]))
+            for b in bullets: story.append(Paragraph("• " + b, styles["Normal"]))
+            story.append(Spacer(1, 8))
+            if not stats["contrib"].empty:
+                img1 = _bar_png(stats["contrib"], title="Kontribusi Aspek terhadap Total (poin dari 100)", horizontal=True)
+                story.append(RLImage(io.BytesIO(img1), width=16*cm, height=8*cm))
+                story.append(Spacer(1, 6))
+            if not stats["delta"].empty:
+                img2 = _bar_png(stats["delta"], title="Selisih Kontribusi vs Rata-rata Semua Lagu", horizontal=True)
+                story.append(RLImage(io.BytesIO(img2), width=16*cm, height=8*cm))
+            if i < len(winners)-1:
+                story.append(PageBreak())
+        def _on_first(canvas_obj, doc_obj):
+            _draw_black_header(canvas_obj, doc_obj, "Daftar Pemenang", datetime.datetime.now().strftime("%d %B %Y"))
+        def _on_later(canvas_obj, doc_obj):
+            _draw_black_header(canvas_obj, doc_obj, "Laporan Pemenang", datetime.datetime.now().strftime("%d %B %Y"))
+        doc.build(story, onFirstPage=_on_first, onLaterPages=_on_later)
+        return buf.getvalue()
+
+    def _draw_certificate_landscape(c, name, song, role="Peserta", winner=False, rank=None):
+        W, H = landscape(A4)
+        wm = _safe_img(WATERMARK_IMG)
+        if wm:
+            c.saveState()
+            try: c.setFillAlpha(0.06)
+            except Exception: pass
+            c.drawImage(wm, W*0.15, H*0.10, width=W*0.70, height=H*0.70, preserveAspectRatio=True, mask='auto')
+            c.restoreState()
+        elif WATERMARK_TEXT:
+            c.saveState()
+            try: c.setFillColor(colors.Color(0,0,0,alpha=0.06))
+            except Exception: c.setFillColor(colors.grey)
+            c.translate(W/2, H/2); c.rotate(30)
+            c.setFont("Helvetica-Bold", 96)
+            c.drawCentredString(0, 0, WATERMARK_TEXT)
+            c.restoreState()
+        bn = _safe_img(BANNER)
+        if bn:
+            banner_h = 150
+            c.drawImage(bn, 0, H-banner_h, width=W, height=banner_h, preserveAspectRatio=True, mask='auto')
+        else:
+            c.setFillColor(colors.black); c.rect(0, H-110, W, 110, fill=1, stroke=0)
+        lg = _safe_img(LOGO)
+        if lg:
+            c.drawImage(lg, 40, H-100, width=90, height=90, preserveAspectRatio=True, mask='auto')
+        c.setFillColor(colors.whitesmoke)
+        c.setFont("Helvetica-Bold", 28)
+        c.drawCentredString(W/2, H-65, "SERTIFIKAT PEMENANG" if winner else "SERTIFIKAT")
+        c.setFont("Helvetica", 10); c.setFillColor(colors.HexColor("#D4AF37"))
+        c.drawCentredString(W/2, H-92, "Lomba Cipta Lagu — GKI Perumnas")
+        c.setFillColor(colors.black); c.setFont("Helvetica", 12)
+        c.drawCentredString(W/2, H-150, "Diberikan kepada")
+        _fit_centered_text(c, name or "(Nama)", y=H-195, max_width=W-180, font="Helvetica-Bold", start_size=36, min_size=16)
+        c.setFont("Helvetica", 13)
+        if winner:
+            rank_badge = f"JUARA {rank}" if rank else "PEMENANG"
+            c.setFillColor(colors.HexColor("#D4AF37")); c.setFont("Helvetica-Bold", 18)
+            c.drawCentredString(W/2, H-225, rank_badge)
+            c.setFillColor(colors.black); c.setFont("Helvetica", 13)
+            c.drawCentredString(W/2, H-245, "Atas prestasi gemilang dalam Lomba Cipta Lagu.")
+        else:
+            c.drawCentredString(W/2, H-245, f"Atas partisipasi sebagai {role} dalam Lomba Cipta Lagu.")
+        if song:
+            c.setFont("Helvetica-Oblique", 12)
+            _fit_centered_text(c, f'Lagu: “{song}”', y=H-268, max_width=W-220, font="Helvetica-Oblique", start_size=12, min_size=10)
+        c.setFont("Helvetica", 10)
+        c.drawString(60, 80, datetime.datetime.now().strftime("Diterbitkan: %d %B %Y"))
+        c.line(60, 120, 260, 120); c.drawString(60, 125, "Panitia")
+        c.line(W-260, 120, W-60, 120); c.drawRightString(W-60, 125, "Ketua Panitia")
+
+    @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
+    def generate_cert_pdf_bytes(name, song, winner=False, rank=None) -> bytes:
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=landscape(A4))
+        _draw_certificate_landscape(c, name, song, "Peserta", winner, rank)
+        c.showPage(); c.save()
+        return buf.getvalue()
+
+    @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
+    def export_certificates_zip(songs_df: pd.DataFrame, pen_df2: pd.DataFrame, top_n: int = WIN_N) -> bytes:
+        df_full = _build_pen_full_df(pen_df2)
+        avg = df_full.groupby("judul", as_index=False)["total"].mean().sort_values("total", ascending=False)
+        win = avg.head(top_n).reset_index(drop=True)
+        winner_rank_by_title = {row["judul"]: (i+1) for i, row in win.iterrows()}
+        memzip = io.BytesIO()
+        with zipfile.ZipFile(memzip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for _, r in songs_df.fillna("").iterrows():
+                title = r.get("judul","").strip()
+                name  = r.get("pengarang","").strip() or "Peserta"
+                rank  = winner_rank_by_title.get(title)
+                pdf_bytes = generate_cert_pdf_bytes(name, title, winner=(rank is not None), rank=rank)
+                safe_name = re.sub(r"[^A-Za-z0-9 _-]+","", name)[:60] or "Peserta"
+                safe_title= re.sub(r"[^A-Za-z0-9 _-]+","", title)[:60] or "Lagu"
+                zf.writestr(f"certificate/{safe_name} - {safe_title}.pdf", pdf_bytes)
+        memzip.seek(0)
+        return memzip.getvalue()
+
+    # --- END OF HELPER FUNCTIONS ---
+
+
+    # --- TAMPILAN UTAMA HALAMAN ---
     with st.container():
         st.title("📊 Hasil & Analitik")
-        ws_pen2 = _ensure_ws(open_sheet(), "Penilaian", ["timestamp","juri","judul","author","total"])
+        ws_pen2 = _ensure_ws(open_sheet(), "Penilaian", ["timestamp", "juri", "judul", "author", "total"])
         pen_df2 = ws_to_df(ws_pen2)
+        
+        p, ranking, by_song, jstat, corr_aspek, present_keys, avg = _process_penilaian_data(pen_df2)
 
-        if pen_df2.empty or "judul" not in pen_df2.columns:
+        if p is None:
             st.info("Belum ada penilaian yang masuk.")
         else:
-            p = pen_df2.rename(columns=lambda c: VARIANTS.get(c, c)).copy()
-            if "timestamp" in p.columns:
-                p["timestamp"] = pd.to_datetime(p["timestamp"], errors="coerce")
-            # total
-            if "total" in p.columns:
-                p["total"] = pd.to_numeric(p["total"], errors="coerce")
-            else:
-                tot = 0.0
-                for r in RUBRIK:
-                    k, mx, wb = r["key"], r["max"], r["bobot"]
-                    if k in p.columns:
-                        p[k] = pd.to_numeric(p[k], errors="coerce")
-                        tot += p[k].fillna(0)/mx*wb
-                p["total"] = tot
-
-            # ---- Leaderboard + margin ----
-            avg = p.groupby("judul", as_index=False)["total"].mean(numeric_only=True)
-            if SHOW_AUTHOR:
-                avg["Pengarang"] = avg["judul"].map(lambda t: SONGS.get(t,{}).get("author",""))
-            ranking = avg.sort_values("total", ascending=False).reset_index(drop=True)
-            ranking["lead_to_next"] = ranking["total"] - ranking["total"].shift(-1)
-
+            # --- Leaderboard ---
             st.subheader("🏆 Leaderboard (dengan jarak ke posisi berikutnya)")
-            cols = ["judul","total","lead_to_next"] + (["Pengarang"] if SHOW_AUTHOR else [])
+            cols = ["judul", "total", "lead_to_next"] + (["Pengarang"] if SHOW_AUTHOR else [])
             st.dataframe(ranking[cols], use_container_width=True, hide_index=True)
+            
+            _create_bar_chart(
+                ranking.head(12), 
+                x="judul", 
+                y="total",
+                x_title="Judul",
+                y_title="Rata-rata total (0-100)",
+                text=[f"+{val:.2f}" if pd.notna(val) and val > 0 else "" for val in ranking["lead_to_next"].head(12)]
+            )
 
-            try:
-                import plotly.express as px
-                st.plotly_chart(
-                    px.bar(
-                        ranking.head(12), x="judul", y="total",
-                        text=ranking.head(12)["lead_to_next"].apply(lambda x: f"+{x:.2f}" if pd.notna(x) and x>0 else ""),
-                        title=None
-                    ).update_layout(xaxis_title="Judul", yaxis_title="Rata-rata total (0–100)"),
-                    use_container_width=True
-                )
-            except Exception:
-                pass
-
-            # ---- Konsistensi per lagu (disagreement) & jumlah juri ----
-            by_song = (p.groupby("judul").agg(
-                mean_total=("total","mean"),
-                std_total =("total","std"),
-                n_juri    =("juri", "nunique")
-            ).reset_index())
+            # --- Konsistensi per lagu (disagreement) & jumlah juri ---
             st.subheader("📉 Stabilitas Penilaian per Lagu")
-            try:
-                import plotly.express as px
-                bubble = px.scatter(
-                    by_song, x="mean_total", y="std_total", size="n_juri",
-                    hover_name="judul", title=None
-                )
-                bubble.update_layout(xaxis_title="Rata-rata total", yaxis_title="Deviasi (ketidaksepakatan)")
-                st.plotly_chart(bubble, use_container_width=True)
-            except Exception:
-                st.dataframe(by_song)
+            _create_scatter_chart(
+                by_song, 
+                x="mean_total", 
+                y="std_total", 
+                size="n_juri",
+                hover_name="judul", 
+                x_title="Rata-rata total", 
+                y_title="Deviasi (ketidaksepakatan)"
+            )
 
-            # ---- “Leniency/bias” antar juri + korelasi antar juri ----
-            if "juri" in p.columns:
+            # --- Profil Juri & Korelasi ---
+            if jstat is not None:
                 st.subheader("🧭 Profil Juri (ketat vs longgar)")
-                jstat = p.groupby("juri").agg(
-                    rata2=("total","mean"),
-                    std  =("total","std"),
-                    n    =("total","count")
-                ).reset_index()
-                try:
-                    jbar = px.bar(jstat.sort_values("rata2"), x="juri", y="rata2", error_y="std", text="n")
-                    jbar.update_layout(xaxis_title="Juri", yaxis_title="Rata-rata total (±SD)")
-                    st.plotly_chart(jbar, use_container_width=True)
-                except Exception:
-                    st.dataframe(jstat)
-
-                # korelasi pairwise antar juri pada lagu yang sama
+                _create_bar_chart(
+                    jstat.sort_values("rata2"), 
+                    x="juri", 
+                    y="rata2", 
+                    x_title="Juri", 
+                    y_title="Rata-rata total (±SD)", 
+                    text="n"
+                )
                 pivot = p.pivot_table(index="judul", columns="juri", values="total", aggfunc="mean")
                 if pivot.shape[1] >= 2:
                     corrj = pivot.corr(method="spearman", min_periods=2)
@@ -2892,525 +3310,26 @@ if nav_selection == "📊 Hasil & Analitik":
                     except Exception:
                         st.dataframe(corrj)
 
-            # ---- Aspek yang paling “memprediksi” total ----
-            present = [r["key"] for r in RUBRIK if r["key"] in p.columns]
-            st.subheader("🧩 Aspek vs Total")
-            if present:
-                for k in present: p[k] = pd.to_numeric(p[k], errors="coerce")
-                corr_aspek = p[present + ["total"]].corr(numeric_only=True)["total"].drop("total").sort_values(ascending=False)
-                try:
-                    st.plotly_chart(px.bar(corr_aspek, title=None).update_layout(xaxis_title="Aspek", yaxis_title="Korelasi ke total"),
-                                    use_container_width=True)
-                except Exception:
-                    st.dataframe(corr_aspek.rename("Korelasi ke total"))
+            # --- Aspek yang paling “memprediksi” total ---
+            if corr_aspek is not None:
+                st.subheader("🧩 Aspek vs Total")
+                _create_bar_chart(
+                    corr_aspek, 
+                    x=corr_aspek.index, 
+                    y=corr_aspek.values, 
+                    x_title="Aspek", 
+                    y_title="Korelasi ke total"
+                )
 
-            # ---- Aktivitas penilaian dari waktu ke waktu ----
+            # --- Aktivitas penilaian dari waktu ke waktu ---
             if "timestamp" in p.columns and p["timestamp"].notna().any():
                 st.subheader("⏱️ Aktivitas Penilaian (timeline)")
                 counts = p.dropna(subset=["timestamp"]).groupby(pd.Grouper(key="timestamp", freq="D"))["total"].count()
                 try:
-                    st.plotly_chart(px.line(counts, markers=True).update_layout(xaxis_title="Tanggal", yaxis_title="Jumlah penilaian"),
-                                    use_container_width=True)
+                    st.plotly_chart(px.line(counts, markers=True).update_layout(xaxis_title="Tanggal", yaxis_title="Jumlah penilaian"), use_container_width=True)
                 except Exception:
                     st.line_chart(counts)
-
             
-
-            # Exports
-            # (fungsi export_excel_lengkap/export_pdf_rekap/export_pdf_winners/export_certificates_zip
-            @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
-            def make_bar_png(series_or_df, title="", width=900, height=400):
-                plt.figure(figsize=(width/100, height/100), dpi=100)
-                if isinstance(series_or_df, pd.Series):
-                    series_or_df.plot(kind="bar")
-                else:
-                    series_or_df.plot(kind="bar")
-                plt.title(title)
-                plt.tight_layout()
-                buf = io.BytesIO()
-                plt.savefig(buf, format="png")
-                plt.close()
-                buf.seek(0)
-                return buf.getvalue()
-
-            # ========= Winner reasoning helpers =========
-            def build_pen_full_df(pen_df_raw: pd.DataFrame) -> pd.DataFrame:
-                """
-                Normalisasi Penilaian (gabungkan & hitung total jika perlu).
-                Output: satu baris per (timestamp, juri, judul, author, kolom rubrik..., total).
-                """
-                if pen_df_raw is None or pen_df_raw.empty:
-                    return pd.DataFrame(columns=["timestamp","juri","judul","author"] + [r["key"] for r in RUBRIK] + ["total"])
-
-                df = pen_df_raw.copy()
-                if "timestamp" in df.columns:
-                    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-
-                # normalisasi nama variabel varian (gunakan VARIANTS)
-                df = df.rename(columns=lambda c: VARIANTS.get(c, c))
-
-                # pastikan numeric
-                for r in RUBRIK:
-                    k = r["key"]
-                    if k in df.columns:
-                        df[k] = pd.to_numeric(df[k], errors="coerce")
-
-                # total
-                if "total" not in df.columns:
-                    total_calc = np.zeros(len(df), dtype=float)
-                    for r in RUBRIK:
-                        k, mx, wb = r["key"], r["max"], r["bobot"]
-                        if k in df.columns:
-                            total_calc += (pd.to_numeric(df[k], errors="coerce").fillna(0) / max(mx, 1)) * wb
-                    df["total"] = total_calc
-                else:
-                    df["total"] = pd.to_numeric(df["total"], errors="coerce")
-
-                # kolom urutan
-                base_cols = ["timestamp","juri","judul","author"]
-                rub_cols  = [r["key"] for r in RUBRIK if r["key"] in df.columns]
-                others    = [c for c in df.columns if c not in base_cols + rub_cols + ["total"]]
-                ordered   = [c for c in base_cols if c in df.columns] + rub_cols + ["total"] + others
-                return df[ordered]
-
-
-            def winner_reasons_df(pen_df_raw: pd.DataFrame, top_title: str) -> Tuple[pd.DataFrame, str]:
-                """
-                Kembalikan tabel ringkas alasan pemenang:
-                - perbandingan rata2 tiap Aspek (winner vs runner-up vs median keseluruhan)
-                - teks alasan singkat untuk dipakai di PDF Winner
-                """
-                df_full = build_pen_full_df(pen_df_raw)
-                if df_full.empty or top_title not in set(df_full["judul"]):
-                    return pd.DataFrame(), "Data penilaian belum cukup untuk analisis alasan pemenang."
-
-                # rata2 per judul
-                rub_cols = [r["key"] for r in RUBRIK if r["key"] in df_full.columns]
-                agg = df_full.groupby("judul", as_index=False)[rub_cols + ["total"]].mean(numeric_only=True)
-
-                # urutkan & ambil runner-up
-                order = agg.sort_values("total", ascending=False).reset_index(drop=True)
-                top_row = order.iloc[0]
-                run_row = order.iloc[1] if len(order) > 1 else None
-
-                # median global tiap aspek
-                med = {}
-                for k in rub_cols:
-                    med[k] = df_full[k].median(skipna=True)
-                med_series = pd.Series(med, name="Median")
-
-                # baris pemenang & runner-up
-                win_series = top_row[rub_cols]; win_series.name = "Pemenang"
-                run_series = (run_row[rub_cols] if run_row is not None else pd.Series({k: np.nan for k in rub_cols}))
-                run_series.name = "Runner-up"
-
-                # tabel perbandingan (skala asli rubrik)
-                comp = pd.concat([win_series, run_series, med_series], axis=1)
-                comp["Keunggulan_vs_Runner"] = comp["Pemenang"] - comp["Runner-up"]
-                comp["Keunggulan_vs_Median"] = comp["Pemenang"] - comp["Median"]
-                comp = comp.reset_index().rename(columns={"index": "Aspek"})
-
-                # alasan teks singkat
-                top_aspek = comp.sort_values("Keunggulan_vs_Runner", ascending=False).head(3)
-                bullets = []
-                for _, r in top_aspek.iterrows():
-                    asp = r["Aspek"]
-                    adv = r["Keunggulan_vs_Runner"]
-                    bullets.append(f"- Unggul pada **{asp}** sebesar **{adv:+.2f}** poin dibanding runner-up.")
-                if not bullets:
-                    bullets = ["- Poin total tertinggi."]
-
-                reason_text = f"'{top_title}' menang karena:\n" + "\n".join(bullets)
-                return comp, reason_text
-
-
-            @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
-            def export_excel_lengkap(pen_df2: pd.DataFrame) -> bytes:
-                df_full = build_pen_full_df(pen_df2)
-                df_full["total"] = pd.to_numeric(df_full["total"], errors="coerce")
-                buf = io.BytesIO()
-                try:
-                    writer = pd.ExcelWriter(buf, engine="xlsxwriter")
-                except Exception:
-                    writer = pd.ExcelWriter(buf)
-                # Sheet 1: raw
-                df_full.to_excel(writer, index=False, sheet_name="Penilaian (Raw)")
-
-                # Sheet 2: ranking rata2
-                avg = df_full.groupby("judul", as_index=False)["total"].mean().sort_values("total", ascending=False)
-                if SHOW_AUTHOR:
-                    avg["Pengarang"] = avg["judul"].map(lambda t: SONGS.get(t,{}).get("author",""))
-                    avg = avg[["judul","Pengarang","total"]]
-                avg.to_excel(writer, index=False, sheet_name="Ranking Rata2")
-
-                # Sheet 3–4: per aspek & ringkas aspek
-                rub_cols = [r["key"] for r in RUBRIK if r["key"] in df_full.columns]
-                if rub_cols:
-                    per_aspek = df_full[["judul"] + rub_cols].groupby("judul", as_index=False).mean(numeric_only=True)
-                    name_map  = {r["key"]: r["aspek"] for r in RUBRIK}
-                    per_aspek = per_aspek.rename(columns=name_map)
-                    per_aspek.to_excel(writer, index=False, sheet_name="Rata2 per Aspek")
-                    ringkas_aspek = per_aspek.drop(columns=["judul"]).mean().sort_values(ascending=False).reset_index()
-                    ringkas_aspek.columns = ["Aspek","Rata2"]
-                    ringkas_aspek.to_excel(writer, index=False, sheet_name="Ringkas Aspek")
-
-                # NEW: Sheet 5 – Musik (fitur chord + key)
-                music_rows = []
-                for t, aset in SONGS.items():
-                    seq = chord_sequence_from_sources(aset, CHORD_SOURCE_PRIORITY)
-                    uniq = list(dict.fromkeys(seq))
-                    bigrams = list(zip(seq, seq[1:])) if len(seq)>1 else []
-                    ext_rate = sum(1 for c in seq if QUAL_EXT.search(c)) / max(1,len(seq))
-                    slash_rate = sum(1 for c in seq if "/" in c) / max(1,len(seq))
-                    nondi_rate = sum(1 for c in seq if re.match(r'^[A-G](#|b)', c)) / max(1,len(seq))
-                    raw = score_harmonic_raw_v2(aset) if 'score_harmonic_raw_v2' in globals() else 0.0
-                    key_name, key_conf = detect_key_from_chords(seq)
-                    music_rows.append({
-                        "Judul": t,
-                        "Pengarang": aset.get("author",""),
-                        "Akor_Unik": ", ".join(uniq) if uniq else "-",
-                        "Jumlah_Akor_Unik": len(set(uniq)),
-                        "Transisi_Unik": len(set(bigrams)),
-                        "Ext%": f"{ext_rate*100:.1f}%",
-                        "Slash%": f"{slash_rate*100:.1f}%",
-                        "NonDiatonik%": f"{nondi_rate*100:.1f}%",
-                        "Key": key_name,
-                        "KeyConf": key_conf,
-                        "Skor_Kekayaan(1-5)": int(_MUSIC_BIN_FUNC(MUSIC_RAW_MAP.get(t, float(raw)))) if '_MUSIC_BIN_FUNC' in globals() else int(_map_0_100_to_1_5(min(100, max(0, raw))))
-                    })
-                pd.DataFrame(music_rows).to_excel(writer, index=False, sheet_name="Musik")
-
-                writer.close()
-                return buf.getvalue()
-
-
-            @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
-            def export_pdf_rekap(pen_df2: pd.DataFrame) -> bytes:
-                df_full = build_pen_full_df(pen_df2)
-                df_full["total"] = pd.to_numeric(df_full["total"], errors="coerce")
-
-                buf = io.BytesIO()
-                doc = SimpleDocTemplate(
-                    buf,
-                    pagesize=A4,
-                    leftMargin=40,
-                    rightMargin=40,
-                    topMargin=36,
-                    bottomMargin=36,
-                )
-
-                styles = getSampleStyleSheet()
-                styles.add(ParagraphStyle(name="H1", fontSize=18, leading=22, spaceAfter=12, alignment=1))
-                styles.add(ParagraphStyle(name="H2", fontSize=13, leading=16, spaceBefore=8, spaceAfter=6))
-                styles.add(ParagraphStyle(name="Small", fontSize=9, leading=12, textColor=colors.grey))
-
-                story = []
-                story.append(Paragraph("Rekap Penilaian Lomba Cipta Lagu", styles["H1"]))
-                story.append(Paragraph(datetime.datetime.now().strftime("%d %B %Y %H:%M"), styles["Small"]))
-                story.append(Spacer(1, 8))
-
-                # Ringkas ranking
-                avg = df_full.groupby("judul", as_index=False)["total"].mean().sort_values("total", ascending=False)
-                story.append(Paragraph("🏆 Ranking (Rata-rata per Lagu)", styles["H2"]))
-                top = avg.head(15)
-
-                tbl = Table(
-                    [["Judul", "Total (0–100)"]] + [[r["judul"], f"{r['total']:.2f}"] for _, r in top.iterrows()],
-                    colWidths=[11.0 * cm, 4.0 * cm],
-                )
-                tbl.setStyle(TableStyle([
-                    ("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey),
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("ALIGN", (1, 1), (1, -1), "RIGHT"),
-                ]))
-                story.append(tbl)
-                story.append(Spacer(1, 8))
-
-                if not top.empty:
-                    chart_png = make_bar_png(top.set_index("judul")["total"], title="Top 10 Total Rata-rata")
-                    story.append(RLImage(io.BytesIO(chart_png), width=16 * cm, height=7 * cm))
-                    story.append(Spacer(1, 10))
-
-                # Rata-rata per aspek
-                rub_cols = [r["key"] for r in RUBRIK if r["key"] in df_full.columns]
-                if rub_cols:
-                    per_aspek = df_full[rub_cols].mean().sort_values(ascending=False)
-                    name_map = {r["key"]: r["aspek"] for r in RUBRIK}
-                    per_aspek.index = [name_map.get(k, k) for k in per_aspek.index]
-                    chart2 = make_bar_png(per_aspek, title="Rata-rata per Aspek")
-                    story.append(Paragraph("📈 Rata-rata Nilai per Aspek", styles["H2"]))
-                    story.append(RLImage(io.BytesIO(chart2), width=16 * cm, height=7 * cm))
-                    
-                    
-                # ---- Ringkasan Genre & Key (ambil dari SONGS + deteksi cepat) ----
-                music_rows = []
-                for t, aset in SONGS.items():
-                    seq = chord_sequence_from_sources(aset, CHORD_SOURCE_PRIORITY)
-                    key_name, _ = detect_key_from_chords(seq)
-                    genre = detect_genre(seq)
-                    music_rows.append({"Judul": t, "Genre": genre, "Key": key_name})
-                m = pd.DataFrame(music_rows)
-
-                if not m.empty:
-                    # Pie Genre
-                    genre_counts = m["Genre"].value_counts()
-                    story.append(Paragraph("Distribusi Genre", styles["H2"]))
-                    img_genre = make_bar_png(genre_counts, title="Count per Genre")
-                    story.append(RLImage(io.BytesIO(img_genre), width=16*cm, height=7*cm))
-                    story.append(Spacer(1, 8))
-
-                    # Bar Key
-                    key_counts = m["Key"].value_counts()
-                    story.append(Paragraph("Distribusi Nada Dasar (Key)", styles["H2"]))
-                    img_key = make_bar_png(key_counts, title="Count per Key")
-                    story.append(RLImage(io.BytesIO(img_key), width=16*cm, height=7*cm))
-                    
-                doc.build(story)
-                return buf.getvalue()
-            
-
-            @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
-            def export_pdf_winners(pen_df2: pd.DataFrame, top_n: int = WIN_N) -> bytes:
-                def per_song_profile(df_full: pd.DataFrame, song: str):
-                    tmp = df_full[df_full["judul"] == song].copy()
-                    tmp["total"] = pd.to_numeric(tmp["total"], errors="coerce")
-                    mean_total = float(tmp["total"].mean())
-                    std_total  = float(tmp["total"].std(ddof=0)) if len(tmp) else float("nan")
-                    n_judges   = int(tmp["juri"].nunique()) if "juri" in tmp.columns else int(len(tmp))
-                    contr = {}
-                    for r in RUBRIK:
-                        k, mx, wb = r["key"], r["max"], r["bobot"]
-                        if k in tmp.columns:
-                            m = pd.to_numeric(tmp[k], errors="coerce").mean()
-                            if pd.notna(m):
-                                contr[r["aspek"]] = (m / max(mx, 1)) * wb
-                    contr_s = pd.Series(contr).sort_values(ascending=False) if contr else pd.Series(dtype=float)
-
-                    base = {}
-                    for r in RUBRIK:
-                        k, mx, wb = r["key"], r["max"], r["bobot"]
-                        if k in pen_df2.columns:
-                            m = pd.to_numeric(pen_df2[k], errors="coerce").mean()
-                            if pd.notna(m):
-                                base[r["aspek"]] = (m / max(mx, 1)) * wb
-                    base_s = pd.Series(base).sort_values(ascending=False) if base else pd.Series(dtype=float)
-                    delta = (contr_s - base_s).sort_values(ascending=False) if not contr_s.empty else pd.Series(dtype=float)
-                    strengths = delta.head(2).dropna()
-                    weaknesses = delta.tail(2).dropna()
-                    return {
-                        "mean_total": mean_total,
-                        "std_total": std_total,
-                        "n_judges": n_judges,
-                        "contrib": contr_s,
-                        "delta": delta,
-                        "strengths": strengths,
-                        "weaknesses": weaknesses
-                    }
-
-                df_full = build_pen_full_df(pen_df2)
-                df_full["total"] = pd.to_numeric(df_full["total"], errors="coerce")
-                table = df_full.groupby("judul", as_index=False)["total"].mean()
-                table = table.sort_values("total", ascending=False).reset_index(drop=True)
-                winners = table.head(top_n).reset_index(drop=True)
-
-                buf = io.BytesIO()
-                doc = SimpleDocTemplate(
-                    buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=86, bottomMargin=36
-                )
-                styles = getSampleStyleSheet()
-                styles.add(ParagraphStyle(name="H1C", fontSize=18, leading=22, alignment=1, spaceAfter=10))
-                styles.add(ParagraphStyle(name="Kecil", fontSize=9, textColor=colors.grey))
-                styles.add(ParagraphStyle(name="Sub", fontSize=12, leading=16, spaceBefore=8, spaceAfter=4))
-
-                story = []
-                story.append(Paragraph("Daftar Pemenang", styles["H1C"]))
-
-                # Tabel ringkas pemenang
-                rows = [["Peringkat","Judul","Total","Pengarang","Selisih ke berikutnya"]]
-                winners = winners.copy()
-                winners["lead_to_next"] = winners["total"] - winners["total"].shift(-1)
-                for i, r in winners.iterrows():
-                    author = SONGS.get(r["judul"],{}).get("author","")
-                    lead = r["lead_to_next"] if pd.notna(r["lead_to_next"]) else np.nan
-                    rows.append([i+1, r["judul"], f"{r['total']:.2f}", author, (f"+{lead:.2f}" if np.isfinite(lead) else "—")])
-                tbl = Table(rows, colWidths=[2*cm, 7.2*cm, 2.8*cm, 4.2*cm, 3.3*cm])
-                tbl.setStyle(TableStyle([
-                    ("GRID",(0,0),(-1,-1),0.3,colors.lightgrey),
-                    ("BACKGROUND",(0,0),(-1,0),colors.whitesmoke),
-                    ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),
-                    ("ALIGN",(2,1),(2,-1),"RIGHT"),
-                    ("ALIGN",(4,1),(4,-1),"RIGHT"),
-                ]))
-                story.append(tbl); story.append(Spacer(1, 8))
-
-                # Chart kecil
-                chart_top = _bar_png(winners.set_index("judul")["total"], title="Skor Rata-rata Pemenang")
-                story.append(RLImage(io.BytesIO(chart_top), width=16*cm, height=7*cm))
-                story.append(PageBreak())
-
-                # Halaman per pemenang
-                for i, r in winners.iterrows():
-                    title = r["judul"]
-                    stats = per_song_profile(df_full, title)
-                    rank_txt = f"Juara {i+1}"
-
-                    story.append(Paragraph(f"{rank_txt} — {title}", styles["H1C"]))
-                    story.append(Paragraph(f"Pengarang: <b>{SONGS.get(title,{}).get('author','')}</b>", styles["Normal"]))
-                    story.append(Spacer(1, 6))
-
-                    lead = r["lead_to_next"] if pd.notna(r["lead_to_next"]) else None
-                    bullets = []
-                    bullets.append(
-                        f"Skor rata-rata: <b>{stats['mean_total']:.2f}</b> "
-                        + (f"(unggul <b>{lead:.2f}</b> poin dari peringkat berikutnya)" if lead and lead>0 else "(unggul tipis)")
-                    )
-                    def label_consistency(std):
-                        if not np.isfinite(std): return "—"
-                        if std < 2:   return "Sangat konsisten"
-                        if std < 4:   return "Cukup konsisten"
-                        if std < 6:   return "Variatif antar juri"
-                        return "Sangat variatif"
-                    bullets.append(f"Ketersepakatan juri: <b>{label_consistency(stats['std_total'])}</b> "
-                                f"(deviasi {stats['std_total']:.2f}; {stats['n_judges']} juri).")
-                    if not stats["strengths"].empty:
-                        stext = ", ".join([f"<b>{k}</b> (+{v:.2f})" for k,v in stats["strengths"].items()])
-                        bullets.append(f"Kekuatan utama: {stext}.")
-                    if not stats["weaknesses"].empty:
-                        wtext = ", ".join([f"<b>{k}</b> ({v:.2f})" for k,v in stats["weaknesses"].items()])
-                        bullets.append(f"Area perbaikan: {wtext}.")
-                        
-                    seq_win = chord_sequence_from_sources(SONGS[title], CHORD_SOURCE_PRIORITY)
-                    key_name, _ = detect_key_from_chords(seq_win)
-                    genre = detect_genre(seq_win)
-                    story.append(Paragraph(f"Genre terdeteksi: <b>{genre}</b> • Nada dasar: <b>{key_name}</b>", styles["Normal"]))
-                    story.append(Spacer(1, 6))
-                
-
-                    story.append(Paragraph("Kenapa lagu ini menang?", styles["Sub"]))
-                    for b in bullets: story.append(Paragraph("• " + b, styles["Normal"]))
-                    story.append(Spacer(1, 8))
-
-                    if not stats["contrib"].empty:
-                        img1 = _bar_png(stats["contrib"], title="Kontribusi Aspek terhadap Total (poin dari 100)", horizontal=True)
-                        story.append(RLImage(io.BytesIO(img1), width=16*cm, height=8*cm))
-                        story.append(Spacer(1, 6))
-                    if not stats["delta"].empty:
-                        img2 = _bar_png(stats["delta"], title="Selisih Kontribusi vs Rata-rata Semua Lagu", horizontal=True)
-                        story.append(RLImage(io.BytesIO(img2), width=16*cm, height=8*cm))
-
-                    if i < len(winners)-1:
-                        story.append(PageBreak())
-
-                def _on_first(canvas_obj, doc_obj):
-                    _draw_black_header(canvas_obj, doc_obj, "Daftar Pemenang", datetime.datetime.now().strftime("%d %B %Y"))
-                def _on_later(canvas_obj, doc_obj):
-                    _draw_black_header(canvas_obj, doc_obj, "Laporan Pemenang", datetime.datetime.now().strftime("%d %B %Y"))
-
-                doc.build(story, onFirstPage=_on_first, onLaterPages=_on_later)
-                return buf.getvalue()
-
-            # Sertifikat
-            def _safe_img(path):
-                try:
-                    if not path or not os.path.exists(path): 
-                        return None
-                    with open(path, "rb") as f:
-                        return ImageReader(io.BytesIO(f.read()))
-                except Exception:
-                    return None
-
-            def _fit_centered_text(c, text, y, max_width, font="Helvetica-Bold", start_size=36, min_size=16):
-                from reportlab.pdfbase import pdfmetrics
-                size = start_size
-                while pdfmetrics.stringWidth(text, font, size) > max_width and size > min_size:
-                    size -= 1
-                c.setFont(font, size)
-                c.drawCentredString(landscape(A4)[0]/2, y, text)
-
-            def _draw_certificate_landscape(c, name, song, role="Peserta", winner=False, rank=None):
-                W, H = landscape(A4)
-                wm = _safe_img(WATERMARK_IMG)
-                if wm:
-                    c.saveState()
-                    try: c.setFillAlpha(0.06)
-                    except Exception: pass
-                    c.drawImage(wm, W*0.15, H*0.10, width=W*0.70, height=H*0.70,
-                                preserveAspectRatio=True, mask='auto')
-                    c.restoreState()
-                elif WATERMARK_TEXT:
-                    c.saveState()
-                    try: c.setFillColor(colors.Color(0,0,0,alpha=0.06))
-                    except Exception: c.setFillColor(colors.grey)
-                    c.translate(W/2, H/2); c.rotate(30)
-                    c.setFont("Helvetica-Bold", 96)
-                    c.drawCentredString(0, 0, WATERMARK_TEXT)
-                    c.restoreState()
-
-                bn = _safe_img(BANNER)
-                if bn:
-                    banner_h = 150
-                    c.drawImage(bn, 0, H-banner_h, width=W, height=banner_h,
-                                preserveAspectRatio=True, mask='auto')
-                else:
-                    c.setFillColor(colors.black); c.rect(0, H-110, W, 110, fill=1, stroke=0)
-                lg = _safe_img(LOGO)
-                if lg:
-                    c.drawImage(lg, 40, H-100, width=90, height=90, preserveAspectRatio=True, mask='auto')
-                c.setFillColor(colors.whitesmoke)
-                c.setFont("Helvetica-Bold", 28)
-                c.drawCentredString(W/2, H-65, "SERTIFIKAT PEMENANG" if winner else "SERTIFIKAT")
-                c.setFont("Helvetica", 10); c.setFillColor(colors.HexColor("#D4AF37"))
-                c.drawCentredString(W/2, H-92, "Lomba Cipta Lagu — GKI Perumnas")
-
-                c.setFillColor(colors.black); c.setFont("Helvetica", 12)
-                c.drawCentredString(W/2, H-150, "Diberikan kepada")
-                _fit_centered_text(c, name or "(Nama)", y=H-195, max_width=W-180, font="Helvetica-Bold", start_size=36, min_size=16)
-                c.setFont("Helvetica", 13)
-                if winner:
-                    rank_badge = f"JUARA {rank}" if rank else "PEMENANG"
-                    c.setFillColor(colors.HexColor("#D4AF37")); c.setFont("Helvetica-Bold", 18)
-                    c.drawCentredString(W/2, H-225, rank_badge)
-                    c.setFillColor(colors.black); c.setFont("Helvetica", 13)
-                    c.drawCentredString(W/2, H-245, "Atas prestasi gemilang dalam Lomba Cipta Lagu.")
-                else:
-                    c.drawCentredString(W/2, H-245, f"Atas partisipasi sebagai {role} dalam Lomba Cipta Lagu.")
-                if song:
-                    c.setFont("Helvetica-Oblique", 12)
-                    _fit_centered_text(c, f'Lagu: “{song}”', y=H-268, max_width=W-220, font="Helvetica-Oblique", start_size=12, min_size=10)
-
-                c.setFont("Helvetica", 10)
-                c.drawString(60, 80, datetime.datetime.now().strftime("Diterbitkan: %d %B %Y"))
-                c.line(60, 120, 260, 120);     c.drawString(60, 125, "Panitia")
-                c.line(W-260, 120, W-60, 120); c.drawRightString(W-60, 125, "Ketua Panitia")
-
-            @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
-            def generate_cert_pdf_bytes(name, song, winner=False, rank=None) -> bytes:
-                buf = io.BytesIO()
-                c = canvas.Canvas(buf, pagesize=landscape(A4))
-                _draw_certificate_landscape(c, name, song, "Peserta", winner, rank)
-                c.showPage(); c.save()
-                return buf.getvalue()
-
-            @st.cache_data(show_spinner=False, hash_funcs=HASH_DF)
-            def export_certificates_zip(songs_df: pd.DataFrame, pen_df2: pd.DataFrame, top_n: int = WIN_N) -> bytes:
-                df_full = build_pen_full_df(pen_df2)
-                avg = df_full.groupby("judul", as_index=False)["total"].mean().sort_values("total", ascending=False)
-                win = avg.head(top_n).reset_index(drop=True)
-                winner_rank_by_title = {row["judul"]: (i+1) for i, row in win.iterrows()}
-                memzip = io.BytesIO()
-                with zipfile.ZipFile(memzip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-                    for _, r in songs_df.fillna("").iterrows():
-                        title = r.get("judul","").strip()
-                        name  = r.get("pengarang","").strip() or "Peserta"
-                        rank  = winner_rank_by_title.get(title)
-                        pdf_bytes = generate_cert_pdf_bytes(name, title, winner=(rank is not None), rank=rank)
-                        safe_name = re.sub(r"[^A-Za-z0-9 _-]+","", name)[:60] or "Peserta"
-                        safe_title= re.sub(r"[^A-Za-z0-9 _-]+","", title)[:60] or "Lagu"
-                        zf.writestr(f"certificate/{safe_name} - {safe_title}.pdf", pdf_bytes)
-                memzip.seek(0)
-                return memzip.getvalue()
-
             # --- Rata-rata per aspek
             present = [r["key"] for r in RUBRIK if r["key"] in p.columns]
             if present:
@@ -3429,108 +3348,73 @@ if nav_selection == "📊 Hasil & Analitik":
             else:
                 melt = pd.DataFrame()
                 
-            
             st.markdown("### 📊 Sebaran & Konsistensi Nilai")
-
             cols = st.columns(4)
+            if not avg.empty:
+                top_song = avg.sort_values("total", ascending=False).iloc[0]
+                max_score = _fmt_num(top_song['total']) if 'total' in top_song else "N/A"
+                max_song = top_song['judul'] if 'judul' in top_song else "N/A"
+            else:
+                max_score, max_song = "N/A", "N/A"
+            
+            if not by_song.empty and by_song["std_total"].notna().any():
+                most_cons = by_song.sort_values("std_total").iloc[0]
+                most_div = by_song.sort_values("std_total", ascending=False).iloc[0]
+                cons_song, cons_std = most_cons["judul"], _fmt_num(most_cons["std_total"])
+                div_song, div_std = most_div["judul"], _fmt_num(most_div["std_total"])
+            else:
+                cons_song, cons_std = "N/A", "N/A"
+                div_song, div_std = "N/A", "N/A"
+            
             metrics = [
-                ("Skor tertinggi", "72.00", "Bangunlah, GKI Perumnas"),
-                ("Sebaran rata-rata", "12.3", ""),
-                ("Lagu paling konsisten", "Bangunlah, GKI…", "σ 0.20"),
-                ("Lagu paling kontroversial", "Waktu Bersama…", "σ 1.45"),
+                ("Skor tertinggi", max_score, max_song),
+                ("Rata-rata total", f"{avg['total'].mean():.2f}" if not avg.empty else "N/A", ""),
+                ("Lagu paling konsisten", cons_song, f"σ {cons_std}"),
+                ("Lagu paling beragam penilaian", div_song, f"σ {div_std}"),
             ]
 
             for col, (title, val, delta) in zip(cols, metrics):
                 with col:
                     st.metric(title, val, delta)
 
-
-            # ========= 🔎 Insight Cepat (gabungan & dipercantik) =========
+            # --- Insight Cepat ---
+            st.markdown("---")
             st.subheader("🔎 Insight Cepat")
-
-            def _fmt_num(x, nd=2):
-                try:
-                    f = float(x)
-                    if abs(f - round(f)) < 1e-9:
-                        return str(int(round(f)))
-                    return f"{f:.{nd}f}"
-                except Exception:
-                    return str(x)
-
             bullets = []
 
-            # 1) Ranking & selisih ke berikutnya
             ranking2 = avg.sort_values("total", ascending=False).reset_index(drop=True).copy()
             ranking2["lead_to_next"] = ranking2["total"] - ranking2["total"].shift(-1)
             if not ranking2.empty:
                 top_row = ranking2.iloc[0]
-                bullets.append(
-                    f"🏆 <b>Juara sementara</b>: <b>{top_row['judul']}</b> "
-                    f"(<span style='color:#2E86AB'>{_fmt_num(top_row['total'])}</span>)"
-                )
+                bullets.append(f"🏆 <b>Juara sementara</b>: <b>{top_row['judul']}</b> (<span style='color:#2E86AB'>{_fmt_num(top_row['total'])}</span>)")
                 tight = ranking2[ranking2["lead_to_next"] > 0].sort_values("lead_to_next")
                 if not tight.empty:
-                    bullets.append(
-                        f"⚔️ <b>Persaingan terketat</b>: <b>{tight.iloc[0]['judul']}</b> "
-                        f"unggul <span style='color:#8E44AD'>+{_fmt_num(tight.iloc[0]['lead_to_next'])}</span> poin"
-                    )
+                    bullets.append(f"⚔️ <b>Persaingan terketat</b>: <b>{tight.iloc[0]['judul']}</b> unggul <span style='color:#8E44AD'>+{_fmt_num(tight.iloc[0]['lead_to_next'])}</span> poin")
 
-            # 2) Aspek terkuat/terlemah (pakai melt yg sudah ada)
-            if 'melt' in locals() and not melt.empty:
-                by_aspek = melt.groupby("Aspek")["nilai"].mean().sort_values(ascending=False)
-                bullets.append(f"💪 <b>Aspek terkuat</b>: <b>{by_aspek.index[0]}</b>")
-                bullets.append(f"🧩 <bAspek yang perlu ditingkatkan</b>: <b>{by_aspek.index[-1]}</b>")
+            if corr_aspek is not None and not corr_aspek.empty and corr_aspek.notna().any():
+                key_to_name = {r["key"]: r["aspek"] for r in RUBRIK}
+                top_key = corr_aspek.index[0]
+                bullets.append(f"🎯 <b>Aspek paling berpengaruh pada skor total</b>: <b>{key_to_name.get(top_key, top_key)}</b> (r={_fmt_num(corr_aspek.iloc[0])})")
 
-            # 3) Konsistensi antar juri per lagu (SD kecil = lebih sepakat)
-            if "total" in p.columns:
-                p_num = p.copy()
-                p_num["total"] = pd.to_numeric(p_num["total"], errors="coerce")
-                by_song = p_num.groupby("judul", as_index=False)["total"].agg(avg_total="mean", std_total="std")
-                if not by_song.empty and by_song["std_total"].notna().any():
-                    most_cons = by_song.sort_values("std_total", ascending=True).iloc[0]
-                    most_div  = by_song.sort_values("std_total", ascending=False).iloc[0]
-                    bullets.append(
-                        f"✅ <b>Paling konsisten antar juri</b>: <b>{most_cons['judul']}</b> "
-                        f"(SD {_fmt_num(most_cons['std_total'])})"
-                    )
-                    bullets.append(
-                        f"⚠️ <b>Paling beragam penilaian</b>: <b>{most_div['judul']}</b> "
-                        f"(SD {_fmt_num(most_div['std_total'])})"
-                    )
+            if not by_song.empty and by_song["std_total"].notna().any():
+                most_cons = by_song.sort_values("std_total").iloc[0]
+                most_div = by_song.sort_values("std_total", ascending=False).iloc[0]
+                bullets.append(f"✅ <b>Paling konsisten antar juri</b>: <b>{most_cons['judul']}</b> (SD {_fmt_num(most_cons['std_total'])})")
+                bullets.append(f"⚠️ <b>Paling beragam penilaian</b>: <b>{most_div['judul']}</b> (SD {_fmt_num(most_div['std_total'])})")
 
-            # 4) Aspek paling menentukan (korelasi r terhadap total)
-            present_keys = [r["key"] for r in RUBRIK if r["key"] in p.columns]
-            if present_keys:
-                per_song = p.groupby("judul", as_index=False)[present_keys + ["total"]].mean(numeric_only=True)
-                corr_series = per_song.corr(numeric_only=True)["total"].drop("total").sort_values(ascending=False)
-                if not corr_series.empty and corr_series.notna().any():
-                    # map ke nama aspek yang ramah baca
-                    key_to_name = {r["key"]: r["aspek"] for r in RUBRIK}
-                    top_key = corr_series.index[0]
-                    bullets.append(
-                        f"🎯 <b>Aspek dengan pengaruh terbesar pada skor total</b>: "
-                        f"<b>{key_to_name.get(top_key, top_key)}</b> "
-                        f"(r={_fmt_num(corr_series.iloc[0])})"
-                    )
+            if jstat is not None and not jstat.empty:
+                most_len = jstat.sort_values("rata2", ascending=False).iloc[0]
+                most_str = jstat.sort_values("rata2", ascending=True).iloc[0]
+                bullets.append(f"🧑‍⚖️ <b>Juri paling longgar</b>: <b>{most_len['juri']}</b> (avg {_fmt_num(most_len['rata2'])})")
+                bullets.append(f"🧑‍⚖️ <b>Juri paling ketat</b>: <b>{most_str['juri']}</b> (avg {_fmt_num(most_str['rata2'])})")
 
-            # 5) Profil ketat/longgar per juri (rata-rata skor)
-            if "juri" in p.columns:
-                jstat = p.groupby("juri", as_index=False)["total"].mean(numeric_only=True).rename(columns={"total":"rata2"})
-                if not jstat.empty:
-                    most_len = jstat.sort_values("rata2", ascending=False).iloc[0]
-                    most_str = jstat.sort_values("rata2", ascending=True).iloc[0]
-                    bullets.append(f"🧑‍⚖️ <b>Juri paling longgar</b>: <b>{most_len['juri']}</b> (avg {_fmt_num(most_len['rata2'])})")
-                    bullets.append(f"🧑‍⚖️ <b>Juri paling ketat</b>: <b>{most_str['juri']}</b> (avg {_fmt_num(most_str['rata2'])})")
-
-            # Render rapi (pakai bullet HTML biar spacing pas)
             if bullets:
                 html = "<ul style='line-height:1.6;margin:.2rem 0 0 .5rem'>" + "".join([f"<li>{b}</li>" for b in bullets]) + "</ul>"
                 st.markdown(html, unsafe_allow_html=True)
             else:
-                st.caption("— belum cukup data untuk insight —")
-
-
-            # --- Tombol unduhan
+                st.caption("— Belum cukup data untuk insight —")
+            
+            # --- Tombol unduhan ---
             st.subheader("⬇️ Export Hasil")
             colx1, colx2 = st.columns(2)
             with colx1:
@@ -3556,6 +3440,7 @@ if nav_selection == "📊 Hasil & Analitik":
                     mime="application/pdf"
                 )
             with colx4:
+                songs_df = pd.DataFrame([{'judul': t, 'pengarang': SONGS.get(t,{}).get('author','')} for t in SONGS])
                 st.download_button(
                     "🎓 ZIP e-Certificate (peserta & pemenang)",
                     data=export_certificates_zip(songs_df, pen_df2, top_n=WIN_N),
