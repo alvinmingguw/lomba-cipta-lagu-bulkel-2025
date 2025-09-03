@@ -1644,7 +1644,7 @@ MUSIC_RAW_MAP, (_MUSIC_BIN_FUNC, _MUSIC_BIN_CUTS) = _compute_all_music_raw()
 def show_winner_only():
     st.markdown("## ⛔️ Form Ditutup")
     try:
-        RLImage("assets/FLYER_01.png", use_container_width=True)
+        st.image("assets/FLYER_01.png", use_container_width=True)
     except Exception:
         pass
     st.info("Terima kasih. Penjurian sudah ditutup.")
@@ -1695,7 +1695,7 @@ if "nav" not in st.session_state:
 with st.container():
     st.markdown("<div class='app-sticky'>", unsafe_allow_html=True)
     try:
-        st.RLImage(BANNER, width='stretch')
+        st.image(BANNER, width='stretch')
     except Exception:
         pass
     # nav = st.radio("Menu", NAV_OPTS, horizontal=True, label_visibility="collapsed", key="nav")
@@ -1974,14 +1974,14 @@ if nav_selection == "📝 Penilaian":
         # SYAIR (PDF)
         with st.expander("📝 Syair (klik untuk buka)", expanded=False):
             png = pdf_first_page_png_bytes(aset["syair"], dpi=160)
-            if png: st.RLImage(png, caption="Preview halaman 1", width='stretch')
+            if png: st.image(png, caption="Preview halaman 1", width='stretch')
             if st.toggle("Tampilkan PDF penuh di halaman ini", key=f"t_full_syair::{judul}"):
                 embed_pdf(aset["syair"], height=720)
 
         # NOTASI (PDF)
         with st.expander("📄 Notasi (klik untuk buka)", expanded=False):
             png = pdf_first_page_png_bytes(aset["notasi"], dpi=160)
-            if png: st.RLImage(png, caption="Preview halaman 1", width='stretch')
+            if png: st.image(png, caption="Preview halaman 1", width='stretch')
             if st.toggle("Tampilkan PDF penuh di halaman ini", key=f"t_full_notasi::{judul}"):
                 embed_pdf(aset["notasi"], height=720)
 
