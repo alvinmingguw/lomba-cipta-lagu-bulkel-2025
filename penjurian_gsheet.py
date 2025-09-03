@@ -1644,7 +1644,7 @@ MUSIC_RAW_MAP, (_MUSIC_BIN_FUNC, _MUSIC_BIN_CUTS) = _compute_all_music_raw()
 def show_winner_only():
     st.markdown("## ⛔️ Form Ditutup")
     try:
-        st.RLImage("assets/FLYER_01.png", use_container_width=True)
+        RLImage("assets/FLYER_01.png", use_container_width=True)
     except Exception:
         pass
     st.info("Terima kasih. Penjurian sudah ditutup.")
