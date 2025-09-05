@@ -28,3 +28,4 @@ xlsxwriter
 
 # Machine Learning for Text Analysis
 scikit-learn
+wordcloud

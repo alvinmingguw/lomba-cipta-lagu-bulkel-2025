@@ -8,6 +8,8 @@ from difflib import SequenceMatcher
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict, Any, Tuple, Callable
+from wordcloud import WordCloud, STOPWORDS
+import io
 
 # Assuming other core modules are in the same directory
 from .pdf_utils import extract_pdf_text_cached
@@ -27,6 +29,28 @@ def _normalize_text(s: str) -> str:
         pass # Handle potential errors on non-string input
     s = re.sub(r"[^a-z0-9\s']+", " ", s)
     return re.sub(r"\s+", " ", s).strip()
+
+def generate_wordcloud_image(text: str) -> io.BytesIO:
+    """Generates a word cloud image from a text string."""
+    if not text:
+        return None
+
+    custom_stopwords = set(STOPWORDS)
+    custom_stopwords.update(["lagu", "lirik", "syair", "bait", "reff"])
+
+    wc = WordCloud(
+        background_color="white",
+        max_words=100,
+        stopwords=custom_stopwords,
+        width=800,
+        height=400,
+        colormap='viridis'
+    ).generate(text)
+
+    img_buffer = io.BytesIO()
+    wc.to_image().save(img_buffer, format='PNG')
+    img_buffer.seek(0)
+    return img_buffer
 
 def make_theme_functions(phrases: list, keywords: list) -> Tuple[Callable, Callable]:
     """Creates functions to score and highlight text based on theme keywords."""
@@ -234,17 +258,52 @@ def _get_lyric_features(text: str) -> dict:
     }
 
 def score_creativity(aset: dict, lyrics_text: str, chord_sources: list) -> int:
-    """Scores creativity (1-5) based on harmony and lyrics."""
+    """Scores creativity (1-5) based on harmony and lyrics, v3."""
+    # === 1. Pilar Harmoni (Bobot 50%) ===
     seq = chord_sequence_from_sources(aset, chord_sources)
-    h_score = 0.0
+    harmonic_score = 0.0 # Mulai dari nol
     if seq:
         feats = music_features_v2(seq)
-        h_score = min(0.5 * min(feats["nondi"] * 4, 1.0) + 0.3 * min(feats["ext"] * 3, 1.0) + 0.2 * min(feats["big_count"] / 15.0, 1.0), 1.0)
+        nondi_rate = feats.get("nondi", 0)
+        ext_rate = feats.get("ext", 0)
+        trans_uniq = feats.get("big_count", 0)
+        num_uniq_chords = len(feats.get("uniq_list", []))
 
-    l_feats = _get_lyric_features(lyrics_text)
-    l_score = 0.5 * l_feats["ttr"] + 0.3 * (1 - min(l_feats["cliche_hits"] / 2.0, 1.0)) + 0.2 * min(l_feats["imagery_hits"] / 3.0, 1.0)
+        # Poin dari kompleksitas (maks 1.0)
+        complexity_score = (0.5 * min(nondi_rate * 4, 1.0)) + \
+                           (0.3 * min(ext_rate * 3, 1.0)) + \
+                           (0.2 * min(trans_uniq / 15.0, 1.0))
 
-    return _map_0_100_to_1_5(100 * ((0.6 * h_score) + (0.4 * l_score)))
+        # Bonus untuk "keberanian"
+        if nondi_rate > 0.1 and ext_rate > 0.15:
+            complexity_score += 0.15
+
+        harmonic_score = min(complexity_score, 1.0)
+
+        # Penalti untuk "terlalu aman" / sangat standar
+        if num_uniq_chords <= 4 and ext_rate == 0 and nondi_rate < 0.05:
+            harmonic_score *= 0.4 # Kurangi skor secara signifikan
+
+    # === 2. Pilar Lirik (Bobot 50%) ===
+    lyrical_score = 0.0 # Mulai dari nol
+    if lyrics_text:
+        lyric_feats = _get_lyric_features(lyrics_text)
+        signals = analyze_originality_signals(lyrics_text, seq)
+
+        # Poin dari orisinalitas (100% - penalti klise)
+        originality_score = 1.0 - (signals.get("cliche_score", 0) / 100.0)
+
+        # Poin dari kualitas puitis (imajinasi & TTR)
+        poetic_score = (0.7 * min(lyric_feats.get("imagery_hits", 0) / 3.0, 1.0)) + \
+                       (0.3 * (lyric_feats.get("ttr", 0) - 0.3) / 0.5) # Normalisasi TTR
+
+        # Rata-rata dari orisinalitas dan kualitas puitis
+        lyrical_score = max(0.0, (0.6 * originality_score) + (0.4 * poetic_score))
+
+    # === 3. Agregasi Final ===
+    raw_score = 100 * ((0.5 * harmonic_score) + (0.5 * lyrical_score))
+
+    return _map_0_100_to_1_5(raw_score)
 
 def score_singability(aset: dict, lyrics_text: str, chord_sources: list) -> int:
     """Scores singability (1-5) for congregational singing."""
@@ -329,6 +388,25 @@ def _build_pen_full_df(pen_df_raw: pd.DataFrame, rubrik: list, variants: dict) -
         df["total"] = pd.to_numeric(df["total"], errors='coerce')
 
     return df
+
+def analyze_originality_signals(lyrics: str, chord_seq: list) -> dict:
+    """Analyzes AI or generic signals from lyrics and chords."""
+    if not lyrics:
+        return {"cliche_score": 0, "ttr": 0, "num_chords": 0}
+
+    t_norm = _normalize_text(lyrics)
+    words = t_norm.split()
+
+    cliche_hits = sum(1 for c in _CLICHES if c in t_norm)
+    cliche_score = min(cliche_hits * 25, 100)
+
+    ttr = len(set(words)) / len(words) if words else 0
+
+    return {
+        "cliche_score": cliche_score,
+        "ttr": ttr,
+        "num_chords": len(set(chord_seq))
+    }
 
 def calculate_internal_similarity(current_title: str, all_songs: dict, lyrics_score_priority: list, chord_sources: list) -> pd.DataFrame:
     """Calculates lyric and chord similarity with all other songs."""

@@ -5,57 +5,41 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-import plotly.express as px
-import urllib.parse
-from collections import Counter
-import io
 import re
-import datetime
-from zoneinfo import ZoneInfo
+import urllib.parse
 
 # --- Core Refactored Modules ---
 from core.utils import fmt_num
 from core.gsheet import (
-    load_all_sheets, get_penilaian_df, ensure_headers,
-    find_pen_row_index_df, update_pen_row, append_pen_row,
+    load_all_sheets, get_penilaian_df,
     load_existing_scores_for_df, open_sheet, _ensure_ws, ws_to_df
 )
 from core.gdrive import (
-    resolve_source, drive_download_bytes, fetch_bytes_cached, drive_get_meta
+    resolve_source
 )
-from core.pdf_utils import embed_pdf, pdf_first_page_png_bytes, extract_pdf_text_cached
+from core.pdf_utils import embed_pdf, pdf_first_page_png_bytes
 from core.config import (
     cfg_get, cfg_list, parse_rubrik, parse_keywords, parse_variants
 )
 from core.analysis import (
     make_theme_functions,
-    score_lyrics_strength,
-    highlight_lyrics_v2,
-    strip_chords,
-    music_features_v2,
+    highlight_matches,
     score_harmonic_richness_v2,
-    detect_key_from_chords,
-    detect_genre,
     get_clean_lyrics_for_song,
     analyze_originality_signals,
     calculate_internal_similarity,
     build_suggestions,
     chord_sequence_from_sources,
     _make_dynamic_binner,
-    _pick_text_variant,
-    score_creativity_v3,
-    score_singability_v2,
     process_penilaian_data,
-    _build_pen_full_df
+    _build_pen_full_df,
+    generate_wordcloud_image
 )
 from core.exports import (
     export_excel_lengkap,
     export_pdf_rekap,
     export_pdf_winners,
-    export_certificates_zip,
-    _make_bar_png
+    export_certificates_zip
 )
 
 # ---------- Page config ----------
@@ -277,7 +261,6 @@ if nav_selection == "📝 Penilaian":
 
         st.markdown(f"**Judul:** {judul}" + (f" • **Pengarang:** _{pengarang}_" if (SHOW_AUTHOR and pengarang) else ""))
 
-        # --- Prefill nilai existing (fresh, bukan cache awal) ---
         prefill_key = f"__prefilled_auto::{active_juri}::{judul}::{pengarang}"
         if not st.session_state.get(prefill_key, False):
             ws_pen_fresh = _ensure_ws(open_sheet(), "Penilaian", ["timestamp","juri","judul","author","total"])
@@ -292,21 +275,23 @@ if nav_selection == "📝 Penilaian":
                 st.caption("Nilai sebelumnya dimuat otomatis. Silakan ubah jika perlu.")
             st.session_state[prefill_key] = True
 
-        # SYAIR (PDF)
-        with st.expander("📝 Syair (klik untuk buka)", expanded=False):
-            png = pdf_first_page_png_bytes(aset["syair"], dpi=160)
-            if png: st.image(png, caption="Preview halaman 1", width='stretch')
-            if st.toggle("Tampilkan PDF penuh di halaman ini", key=f"t_full_syair::{judul}"):
-                embed_pdf(aset["syair"], height=720)
+        col1, col2 = st.columns(2)
+        with col1:
+            with st.expander("📝 Syair (klik untuk buka)", expanded=True):
+                png = pdf_first_page_png_bytes(aset.get("syair", {}), dpi=130)
+                if png:
+                    st.image(png, caption="Halaman 1 Syair", use_container_width=True)
+                if st.button("Tampilkan PDF Syair", key=f"btn_syair::{judul}"):
+                    embed_pdf(aset.get("syair", {}), height=500)
 
-        # NOTASI (PDF)
-        with st.expander("📄 Notasi (klik untuk buka)", expanded=False):
-            png = pdf_first_page_png_bytes(aset["notasi"], dpi=160)
-            if png: st.image(png, caption="Preview halaman 1", width='stretch')
-            if st.toggle("Tampilkan PDF penuh di halaman ini", key=f"t_full_notasi::{judul}"):
-                embed_pdf(aset["notasi"], height=720)
+        with col2:
+            with st.expander("📄 Notasi (klik untuk buka)", expanded=True):
+                png = pdf_first_page_png_bytes(aset.get("notasi", {}), dpi=130)
+                if png:
+                    st.image(png, caption="Halaman 1 Notasi", use_container_width=True)
+                if st.button("Tampilkan PDF Notasi", key=f"btn_notasi::{judul}"):
+                    embed_pdf(aset.get("notasi", {}), height=500)
 
-        # ANALISIS ORISINALITAS
         with st.expander("🕵️‍♂️ Analisis Orisinalitas (Bantuan untuk Juri)"):
             st.subheader("Sinyal Konten Generik / Potensi AI")
             lyrics_for_analysis = get_clean_lyrics_for_song(aset, LYRICS_SCORE_PRIORITY)
@@ -343,8 +328,47 @@ if nav_selection == "📝 Penilaian":
         st.markdown("---")
         st.subheader(f"Rubrik Penilaian")
 
-        # ... (full rubric rendering logic) ...
-        # ... (submission logic) ...
+        SARAN = build_suggestions(judul, aset, LYRICS_SCORE_PRIORITY, CHORD_SOURCE_PRIORITY, theme_score, RUBRIK, MUSIC_RAW_MAP, _MUSIC_BIN_FUNC)
+
+        sum_rows, total_ui = [], 0.0
+        scores_ui = {}
+        for r in RUBRIK:
+            wkey = f"rate::{judul}::{r['key']}"
+            val = st.session_state.get(wkey)
+            scores_ui[r["key"]] = None if val is None else int(val)
+            v = scores_ui[r["key"]] or 0
+            w = (v / max(int(r["max"]),1)) * float(r["bobot"])
+            total_ui += w
+            sum_rows.append([r["aspek"], r["bobot"], v if v else "-", f"{w:.2f}"])
+
+        all_ok = all(scores_ui.get(x["key"]) is not None for x in RUBRIK)
+        st.markdown(f"**Total skor sementara:** {total_ui:.2f} / 100")
+
+        if st.button("💾 Tinjau & Submit", disabled=not all_ok):
+            pass # Logic for submission modal follows
+
+elif nav_selection == "🔎 Analisis Syair":
+    st.title("🔎 Analisis Kekuatan Syair")
+    st.markdown(f"Menganalisis lirik lagu **{judul}** berdasarkan relevansinya terhadap tema dan kualitas puitisnya.")
+
+    lyrics = get_clean_lyrics_for_song(aset, LYRICS_SCORE_PRIORITY)
+
+    if lyrics:
+        col1, col2 = st.columns([2, 3])
+        with col1:
+            st.subheader("Word Cloud")
+            with st.spinner("Membuat word cloud..."):
+                wordcloud_image = generate_wordcloud_image(lyrics)
+                if wordcloud_image:
+                    st.image(wordcloud_image, caption=f"Word Cloud untuk '{judul}'", use_container_width=True)
+                else:
+                    st.warning("Gagal membuat word cloud.")
+
+        with col2:
+            st.subheader("Analisis Teks Lirik")
+            st.markdown(f"<div style='height: 400px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 10px; border-radius: 5px;'>{highlight_matches(lyrics)}</div>", unsafe_allow_html=True)
+    else:
+        st.warning("Lirik tidak tersedia untuk lagu ini.")
 
 elif nav_selection == "📊 Hasil & Analitik":
     st.title("📊 Hasil & Analitik")
@@ -352,12 +376,35 @@ elif nav_selection == "📊 Hasil & Analitik":
     if p is None:
         st.info("Belum ada penilaian yang masuk.")
     else:
-        st.subheader("🏆 Leaderboard (dengan jarak ke posisi berikutnya)")
-        cols = ["judul", "total", "lead_to_next"] + (["Pengarang"] if SHOW_AUTHOR else [])
-        st.dataframe(ranking[cols], use_container_width=True, hide_index=True)
-        # ... all other charts and tables ...
+        st.subheader("Word Cloud Semua Lirik")
+        with st.spinner("Menggabungkan semua lirik dan membuat word cloud..."):
+            all_lyrics = " ".join([get_clean_lyrics_for_song(s, LYRICS_SCORE_PRIORITY) for s in SONGS.values()])
+            if all_lyrics.strip():
+                global_wordcloud = generate_wordcloud_image(all_lyrics)
+                if global_wordcloud:
+                    st.image(global_wordcloud, caption="Word Cloud dari semua lagu", use_container_width=True)
+                else:
+                    st.warning("Tidak dapat membuat word cloud global.")
+            else:
+                st.info("Tidak ada lirik yang tersedia untuk membuat word cloud global.")
+
+        st.subheader("🏆 Leaderboard")
+        st.dataframe(ranking[["judul", "total", "lead_to_next"] + (["Pengarang"] if SHOW_AUTHOR else [])], use_container_width=True, hide_index=True)
+
+        st.markdown("---")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Konsistensi Juri")
+            st.bar_chart(by_song.set_index('judul')['std_total'])
+        with col2:
+            st.subheader("Korelasi Aspek ke Total")
+            if corr_aspek is not None:
+                st.bar_chart(corr_aspek)
+
+    st.markdown("---")
     st.subheader("⬇️ Export Hasil")
     st.download_button("📥 Excel Lengkap", data=export_excel_lengkap(pen_df, SONGS, RUBRIK, VARIANTS, SHOW_AUTHOR, CHORD_SOURCE_PRIORITY), file_name="Rekap_Penilaian_Lengkap.xlsx")
-    st.download_button("📥 PDF Rekap", data=export_pdf_rekap(pen_df, SONGS, RUBRIK, VARIANTS, CHORD_SOURCE_PRIORITY), file_name="Rekap_Penilaian.pdf")
-    st.download_button("🏆 PDF Pemenang", data=export_pdf_winners(pen_df, SONGS, RUBRIK, VARIANTS, WIN_N), file_name="Pemenang_Analitik.pdf")
+    st.download_button("📥 PDF Rekap", data=export_pdf_rekap(pen_df, SONGS, RUBRIK, VARIANTS, CHORD_SOURCE_PRIORITY, LYRICS_SCORE_PRIORITY), file_name="Rekap_Penilaian.pdf")
+    st.download_button("🏆 PDF Pemenang", data=export_pdf_winners(pen_df, SONGS, RUBRIK, VARIANTS, WIN_N, CHORD_SOURCE_PRIORITY, LYRICS_SCORE_PRIORITY), file_name="Pemenang_Analitik.pdf")
     st.download_button("🎓 ZIP e-Certificate", data=export_certificates_zip(songs_df, pen_df, RUBRIK, VARIANTS, WIN_N, ASSETS), file_name="Certificates.zip")
