@@ -330,6 +330,51 @@ def _build_pen_full_df(pen_df_raw: pd.DataFrame, rubrik: list, variants: dict) -
 
     return df
 
+def calculate_internal_similarity(current_title: str, all_songs: dict, lyrics_score_priority: list, chord_sources: list) -> pd.DataFrame:
+    """Calculates lyric and chord similarity with all other songs."""
+    if len(all_songs) < 2:
+        return pd.DataFrame()
+
+    current_aset = all_songs[current_title]
+    current_lyrics = get_clean_lyrics_for_song(current_aset, lyrics_score_priority)
+    current_chords_str = " ".join(chord_sequence_from_sources(current_aset, chord_sources))
+
+    titles = [t for t in all_songs if t != current_title]
+    lyrics_corpus = [get_clean_lyrics_for_song(all_songs[t], lyrics_score_priority) for t in titles]
+
+    try:
+        vectorizer = TfidfVectorizer().fit(lyrics_corpus + [current_lyrics])
+        tfidf_matrix = vectorizer.transform(lyrics_corpus)
+        current_tfidf = vectorizer.transform([current_lyrics])
+        lyric_sims = cosine_similarity(current_tfidf, tfidf_matrix).flatten()
+    except ValueError:
+        lyric_sims = [0.0] * len(titles)
+
+    results = []
+    for i, title in enumerate(titles):
+        other_aset = all_songs[title]
+        other_chords_str = " ".join(chord_sequence_from_sources(other_aset, chord_sources))
+        chord_sim = SequenceMatcher(None, current_chords_str, other_chords_str).ratio()
+        results.append({
+            "Judul Lagu Pembanding": title,
+            "Kemiripan Lirik (%)": round(lyric_sims[i] * 100, 1),
+            "Kemiripan Akor (%)": round(chord_sim * 100, 1)
+        })
+
+    df = pd.DataFrame(results)
+    if not df.empty:
+        df['Skor Gabungan'] = df['Kemiripan Lirik (%)'] * 0.6 + df['Kemiripan Akor (%)'] * 0.4
+        return df.sort_values('Skor Gabungan', ascending=False).head(3).drop(columns=['Skor Gabungan'])
+    return df
+
+def get_clean_lyrics_for_song(aset: dict, lyrics_score_priority: list) -> str:
+    """Helper to get clean lyrics from a song's asset dictionary."""
+    def _ex_sy(): return extract_pdf_text_cached(aset.get("syair", {}))
+    def _ex_no(): return extract_pdf_text_cached(aset.get("notasi", {}))
+
+    src, txt = _pick_text_variant(aset, lyrics_score_priority, _ex_sy, _ex_no)
+    return strip_chords(txt) if src in ("syair_chord", "full_score", "extract_notasi") else txt
+
 def process_penilaian_data(df_raw: pd.DataFrame, rubrik: list, variants: dict, show_author: bool, songs: dict):
     """Processes raw assessment data to generate analytics."""
     if df_raw.empty or "judul" not in df_raw.columns:

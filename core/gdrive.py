@@ -1,6 +1,7 @@
 import os
 import io
 import re
+import pandas as pd
 import requests
 import streamlit as st
 from google.oauth2.service_account import Credentials
