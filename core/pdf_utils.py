@@ -1,102 +1,104 @@
-import base64
-import io
 import streamlit as st
-import streamlit.components.v1 as components
+import base64
 import fitz  # PyMuPDF
-from typing import Dict, Any
-
-# Assuming gdrive.py contains fetch_bytes_cached
-from .gdrive import fetch_bytes_cached, drive_download_bytes
+import io
 
 # =========================
-# PDF Display and Extraction Helpers
+# PDF Utilities
 # =========================
 
-def embed_pdf(source_dict: Dict[str, Any], height: int = 720):
-    """Embeds a PDF in the Streamlit app from a source dictionary."""
-    if not source_dict or source_dict.get("mode") is None or source_dict.get("mode") == "not_found":
-        st.warning(f"Dokumen tidak tersedia atau path tidak ditemukan: `{source_dict.get('path', 'N/A')}`")
+def embed_pdf(source: dict, height: int = 720):
+    """Embeds a PDF in the Streamlit app from various sources."""
+    if not source or source.get("mode") == "none":
+        st.warning("PDF tidak ditemukan.")
         return
 
-    # Handle embedding from a URL (Google Drive)
-    if source_dict.get("mode") == "url" and source_dict.get("preview"):
-        preview_url = source_dict["preview"]
-        components.html(f"<iframe src='{preview_url}' width='100%' height='{height}px' style='border:none;'></iframe>",
-                        height=height + 20, scrolling=True)
-    # Handle embedding from a local file path
-    elif source_dict.get("mode") == "local" and source_dict.get("path"):
+    pdf_bytes = None
+    if source.get("mode") == "drive":
+        # Lazy import to avoid circular dependency
+        from .gdrive import drive_download_bytes
+        pdf_bytes = drive_download_bytes(source.get("id"))
+    elif source.get("mode") == "url":
+        # Lazy import
+        from .gdrive import fetch_bytes_cached
+        pdf_bytes = fetch_bytes_cached(source.get("direct"))
+    elif source.get("mode") == "local":
         try:
-            with open(source_dict["path"], "rb") as f:
-                b64 = base64.b64encode(f.read()).decode("utf-8")
-            components.html(f"<iframe src='data:application/pdf;base64,{b64}' width='100%' height='{height}px' style='border:none;'></iframe>",
-                            height=height + 20, scrolling=True)
+            with open(source.get("path"), "rb") as f:
+                pdf_bytes = f.read()
         except FileNotFoundError:
-            st.error(f"File lokal tidak ditemukan: {source_dict['path']}")
-    # Handle generic external URLs
-    elif source_dict.get("mode") == "external_url" and source_dict.get("url"):
-        components.html(f"<iframe src='{source_dict['url']}' width='100%' height='{height}px' style='border:none;'></iframe>",
-                        height=height + 20, scrolling=True)
+            st.error(f"File lokal tidak ditemukan: {source.get('path')}")
+            return
 
+    if pdf_bytes:
+        base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="{height}" type="application/pdf"></iframe>'
+        st.markdown(pdf_display, unsafe_allow_html=True)
+    else:
+        st.warning("Gagal memuat PDF.")
 
-@st.cache_data(ttl=6*3600, show_spinner="Generating PDF preview...", max_entries=256)
-def pdf_first_page_png_bytes(source_dict: Dict[str, Any], dpi: int = 150) -> bytes | None:
-    """
-    Extracts the first page of a PDF as a PNG image and caches it.
-    """
-    if not source_dict or source_dict.get("mode") is None or source_dict.get("mode") == "not_found":
+@st.cache_data(ttl=3600)
+def pdf_first_page_png_bytes(source: dict, dpi: int = 150) -> bytes | None:
+    """Renders the first page of a PDF as a PNG image."""
+    if not source or source.get("mode") == "none":
         return None
 
     pdf_bytes = None
-    try:
-        # Get PDF bytes based on the source mode
-        if source_dict.get("mode") == "url" and source_dict.get("id"):
-            pdf_bytes = drive_download_bytes(source_dict["id"])
-        elif source_dict.get("mode") == "local" and source_dict.get("path"):
-            with open(source_dict["path"], "rb") as f:
+    if source.get("mode") == "drive":
+        from .gdrive import drive_download_bytes
+        pdf_bytes = drive_download_bytes(source.get("id"))
+    elif source.get("mode") == "url":
+        from .gdrive import fetch_bytes_cached
+        pdf_bytes = fetch_bytes_cached(source.get("direct"))
+    elif source.get("mode") == "local":
+        try:
+            with open(source.get("path"), "rb") as f:
                 pdf_bytes = f.read()
-        elif source_dict.get("mode") == "external_url" and source_dict.get("url"):
-             pdf_bytes = fetch_bytes_cached(source_dict["url"])
-
-
-        if not pdf_bytes:
+        except FileNotFoundError:
             return None
 
-        # Render the first page
-        with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
-            page = doc.load_page(0)
-            pix = page.get_pixmap(dpi=dpi)
-            return pix.tobytes("png")
-
-    except Exception:
-        # Silently fail to avoid cluttering the UI with errors for broken links
+    if not pdf_bytes:
         return None
 
-@st.cache_data(ttl=6*3600, show_spinner="Extracting text from PDF...", max_entries=256)
-def extract_pdf_text_cached(source_dict: Dict[str, Any]) -> str:
-    """
-    Extracts all text from a PDF and caches it.
-    """
-    if not source_dict or source_dict.get("mode") is None or source_dict.get("mode") == "not_found":
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        if len(doc) > 0:
+            page = doc.load_page(0)
+            pix = page.get_pixmap(dpi=dpi)
+            img_bytes = pix.tobytes("png")
+            return img_bytes
+        return None
+    except Exception:
+        return None
+
+@st.cache_data(ttl=3600)
+def extract_pdf_text_cached(source: dict) -> str:
+    """Extracts all text from a PDF."""
+    if not source or source.get("mode") == "none":
         return ""
 
     pdf_bytes = None
-    try:
-        # Get PDF bytes based on the source mode
-        if source_dict.get("mode") == "url" and source_dict.get("id"):
-            pdf_bytes = drive_download_bytes(source_dict["id"])
-        elif source_dict.get("mode") == "local" and source_dict.get("path"):
-            with open(source_dict["path"], "rb") as f:
+    if source.get("mode") == "drive":
+        from .gdrive import drive_download_bytes
+        pdf_bytes = drive_download_bytes(source.get("id"))
+    elif source.get("mode") == "url":
+        from .gdrive import fetch_bytes_cached
+        pdf_bytes = fetch_bytes_cached(source.get("direct"))
+    elif source.get("mode") == "local":
+        try:
+            with open(source.get("path"), "rb") as f:
                 pdf_bytes = f.read()
-        elif source_dict.get("mode") == "external_url" and source_dict.get("url"):
-             pdf_bytes = fetch_bytes_cached(source_dict["url"])
-
-        if not pdf_bytes:
+        except FileNotFoundError:
             return ""
 
-        # Extract text
-        with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
-            text = "".join(page.get_text() for page in doc)
-        return (text or "").strip()
+    if not pdf_bytes:
+        return ""
 
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        return text
     except Exception:
         return ""

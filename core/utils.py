@@ -1,40 +1,78 @@
-import pandas as pd
-import re
+from typing import Callable, Tuple
 
-# Helper to hash dataframes for Streamlit caching
-HASH_DF = {pd.DataFrame: lambda df: df.to_csv(index=False)}
+def HASH_DF(df):
+    return pd.util.hash_pandas_object(df).sum()
 
-# Regex to check if a string is a URL
-URL_RE = re.compile(r"^https?://", re.I)
+def is_url(s: str) -> bool:
+    return s.strip().startswith(("http://", "https://"))
 
-def is_url(x: str) -> bool:
-    """Checks if a string is a URL."""
-    return bool(x and isinstance(x, str) and URL_RE.search(x))
+def _patch_sa():
+    # Patch for gspread_pandas bug in service account auth
+    # https://github.com/spreadsheets/gspread-pandas/issues/234
+    from gspread_pandas.conf import get_config
+    from google.oauth2.service_account import Credentials
+    get_config(
+        conf_dir=".",
+        creds_dir=".",
+        creds_filename="gcp_service_account.json",
+        scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"],
+        creds_class=Credentials
+    )
 
-def _patch_sa(info: dict) -> dict:
-    """
-    Corrects the newline characters in the private_key of the service account info.
-    Streamlit secrets escape the newlines, so they need to be un-escaped.
-    """
-    info = dict(info) if info else {}
-    pk = info.get("private_key", "")
-    if "\\n" in pk:
-        info["private_key"] = pk.replace("\\n", "\n")
-    return info
-
-def fmt_num(v) -> str:
-    """Formats a number: integer if whole, one decimal place if fractional."""
+def fmt_num(x, nd=2):
     try:
-        f = float(v)
-        if f.is_integer():
-            return str(int(f))
-        return f"{f:.1f}"
+        f = float(x)
+        if abs(f - round(f)) < 1e-9:
+            return str(int(round(f)))
+        return f"{f:.{nd}f}"
     except (ValueError, TypeError):
-        return str(v)
+        return str(x)
 
 def _map_0_100_to_1_5(x: float) -> int:
-    """Maps a score from a 0-100 scale to a 1-5 scale."""
-    if pd.isna(x):
-        return 1
     cuts = [20, 40, 60, 80]
     return 1 + sum(x >= c for c in cuts)
+
+def _norm_id(s: str) -> str:
+    import re
+    import unicodedata
+    s = s.lower()
+    try:
+        s = "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+    except Exception:
+        pass
+    s = re.sub(r"[^a-z0-9\s']+", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+def _pick_text_variant(
+    song: dict,
+    order: list,
+    extract_from_syair: Callable[[], str],
+    extract_from_notasi: Callable[[], str],
+) -> Tuple[str, str]:
+    # This function now needs strip_chords, so we import it locally to avoid circular deps
+    from .analysis import strip_chords
+
+    for src in order:
+        if src in {"full_score", "syair_chord", "lirik_text"}:
+            val = str(song.get(src, "") or "").strip()
+            if val: return src, val
+        elif src == "extract_syair":
+            try:    txt = (extract_from_syair() or "").strip()
+            except: txt = ""
+            if txt: return "extract_syair", txt
+        elif src == "extract_notasi":
+            try:    txt = (extract_from_notasi() or "").strip()
+            except: txt = ""
+            if txt: return "extract_notasi", txt
+        elif src == "lirik_text":
+            val = str(song.get("lirik_text", "") or "").strip()
+            if val: return "lirik_text", val
+            sc = str(song.get("syair_chord", "") or "").strip()
+            if sc:
+                try:
+                    plain = strip_chords(sc).strip()
+                    if plain:
+                        return "lirik_text_from_syair_chord", plain
+                except Exception:
+                    pass
+    return "none", ""

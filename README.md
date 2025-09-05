@@ -71,8 +71,7 @@ penjurianLomba-webapp/
 ├─ assets/                 # logo/banner (≤ ~1–2 MB)
 │  ├─ banner.png
 │  └─ logo.png
-├─ app.py                  # Streamlit app utama
-├─ core/                   # Modul-modul logika utama
+├─ penjurian_gsheet.py     # Streamlit app utama
 ├─ tools_redact_pdfs.py    # util opsional untuk meredaksi PDF
 ├─ requirements.txt        # dependensi
 ├─ README.md               # dokumentasi (file ini)
@@ -156,7 +155,7 @@ pip install -r requirements.txt
 
 2) Jalankan
 ```bash
-streamlit run app.py
+streamlit run penjurian_gsheet.py
 ```
 
 Aplikasi akan terbuka di browser (default http://localhost:8501).
@@ -167,7 +166,7 @@ Aplikasi akan terbuka di browser (default http://localhost:8501).
 
 1. Push repo ini ke GitHub.
 2. Buka https://share.streamlit.io → **New app**.
-3. Pilih repo + branch `main` + file `app.py`.
+3. Pilih repo + branch `main` + file `penjurian_gsheet.py`.
 4. Masukkan **secrets** (salin dari `.streamlit/secrets.toml`).  
 5. **Deploy**.
 
@@ -206,7 +205,7 @@ not_used/
 EOF
 
 # add & commit
-git add .gitignore README.md requirements.txt app.py core/ tools_redact_pdfs.py assets/
+git add .gitignore README.md requirements.txt penjurian_gsheet.py tools_redact_pdfs.py assets/
 git commit -m "Initial commit: Streamlit GSheet Judging App"
 
 # hubungkan ke GitHub

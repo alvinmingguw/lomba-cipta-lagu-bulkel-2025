@@ -1,214 +1,185 @@
-import gspread
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import gspread
 from google.oauth2.service_account import Credentials
-from typing import List, Dict, Any
+from gspread.utils import rowcol_to_a1
 import datetime
 from zoneinfo import ZoneInfo
 
-from .utils import _patch_sa
-
 # =========================
-# Google clients (cached)
+# Google Sheet Client & Helpers
 # =========================
-@st.cache_resource
-def _gs_client() -> gspread.client.Client:
-    """Initializes and caches the gspread client."""
-    info = _patch_sa(st.secrets.get("gcp_service_account"))
-    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_info(info, scopes=scopes)
-    return gspread.authorize(creds)
 
-def open_sheet() -> gspread.Spreadsheet:
-    """Opens the Google Sheet using the ID from Streamlit secrets."""
-    return _gs_client().open_by_key(st.secrets["gsheet_id"])
+@st.cache_resource(ttl=600)
+def open_sheet():
+    """Opens a connection to the Google Sheet using service account credentials."""
+    creds_json = st.secrets["gcp_service_account"]
+    creds = Credentials.from_service_account_info(
+        creds_json,
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ],
+    )
+    return gspread.authorize(creds).open_by_key(st.secrets["sheet_key"])
 
-@st.cache_resource
-def get_penilaian_ws() -> gspread.Worksheet:
-    """
-    Gets the 'Penilaian' worksheet object, caching it as a resource.
-    """
-    sh = open_sheet()
-    return _ensure_ws(sh, "Penilaian")
-
-def get_penilaian_df() -> pd.DataFrame:
-    """
-
-    Retrieves the 'Penilaian' DataFrame, using st.session_state as a per-session cache
-    to avoid repeated GSheet API calls on minor interactions.
-    """
-    # Use a more robust key to avoid clashes
-    cache_key = 'penilaian_df_cached_v1'
-    if cache_key not in st.session_state or st.session_state[cache_key] is None:
-        ws = get_penilaian_ws()
-        st.session_state[cache_key] = ws_to_df(ws)
-    return st.session_state[cache_key]
-
-# =========================
-# Worksheet utils
-# =========================
-def _ensure_ws(sh: gspread.Spreadsheet, title: str, headers: List[str] = None, rows: int = 1000, cols: int = 26) -> gspread.Worksheet:
-    """Ensures a worksheet with the given title and headers exists."""
+def _ensure_ws(sh, name, headers=None):
+    """Ensures a worksheet with the given name and headers exists."""
     try:
-        ws = sh.worksheet(title)
+        ws = sh.worksheet(name)
     except gspread.WorksheetNotFound:
-        ws = sh.add_worksheet(title=title, rows=str(rows), cols=str(max(cols, (len(headers) if headers else 0) + 2)))
+        ws = sh.add_worksheet(title=name, rows="100", cols="20")
         if headers:
-            ws.update("A1", [headers])
+            ws.append_row(headers)
     return ws
 
-def ws_to_df(ws: gspread.Worksheet) -> pd.DataFrame:
-    """Converts a worksheet to a pandas DataFrame."""
-    vals = ws.get_all_values()
-    if not vals:
+@st.cache_data(ttl=300)
+def ws_to_df(ws):
+    """Converts a worksheet to a DataFrame."""
+    if not ws:
         return pd.DataFrame()
-    hdr, body = vals[0], vals[1:]
-    return pd.DataFrame(body, columns=hdr) if body else pd.DataFrame(columns=hdr)
+    return pd.DataFrame(ws.get_all_records())
 
-def ensure_headers(ws: gspread.Worksheet, headers: List[str]) -> List[str]:
-    """Ensures the worksheet has the specified headers, adding any missing ones."""
-    existing = ws.row_values(1)
-    if existing == headers:
+def ensure_headers(ws, headers: list[str]):
+    """Ensures the worksheet has the specified headers, adding any that are missing."""
+    if not headers:
+        return []
+    try:
+        existing = ws.row_values(1)
+    except gspread.exceptions.APIError:
+        existing = []
+
+    if not existing:
+        ws.update("A1", [headers])
         return headers
 
-    # Find headers that are in the sheet but not in our target list
-    extras = [h for h in existing if h and h not in headers]
-    final_headers = headers + extras
+    new_headers = list(existing)
+    appended = False
+    for h in headers:
+        if h not in new_headers:
+            new_headers.append(h)
+            appended = True
 
-    # Update the sheet only if the headers are actually different
-    if final_headers != existing:
-        ws.update("A1", [final_headers])
+    if appended:
+        ws.update("A1", [new_headers])
 
-    return final_headers
+    return new_headers
 
-# =========================
-# Load all data from GSheet
-# =========================
-@st.cache_data(ttl=180, show_spinner="Memuat data dari Google Sheets...")
-def load_all_sheets() -> tuple:
-    """
-    Loads all necessary worksheets and DataFrames from the Google Sheet.
-    Caches the result for 3 minutes to improve performance.
-    """
+@st.cache_data(ttl=120)
+def get_penilaian_ws():
+    """Gets the 'Penilaian' worksheet, ensuring it exists."""
     sh = open_sheet()
+    return _ensure_ws(sh, "Penilaian", ["timestamp", "juri", "judul", "author", "total"])
 
-    # Define expected sheets and their headers
-    sheet_specs = {
-        "Config": ["key", "value"],
-        "Judges": ["juri"],
-        "Rubrik": ["key", "aspek", "bobot", "min_score", "max_score", "desc_5", "desc_4", "desc_3", "desc_2", "desc_1"],
-        "Keywords": ["type", "text", "weight"],
-        "Variants": ["from_name", "to_key"],
-        "Songs": ["judul", "pengarang", "audio_path", "notasi_path", "syair_path", "lirik_text", "chords_list", "full_score", "syair_chord", "Alias"],
-        "Penilaian": ["timestamp", "juri", "judul", "author", "total"],
-        "Winners": ["rank", "judul", "catatan"],
-        "DriveIndex": ["name", "id", "mimeType", "modifiedTime", "parentHint"]
-    }
+@st.cache_data(ttl=120, show_spinner="Membaca data penilaian...")
+def get_penilaian_df(ws=None):
+    """
+    Gets the 'Penilaian' worksheet as a DataFrame.
+    Uses a cached worksheet object if provided.
+    """
+    if ws is None:
+        ws = get_penilaian_ws()
+    return ws_to_df(ws)
 
-    worksheets = {name: _ensure_ws(sh, name, headers) for name, headers in sheet_specs.items()}
-
-    # Return a mix of DataFrames and Worksheet objects as needed
-    return (
-        sh,
-        ws_to_df(worksheets["Config"]),
-        ws_to_df(worksheets["Judges"]),
-        ws_to_df(worksheets["Rubrik"]),
-        ws_to_df(worksheets["Keywords"]),
-        ws_to_df(worksheets["Variants"]),
-        ws_to_df(worksheets["Songs"]),
-        worksheets["Penilaian"],  # Return the worksheet object for direct interaction
-        ws_to_df(worksheets["Winners"]),
-        worksheets["DriveIndex"], # Return worksheet object for direct appends
-        ws_to_df(worksheets["DriveIndex"])
-    )
 
 # =========================
 # Penilaian I/O
 # =========================
 def find_pen_row_index_df(pen_df: pd.DataFrame, juri: str, judul: str, author: str) -> int | None:
-    """Finds the row index for a given assessment in the DataFrame."""
+    """Finds the row index for a specific entry in the Penilaian DataFrame."""
     if pen_df.empty:
         return None
-
-    # Create boolean masks for filtering
-    is_juri = pen_df["juri"] == juri
-    is_judul = pen_df["judul"] == judul
-
-    # Handle author matching, considering it might be an empty string
-    if "author" in pen_df.columns:
-        is_author = pen_df["author"].fillna("") == (author or "")
-        mask = is_juri & is_judul & is_author
-    else:
-        mask = is_juri & is_judul
-
-    idx = pen_df.index[mask].tolist()
-    # Return the GSheet row number (index + 2)
+    df = pen_df.copy()
+    m = (df["juri"] == juri) & (df["judul"] == judul)
+    if "author" in df.columns:
+        m &= (df["author"].fillna("") == (author or ""))
+    idx = df.index[m].tolist()
     return (idx[0] + 2) if idx else None
 
-def load_existing_scores_for_df(pen_df: pd.DataFrame, juri: str, judul: str, author: str, rubrik_keys: List[str], variants: Dict[str, str]) -> Dict[str, int]:
+def load_existing_scores_for_df(pen_df: pd.DataFrame, juri: str, judul: str, author: str, rubrik_keys: list, variants: dict):
     """Loads existing scores for a specific entry from the Penilaian DataFrame."""
     if pen_df is None or pen_df.empty:
         return {}
-
     df = pen_df.rename(columns=lambda c: variants.get(c, c)).copy()
-
-    q_juri = df["juri"] == juri
-    q_judul = df["judul"] == judul
-
+    q = (df["juri"] == juri) & (df["judul"] == judul)
     if "author" in df.columns:
-        q_author = df["author"].fillna("") == (author or "")
-        df_filtered = df[q_juri & q_judul & q_author]
+        df = df[q & (df["author"].fillna("") == (author or ""))]
     else:
-        df_filtered = df[q_juri & q_judul]
-
-    if df_filtered.empty:
+        df = df[q]
+    if df.empty:
         return {}
+    if "timestamp" in df.columns:
+        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+        df = df.sort_values("timestamp").tail(1)
+    row = df.iloc[0]
+    out = {}
+    for k in rubrik_keys:
+        v = row.get(k)
+        if v is None or str(v).strip() == "":
+            continue
+        try:
+            out[k] = int(float(v))
+        except (ValueError, TypeError):
+            pass
+    return out
 
-    # Get the latest entry based on timestamp if available
-    if "timestamp" in df_filtered.columns:
-        df_filtered["timestamp"] = pd.to_datetime(df_filtered["timestamp"], errors="coerce")
-        latest_row = df_filtered.sort_values("timestamp", ascending=False).iloc[0]
+def load_existing_scores_for(juri, judul, author, rubrik_keys, variants):
+    ws_pen2 = _ensure_ws(open_sheet(), "Penilaian", ["timestamp","juri","judul","author","total"])
+    df = ws_to_df(ws_pen2)
+    if df.empty:
+        return {}
+    df = df.rename(columns=lambda c: variants.get(c, c))
+    q = (df["juri"] == juri) & (df["judul"] == judul)
+    if "author" in df.columns:
+        df1 = df[q & (df["author"].fillna("") == (author or ""))]
+        if df1.empty:
+            df1 = df[q]
     else:
-        latest_row = df_filtered.iloc[-1]
+        df1 = df[q]
+    if df1.empty:
+        return {}
+    if "timestamp" in df1.columns:
+        df1["timestamp"] = pd.to_datetime(df1["timestamp"], errors="coerce")
+        df1 = df1.sort_values("timestamp").tail(1)
+    row = df1.iloc[0]
+    out = {}
+    for k in rubrik_keys:
+        v = row.get(k)
+        if v is None or str(v).strip() == "":
+            continue
+        try:
+            out[k] = int(float(v))
+        except (ValueError, TypeError):
+            pass
+    return out
 
-    scores = {}
-    for key in rubrik_keys:
-        value = latest_row.get(key)
-        if pd.notna(value) and str(value).strip() != "":
-            try:
-                scores[key] = int(float(value))
-            except (ValueError, TypeError):
-                pass  # Ignore values that can't be converted to int
-    return scores
-
-def update_pen_row(ws: gspread.Worksheet, headers: List[str], rownum: int, juri: str, judul: str, author: str, scores: Dict[str, int], total: float):
+def update_pen_row(ws, headers: list, rownum: int, juri: str, judul: str, author: str, scores: dict, total: float):
     """Updates a specific row in the Penilaian worksheet."""
-    row_data = {h: "" for h in headers}
-    row_data.update({
-        "timestamp": datetime.datetime.now(ZoneInfo("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M:%S"),
-        "juri": juri,
-        "judul": judul,
-        "author": author,
-        "total": round(float(total), 2)
-    })
-    row_data.update(scores)
+    row = {h: "" for h in headers}
+    row["timestamp"] = datetime.datetime.now(ZoneInfo("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M:%S")
+    row["juri"] = juri
+    row["judul"] = judul
+    row["author"] = author
+    for k, v in scores.items():
+        if k in headers:
+            row[k] = v
+    row["total"] = round(float(total), 2)
+    ws.update(f"{rownum}:{rownum}", [[row[h] for h in headers]], value_input_option="USER_ENTERED")
 
-    # Build the list in the correct header order
-    final_row = [row_data.get(h, "") for h in headers]
-    ws.update(f"A{rownum}", [final_row], value_input_option="USER_ENTERED")
+def ensure_pen_headers(ws, rubrik_keys: list):
+    """Ensures the Penilaian worksheet has all required headers."""
+    headers = ["timestamp", "juri", "judul", "author"] + rubrik_keys + ["total"]
+    return ensure_headers(ws, headers)
 
-def append_pen_row(ws: gspread.Worksheet, headers: List[str], juri: str, judul: str, author: str, scores: Dict[str, int], total: float):
+def append_pen_row(ws, headers: list, juri: str, judul: str, author: str, scores: dict, total: float):
     """Appends a new row to the Penilaian worksheet."""
-    row_data = {h: "" for h in headers}
-    row_data.update({
-        "timestamp": datetime.datetime.now(ZoneInfo("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M:%S"),
-        "juri": juri,
-        "judul": judul,
-        "author": author,
-        "total": round(float(total), 2)
-    })
-    row_data.update(scores)
-
-    # Build the list in the correct header order
-    final_row = [row_data.get(h, "") for h in headers]
-    ws.append_row(final_row, value_input_option="USER_ENTERED")
+    row = {h: "" for h in headers}
+    row["timestamp"] = datetime.datetime.now(ZoneInfo("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M:%S")
+    row["juri"] = juri
+    row["judul"] = judul
+    row["author"] = author
+    for k, v in scores.items():
+        if k in headers:
+            row[k] = v
+    row["total"] = round(float(total), 2)
+    ws.append_row([row[h] for h in headers], value_input_option="USER_ENTERED")
