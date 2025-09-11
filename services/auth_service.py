@@ -775,7 +775,35 @@ class AuthService:
         except:
             pass
 
-        # Fallback to secrets or default
+        # Method 5: Auto-detect Streamlit Cloud URL
+        try:
+            import os
+            # Check if running on Streamlit Cloud
+            if 'STREAMLIT_SHARING_MODE' in os.environ or 'STREAMLIT_CLOUD' in os.environ:
+                # Try to get from hostname
+                hostname = os.environ.get('HOSTNAME', '')
+                if hostname and 'streamlit' in hostname:
+                    return f"https://{hostname}"
+
+                # Fallback: construct from app name
+                app_name = os.environ.get('STREAMLIT_APP_NAME', 'lomba-cipta-lagu-bulkel-2025')
+                return f"https://{app_name}.streamlit.app"
+        except:
+            pass
+
+        # Final fallback: check if we're on Streamlit Cloud by checking secrets
+        try:
+            # If we have supabase_url in secrets, we're likely deployed
+            if hasattr(st, 'secrets') and 'supabase_url' in st.secrets:
+                # Check if localhost is in supabase_url (local dev) or not (deployed)
+                supabase_url = st.secrets.get('supabase_url', '')
+                if 'localhost' not in supabase_url and supabase_url:
+                    # We're deployed, use the known Streamlit Cloud URL
+                    return 'https://lomba-cipta-lagu-bulkel-2025.streamlit.app'
+        except:
+            pass
+
+        # Ultimate fallback to secrets or default
         return st.secrets.get('app_url', 'http://localhost:8501')
 
 # Global instance
