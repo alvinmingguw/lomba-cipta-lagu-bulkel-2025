@@ -352,6 +352,14 @@ class AuthService:
             # Get current URL dynamically
             redirect_url = self._get_current_url()
 
+            # Debug: Log the redirect URL
+            logger.info(f"🔍 Google OAuth redirect URL: {redirect_url}")
+
+            # For Streamlit Cloud, force HTTPS
+            if 'streamlit.app' in redirect_url and redirect_url.startswith('http://'):
+                redirect_url = redirect_url.replace('http://', 'https://')
+                logger.info(f"🔧 Fixed to HTTPS: {redirect_url}")
+
             # Redirect to Google OAuth
             response = self.client.auth.sign_in_with_oauth({
                 'provider': 'google',
@@ -722,8 +730,26 @@ class AuthService:
 
     def _get_current_url(self) -> str:
         """Get current URL with dynamic port detection"""
+
+        # Method 0: Check if we're on Streamlit Cloud first
         try:
-            # Method 1: Try to get from Streamlit config
+            import os
+            # Multiple ways to detect Streamlit Cloud
+            streamlit_cloud_indicators = [
+                'STREAMLIT_SHARING_MODE' in os.environ,
+                'STREAMLIT_CLOUD' in os.environ,
+                any('streamlit' in str(v).lower() for v in os.environ.values()),
+                hasattr(st, 'secrets') and 'supabase_url' in st.secrets and 'localhost' not in st.secrets.get('supabase_url', '')
+            ]
+
+            if any(streamlit_cloud_indicators):
+                logger.info("🌐 Detected Streamlit Cloud deployment")
+                return 'https://lomba-cipta-lagu-bulkel-2025.streamlit.app'
+        except Exception as e:
+            logger.warning(f"Error detecting Streamlit Cloud: {e}")
+
+        try:
+            # Method 1: Try to get from Streamlit config (local development)
             import streamlit as st
             from streamlit.web.server import server
 
