@@ -12,6 +12,7 @@ Thumbs.db
 .idea/
 
 ######## Python ########
+.devcontainer/
 __pycache__/
 *.py[cod]
 *.pyd
@@ -31,6 +32,7 @@ coverage.xml
 htmlcov/
 
 ######## Streamlit ########
+.streamlit/
 .streamlit/secrets.toml
 .streamlit/state/
 .streamlit/cache/
@@ -47,6 +49,8 @@ files_xxx
 files_backup/
 files_anon/
 not_used/
+song-contest-files/
+unused/
 logs/
 tmp/
 temp/
@@ -55,6 +59,13 @@ temp/
 *.bak
 ~$*.xlsx
 generate_certificates.py
+CERTIFICATE/
+
+# Keep these folders for Git
+# docs/ - Documentation (KEEP)
+# testing/ - Development files (KEEP)
+archive/
+docs/COMMIT_MESSAGE.md
 
 # Large binaries (kept outside git; deploy via Drive/Sheets instead)
 *.zip
