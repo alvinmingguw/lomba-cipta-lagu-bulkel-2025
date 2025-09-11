@@ -67,6 +67,11 @@ CERTIFICATE/
 archive/
 docs/COMMIT_MESSAGE.md
 
+# Image folders (screenshots, generated images)
+image/
+*/image/
+**/image/
+
 # Large binaries (kept outside git; deploy via Drive/Sheets instead)
 *.zip
 *.mp3
