@@ -38,7 +38,7 @@ except ImportError:
     st.warning("⚠️ ReportLab not installed. PDF generation will be disabled.")
 
 # Import components
-from components.login_simple import render_login_page
+from components.login_simple_clean import render_login_page
 from components.admin_panel import render_admin_panel
 
 # Configure logging

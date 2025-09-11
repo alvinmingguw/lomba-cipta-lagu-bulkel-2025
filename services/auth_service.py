@@ -369,18 +369,9 @@ class AuthService:
             })
 
             if response.url:
-                # Store the OAuth URL in session state and show link button
+                # Store the OAuth URL in session state for UI to use
                 st.session_state['google_oauth_url'] = response.url
-                st.info("🔐 Click the button below to login with Google:")
-
-                # Use link_button for proper redirect (opens in same tab)
-                st.link_button(
-                    "🔗 Continue with Google",
-                    response.url,
-                    use_container_width=True
-                )
-
-                st.warning("⚠️ After login, you'll be redirected back to this app automatically.")
+                logger.info(f"✅ Google OAuth URL generated: {response.url[:50]}...")
                 return True
             return False
         except Exception as e:

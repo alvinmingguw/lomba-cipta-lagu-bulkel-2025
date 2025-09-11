@@ -1,5 +1,5 @@
 """
-Simple Login UI - Minimal Version for Testing
+Simple Login UI - Clean Version
 """
 
 import streamlit as st
@@ -59,12 +59,12 @@ def render_login_page():
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("🔐 Google Login", width=True):
+        if st.button("Google Login", width=True):
             st.session_state.active_tab = "google"
             st.rerun()
     
     with col2:
-        if st.button("📧 Email Login", width=True):
+        if st.button("Email Login", width=True):
             st.session_state.active_tab = "email"
             st.rerun()
     
@@ -73,30 +73,23 @@ def render_login_page():
     # Tab content
     if st.session_state.active_tab == "google":
         st.markdown("### Google Login")
-
-        # Check if we already have OAuth URL in session
-        if 'google_oauth_url' in st.session_state:
-            st.info("🔐 Click the button below to login with Google:")
-            st.link_button(
-                "� Continue with Google",
-                st.session_state['google_oauth_url'],
-                use_container_width=True
-            )
-            st.warning("⚠️ After login, you'll be redirected back to this app automatically.")
-
-            if st.button("🔄 Get New Login Link", width=True):
-                del st.session_state['google_oauth_url']
-                st.rerun()
-        else:
-            if st.button("�🔐 Masuk dengan Google", width=True):
-                with st.spinner("Preparing Google login..."):
-                    try:
-                        success = auth_service.login_with_google()
-                        if not success:
-                            st.error("❌ Failed to initiate Google login")
-                    except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
-                        st.rerun()
+        
+        # Simple Google login button
+        if st.button("Login with Google", width=True, type="primary"):
+            with st.spinner("Preparing Google login..."):
+                try:
+                    success = auth_service.login_with_google()
+                    if success and 'google_oauth_url' in st.session_state:
+                        st.success("Redirecting to Google...")
+                        st.markdown(f"""
+                        <script>
+                        window.open('{st.session_state['google_oauth_url']}', '_self');
+                        </script>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.error("Failed to initiate Google login")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
     
     elif st.session_state.active_tab == "email":
         st.markdown("### Email Login")
@@ -108,7 +101,7 @@ def render_login_page():
         password = st.text_input("Password", type="password", placeholder="Password")
         
         # Login button
-        if st.button("📧 Masuk dengan Email", width=True):
+        if st.button("Login with Email", width=True, type="primary"):
             if email and password:
                 if validate_email(email):
                     with st.spinner("Logging in..."):
@@ -119,27 +112,19 @@ def render_login_page():
                 st.error("Please fill in all fields")
         
         # Forgot password
-        if st.button("🔑 Lupa Password?", width=True):
+        if st.button("Forgot Password?", width=True):
             if email:
                 if validate_email(email):
-                    with st.spinner("Mengirim reset password..."):
+                    with st.spinner("Sending reset email..."):
                         try:
                             auth_service.reset_password(email)
-                            st.success("Link reset password telah dikirim!")
-                        except Exception:
-                            st.error("Gagal mengirim reset password. Hubungi admin.")
+                            st.success("Password reset email sent! Check your inbox.")
+                        except Exception as e:
+                            st.error(f"Error sending reset email: {str(e)}")
                 else:
-                    st.error("Masukkan email yang valid terlebih dahulu")
+                    st.error("Please enter a valid email address")
             else:
-                st.error("Masukkan email terlebih dahulu")
+                st.error("Please enter your email address first")
     
-    # Footer
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; color: #64748b; font-size: 0.8rem;">
-        🎼 Sistem Penilaian Juri | 🔒 Secure Login<br>
-        Akun juri dikelola oleh admin
-    </div>
-    """, unsafe_allow_html=True)
-    
+    # Close container
     st.markdown('</div>', unsafe_allow_html=True)
