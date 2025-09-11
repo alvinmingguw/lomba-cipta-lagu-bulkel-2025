@@ -367,10 +367,20 @@ class AuthService:
                     'redirect_to': redirect_url
                 }
             })
-            
+
             if response.url:
-                st.markdown(f'<meta http-equiv="refresh" content="0; url={response.url}">', 
-                           unsafe_allow_html=True)
+                # Store the OAuth URL in session state and show link button
+                st.session_state['google_oauth_url'] = response.url
+                st.info("🔐 Click the button below to login with Google:")
+
+                # Use link_button for proper redirect (opens in same tab)
+                st.link_button(
+                    "🔗 Continue with Google",
+                    response.url,
+                    use_container_width=True
+                )
+
+                st.warning("⚠️ After login, you'll be redirected back to this app automatically.")
                 return True
             return False
         except Exception as e:
