@@ -214,26 +214,57 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Login button
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🔐 Login dengan Google", type="primary", width='stretch'):
-            with st.spinner("Mengarahkan ke Google..."):
-                try:
-                    success = auth_service.login_with_google()
-                    if success and 'google_oauth_url' in st.session_state:
-                        oauth_url = st.session_state['google_oauth_url']
-                        st.success("✅ Mengarahkan ke Google...")
-                        st.markdown(f"""
-                        <script>
-                        console.log('Redirecting to Google OAuth: {oauth_url}');
-                        window.open('{oauth_url}', '_self');
-                        </script>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.error("❌ Gagal membuat link login Google. Silakan coba lagi.")
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
+    # Check if we have OAuth URL ready
+    if 'google_oauth_url' in st.session_state:
+        st.info("🔗 Klik tombol di bawah untuk login dengan Google:")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.link_button(
+                "� Lanjutkan ke Google",
+                st.session_state['google_oauth_url'],
+                use_container_width=True
+            )
+            if st.button("🔄 Buat Link Baru", type="secondary", width='stretch'):
+                del st.session_state['google_oauth_url']
+                st.rerun()
+    else:
+        # Login button
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("🔐 Login dengan Google", type="primary", width='stretch'):
+                with st.spinner("Menyiapkan login Google..."):
+                    try:
+                        success = auth_service.login_with_google()
+                        if success and 'google_oauth_url' in st.session_state:
+                            oauth_url = st.session_state['google_oauth_url']
+                            st.success("✅ Mengarahkan ke Google...")
+
+                            # TRIPLE REDIRECT METHOD for maximum reliability
+                            st.markdown(f"""
+                            <script>
+                            // Method 1: Immediate redirect
+                            window.location.href = '{oauth_url}';
+
+                            // Method 2: Backup after 500ms
+                            setTimeout(function() {{
+                                window.open('{oauth_url}', '_self');
+                            }}, 500);
+
+                            // Method 3: Force redirect after 1s
+                            setTimeout(function() {{
+                                window.location.replace('{oauth_url}');
+                            }}, 1000);
+                            </script>
+
+                            <meta http-equiv="refresh" content="1;url={oauth_url}">
+                            """, unsafe_allow_html=True)
+
+                            # Fallback link
+                            st.markdown(f"**Jika tidak redirect otomatis: [KLIK DI SINI]({oauth_url})**")
+                        else:
+                            st.error("❌ Gagal membuat link login Google. Silakan coba lagi.")
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
 
     # Information card
     st.markdown("""
