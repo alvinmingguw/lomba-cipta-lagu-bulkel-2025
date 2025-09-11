@@ -239,28 +239,21 @@ def main():
                             oauth_url = st.session_state['google_oauth_url']
                             st.success("✅ Mengarahkan ke Google...")
 
-                            # TRIPLE REDIRECT METHOD for maximum reliability
-                            st.markdown(f"""
-                            <script>
-                            // Method 1: Immediate redirect
-                            window.location.href = '{oauth_url}';
+                            # MANUAL REDIRECT ONLY - JavaScript redirect often blocked in Streamlit Cloud
+                            st.success("✅ Google OAuth URL generated successfully!")
+                            st.info("🔗 Click the button below to continue with Google login:")
 
-                            // Method 2: Backup after 500ms
-                            setTimeout(function() {{
-                                window.open('{oauth_url}', '_self');
-                            }}, 500);
+                            # Use link_button for reliable redirect
+                            st.link_button(
+                                "🔐 Continue with Google",
+                                oauth_url,
+                                use_container_width=True
+                            )
 
-                            // Method 3: Force redirect after 1s
-                            setTimeout(function() {{
-                                window.location.replace('{oauth_url}');
-                            }}, 1000);
-                            </script>
+                            st.warning("⚠️ After login, you'll be redirected back to this app automatically.")
 
-                            <meta http-equiv="refresh" content="1;url={oauth_url}">
-                            """, unsafe_allow_html=True)
-
-                            # Fallback link
-                            st.markdown(f"**Jika tidak redirect otomatis: [KLIK DI SINI]({oauth_url})**")
+                            # Store URL in session for later use
+                            st.session_state['google_oauth_url'] = oauth_url
                         else:
                             st.error("❌ Gagal membuat link login Google. Silakan coba lagi.")
                     except Exception as e:

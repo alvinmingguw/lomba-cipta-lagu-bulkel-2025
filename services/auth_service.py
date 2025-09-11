@@ -385,10 +385,23 @@ class AuthService:
             # Exchange code for session with proper parameters
             logger.info(f"Exchanging code for session: {code[:10]}...")
 
-            # Use the correct method signature
-            response = self.client.auth.exchange_code_for_session({
-                'auth_code': code
-            })
+            # Use the correct method signature - try different parameter formats
+            try:
+                # Method 1: Try with 'auth_code' parameter
+                response = self.client.auth.exchange_code_for_session({
+                    'auth_code': code
+                })
+            except Exception as e1:
+                logger.warning(f"Method 1 failed: {e1}")
+                try:
+                    # Method 2: Try with just the code string
+                    response = self.client.auth.exchange_code_for_session(code)
+                except Exception as e2:
+                    logger.warning(f"Method 2 failed: {e2}")
+                    # Method 3: Try with 'code' parameter
+                    response = self.client.auth.exchange_code_for_session({
+                        'code': code
+                    })
 
             # Debug response structure
             logger.info(f"Response type: {type(response)}")
