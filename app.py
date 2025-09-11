@@ -5597,6 +5597,20 @@ def handle_auth_callbacks():
     # Get URL parameters
     query_params = st.query_params
 
+    # Auto-detect OAuth callback and force processing
+    if "code" in query_params:
+        st.markdown("""
+        <script>
+            // Auto-refresh to trigger OAuth callback processing
+            if (window.location.search.includes('code=') && !sessionStorage.getItem('oauth_processing')) {
+                sessionStorage.setItem('oauth_processing', 'true');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 100);
+            }
+        </script>
+        """, unsafe_allow_html=True)
+
     # Handle Google OAuth callback
     if "code" in query_params:
         code = query_params["code"]
@@ -5612,10 +5626,22 @@ def handle_auth_callbacks():
 
                 if current_user and current_user.get('judge_id'):
                     st.success("✅ Google login successful!")
-                    # Clear URL parameters and refresh
+                    st.info("🔄 Redirecting to main app...")
+
+                    # Clear URL parameters and redirect to main app
                     st.query_params.clear()
-                    time.sleep(1)
-                    st.rerun()
+
+                    # Auto redirect using JavaScript (stays in same tab)
+                    st.markdown("""
+                    <script>
+                        setTimeout(function() {
+                            window.location.replace(window.location.origin + window.location.pathname);
+                        }, 1500);
+                    </script>
+                    """, unsafe_allow_html=True)
+
+                    # Stop execution to prevent further rendering
+                    st.stop()
                 else:
                     # User authenticated but not authorized
                     st.error("❌ Akses ditolak: Email Anda tidak terdaftar sebagai juri")
@@ -6565,8 +6591,21 @@ def render_landing_sidebar():
                 st.rerun()
         else:
             # User not logged in - show Login button
-            if st.button("🔐 Login", type="secondary", width='stretch', key="nav_login"):
-                st.switch_page("pages/auth.py")
+            if st.button("🔐 Login dengan Google", type="secondary", width='stretch', key="nav_login"):
+                with st.spinner("🔄 Preparing Google login..."):
+                    try:
+                        # Generate Google OAuth URL
+                        success = auth_service.login_with_google()
+                        if success and 'google_oauth_url' in st.session_state:
+                            # Redirect to auth page with OAuth URL ready
+                            st.success("✅ Redirecting to login page...")
+                            st.switch_page("pages/auth.py")
+                        else:
+                            st.error("❌ Failed to prepare Google login. Please try again.")
+                    except Exception as e:
+                        st.error(f"❌ Login error: {str(e)}")
+                        # Fallback: go to auth page anyway
+                        st.switch_page("pages/auth.py")
 
         st.markdown("---")
 

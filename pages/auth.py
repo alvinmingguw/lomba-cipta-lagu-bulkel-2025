@@ -190,6 +190,62 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
+    # Handle OAuth callback first (before checking authentication)
+    query_params = st.query_params
+    if "code" in query_params:
+        code = query_params["code"]
+        st.info("🔐 Processing Google login...")
+
+        try:
+            # Exchange code for session
+            success = auth_service.handle_oauth_callback(code)
+
+            if success:
+                # Check if user is authorized
+                current_user = auth_service.get_current_user()
+
+                if current_user and current_user.get('judge_id'):
+                    st.success("✅ Google login successful!")
+                    st.info("🔄 Redirecting to main app...")
+
+                    # Clear URL parameters and session state
+                    st.query_params.clear()
+                    if 'google_oauth_url' in st.session_state:
+                        del st.session_state['google_oauth_url']
+
+                    # Auto redirect to main app
+                    st.markdown("""
+                    <script>
+                        setTimeout(function() {
+                            window.location.replace(window.location.origin + '/');
+                        }, 1500);
+                    </script>
+                    """, unsafe_allow_html=True)
+
+                    # Stop execution
+                    st.stop()
+                else:
+                    # User authenticated but not authorized
+                    st.error("❌ Akses ditolak: Email Anda tidak terdaftar sebagai juri")
+                    st.info("💡 Silahkan hubungi admin untuk mendapatkan akses ke sistem")
+
+                    # Logout unauthorized user and clear session
+                    auth_service.logout()
+                    st.query_params.clear()
+                    if 'google_oauth_url' in st.session_state:
+                        del st.session_state['google_oauth_url']
+            else:
+                st.error("❌ Google login failed")
+                st.query_params.clear()
+                if 'google_oauth_url' in st.session_state:
+                    del st.session_state['google_oauth_url']
+
+        except Exception as e:
+            st.error(f"❌ Google login failed: {str(e)}")
+            st.query_params.clear()
+            if 'google_oauth_url' in st.session_state:
+                del st.session_state['google_oauth_url']
+
     # Check if already authenticated
     current_user = auth_service.get_current_user()
     if current_user:
@@ -237,23 +293,19 @@ def main():
                         success = auth_service.login_with_google()
                         if success and 'google_oauth_url' in st.session_state:
                             oauth_url = st.session_state['google_oauth_url']
-                            st.success("✅ Mengarahkan ke Google...")
+                            st.success("✅ Google OAuth URL generated!")
+                            st.info("🔗 Click button below to continue:")
 
-                            # MANUAL REDIRECT ONLY - JavaScript redirect often blocked in Streamlit Cloud
-                            st.success("✅ Google OAuth URL generated successfully!")
-                            st.info("🔗 Click the button below to continue with Google login:")
-
-                            # Use link_button for reliable redirect
-                            st.link_button(
-                                "🔐 Continue with Google",
-                                oauth_url,
-                                use_container_width=True
-                            )
+                            # Big prominent button
+                            col1, col2, col3 = st.columns([1, 2, 1])
+                            with col2:
+                                st.link_button(
+                                    "🚀 Continue to Google",
+                                    oauth_url,
+                                    use_container_width=True
+                                )
 
                             st.warning("⚠️ After login, you'll be redirected back to this app automatically.")
-
-                            # Store URL in session for later use
-                            st.session_state['google_oauth_url'] = oauth_url
                         else:
                             st.error("❌ Gagal membuat link login Google. Silakan coba lagi.")
                     except Exception as e:
