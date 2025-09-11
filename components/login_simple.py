@@ -75,7 +75,11 @@ def render_login_page():
         st.markdown("### Google Login")
         if st.button("🔐 Masuk dengan Google", width=True):
             with st.spinner("Redirecting to Google..."):
-                auth_service.login_with_google()
+                success = auth_service.login_with_google()
+                if success:
+                    st.success("🔗 Redirecting to Google login...")
+                else:
+                    st.error("❌ Failed to initiate Google login")
     
     elif st.session_state.active_tab == "email":
         st.markdown("### Email Login")
