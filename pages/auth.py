@@ -218,13 +218,22 @@ def main():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("🔐 Login dengan Google", type="primary", width='stretch'):
-            # Use the existing login method
-            success = auth_service.login_with_google()
-            if success:
-                st.success("✅ Login berhasil! Mengarahkan...")
-                st.rerun()
-            else:
-                st.error("❌ Gagal login. Silakan coba lagi.")
+            with st.spinner("Mengarahkan ke Google..."):
+                try:
+                    success = auth_service.login_with_google()
+                    if success and 'google_oauth_url' in st.session_state:
+                        oauth_url = st.session_state['google_oauth_url']
+                        st.success("✅ Mengarahkan ke Google...")
+                        st.markdown(f"""
+                        <script>
+                        console.log('Redirecting to Google OAuth: {oauth_url}');
+                        window.open('{oauth_url}', '_self');
+                        </script>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.error("❌ Gagal membuat link login Google. Silakan coba lagi.")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
 
     # Information card
     st.markdown("""

@@ -732,19 +732,32 @@ class AuthService:
     def _get_current_url(self) -> str:
         """Get current URL with dynamic port detection"""
 
-        # Method 0: Check if we're on Streamlit Cloud first
+        # Method 0: Force Streamlit Cloud URL if secrets indicate cloud deployment
+        try:
+            import streamlit as st_check
+
+            # Check if we have cloud secrets (most reliable indicator)
+            if hasattr(st_check, 'secrets') and 'supabase_url' in st_check.secrets:
+                supabase_url = st_check.secrets.get('supabase_url', '')
+                if 'supabase.co' in supabase_url:  # Cloud Supabase = Cloud Streamlit
+                    logger.info("🌐 Detected Streamlit Cloud deployment via Supabase URL")
+                    return 'https://lomba-cipta-lagu-bulkel-2025.streamlit.app'
+        except Exception as e:
+            logger.warning(f"Error checking Streamlit secrets: {e}")
+
+        # Method 0b: Check environment variables
         try:
             import os
+
             # Multiple ways to detect Streamlit Cloud
             streamlit_cloud_indicators = [
                 'STREAMLIT_SHARING_MODE' in os.environ,
                 'STREAMLIT_CLOUD' in os.environ,
-                any('streamlit' in str(v).lower() for v in os.environ.values()),
-                hasattr(st, 'secrets') and 'supabase_url' in st.secrets and 'localhost' not in st.secrets.get('supabase_url', '')
+                any('streamlit' in str(v).lower() for v in os.environ.values())
             ]
 
             if any(streamlit_cloud_indicators):
-                logger.info("🌐 Detected Streamlit Cloud deployment")
+                logger.info("🌐 Detected Streamlit Cloud deployment via environment")
                 return 'https://lomba-cipta-lagu-bulkel-2025.streamlit.app'
         except Exception as e:
             logger.warning(f"Error detecting Streamlit Cloud: {e}")

@@ -74,22 +74,37 @@ def render_login_page():
     if st.session_state.active_tab == "google":
         st.markdown("### Google Login")
         
+        # Debug info
+        st.write("🔍 Debug Info:")
+        st.write(f"- Session state keys: {list(st.session_state.keys())}")
+        st.write(f"- Has google_oauth_url: {'google_oauth_url' in st.session_state}")
+        if 'google_oauth_url' in st.session_state:
+            st.write(f"- OAuth URL: {st.session_state['google_oauth_url'][:50]}...")
+
         # Simple Google login button
         if st.button("Login with Google", width=True, type="primary"):
+            st.write("🔥 BUTTON CLICKED!")
             with st.spinner("Preparing Google login..."):
                 try:
+                    st.write("🔄 Calling auth_service.login_with_google()...")
                     success = auth_service.login_with_google()
+                    st.write(f"✅ Auth service returned: {success}")
+
                     if success and 'google_oauth_url' in st.session_state:
-                        st.success("Redirecting to Google...")
+                        oauth_url = st.session_state['google_oauth_url']
+                        st.success(f"Redirecting to Google... URL: {oauth_url[:50]}...")
                         st.markdown(f"""
                         <script>
-                        window.open('{st.session_state['google_oauth_url']}', '_self');
+                        console.log('Redirecting to: {oauth_url}');
+                        window.open('{oauth_url}', '_self');
                         </script>
                         """, unsafe_allow_html=True)
                     else:
-                        st.error("Failed to initiate Google login")
+                        st.error(f"Failed to initiate Google login. Success: {success}, Has URL: {'google_oauth_url' in st.session_state}")
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
     
     elif st.session_state.active_tab == "email":
         st.markdown("### Email Login")
