@@ -213,14 +213,34 @@ def main():
                     if 'google_oauth_url' in st.session_state:
                         del st.session_state['google_oauth_url']
 
-                    # Auto redirect to main app
+                    # Auto redirect to main app with multiple methods for reliability
                     st.markdown("""
+                    <meta http-equiv="refresh" content="2; url=/">
                     <script>
+                        // Clear any oauth processing flags
+                        sessionStorage.removeItem('oauth_processing');
+                        localStorage.removeItem('oauth_processing');
+
+                        // Immediate redirect to main app
                         setTimeout(function() {
                             window.location.replace(window.location.origin + '/');
-                        }, 1500);
+                        }, 500);
+
+                        // Fallback redirect if first attempt fails
+                        setTimeout(function() {
+                            if (window.location.search.includes('code=')) {
+                                window.location.href = window.location.origin + '/';
+                            }
+                        }, 2000);
                     </script>
                     """, unsafe_allow_html=True)
+
+                    # Provide fallback button if JavaScript redirect fails
+                    st.markdown("---")
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        if st.button("🏠 Lanjutkan ke Aplikasi", type="primary", key="manual_redirect_auth"):
+                            st.switch_page("app.py")
 
                     # Stop execution
                     st.stop()

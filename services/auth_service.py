@@ -88,10 +88,13 @@ class AuthService:
                 'app_version': '2.0'  # For cache invalidation if needed
             }
 
-            # Use JavaScript to store in localStorage
+            # Use JavaScript to store in localStorage and clear oauth flags
             st.markdown(f"""
             <script>
                 localStorage.setItem('lomba_session', '{json.dumps(session_data)}');
+                // Clear any oauth processing flags that might interfere
+                sessionStorage.removeItem('oauth_processing');
+                localStorage.removeItem('oauth_processing');
             </script>
             """, unsafe_allow_html=True)
         except Exception as e:
@@ -144,10 +147,12 @@ class AuthService:
             if "session_timestamp" in st.session_state:
                 del st.session_state.session_timestamp
 
-            # Clear browser storage
+            # Clear browser storage and oauth flags
             st.markdown("""
             <script>
                 localStorage.removeItem('lomba_session');
+                sessionStorage.removeItem('oauth_processing');
+                localStorage.removeItem('oauth_processing');
             </script>
             """, unsafe_allow_html=True)
         except Exception as e:

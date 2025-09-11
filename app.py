@@ -5599,15 +5599,11 @@ def handle_auth_callbacks():
 
     # Auto-detect OAuth callback and force processing
     if "code" in query_params:
+        # Clear any existing oauth processing flag to prevent conflicts
         st.markdown("""
         <script>
-            // Auto-refresh to trigger OAuth callback processing
-            if (window.location.search.includes('code=') && !sessionStorage.getItem('oauth_processing')) {
-                sessionStorage.setItem('oauth_processing', 'true');
-                setTimeout(function() {
-                    window.location.reload();
-                }, 100);
-            }
+            // Clear any existing oauth processing flag
+            sessionStorage.removeItem('oauth_processing');
         </script>
         """, unsafe_allow_html=True)
 
@@ -5631,14 +5627,35 @@ def handle_auth_callbacks():
                     # Clear URL parameters and redirect to main app
                     st.query_params.clear()
 
-                    # Auto redirect using JavaScript (stays in same tab)
+                    # Auto redirect using multiple methods for reliability
                     st.markdown("""
+                    <meta http-equiv="refresh" content="2">
                     <script>
+                        // Clear any oauth processing flags
+                        sessionStorage.removeItem('oauth_processing');
+                        localStorage.removeItem('oauth_processing');
+
+                        // Immediate redirect to clean URL
                         setTimeout(function() {
-                            window.location.replace(window.location.origin + window.location.pathname);
-                        }, 1500);
+                            const cleanUrl = window.location.origin + window.location.pathname;
+                            window.location.replace(cleanUrl);
+                        }, 500);
+
+                        // Fallback redirect if first attempt fails
+                        setTimeout(function() {
+                            if (window.location.search.includes('code=')) {
+                                window.location.href = window.location.origin + window.location.pathname;
+                            }
+                        }, 2000);
                     </script>
                     """, unsafe_allow_html=True)
+
+                    # Provide fallback button if JavaScript redirect fails
+                    st.markdown("---")
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        if st.button("🏠 Lanjutkan ke Aplikasi", type="primary", key="manual_redirect"):
+                            st.rerun()
 
                     # Stop execution to prevent further rendering
                     st.stop()
