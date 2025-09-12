@@ -1237,8 +1237,22 @@ def render_theme_highlight_box(song_data, rubric_key):
         box_title = "🎯 Kata-kata Tema yang Ditemukan"
         box_color = "#4CAF50"
     elif rubric_key == 'lirik':
-        theme_words = ['indah', 'puitis', 'makna', 'pesan', 'hati', 'jiwa', 'rasa', 'emosi', 'inspirasi', 'harapan']
-        box_title = "📝 Kata-kata Kualitas Lirik"
+        # Keywords for lyrical quality - focus on poetic elements, structure, and emotional depth
+        theme_words = [
+            # Poetic quality indicators
+            'indah', 'puitis', 'syair', 'sajak', 'bait', 'rima',
+            # Emotional depth
+            'hati', 'jiwa', 'rasa', 'perasaan', 'emosi', 'rindu', 'duka', 'suka',
+            # Spiritual/meaningful words
+            'makna', 'arti', 'hikmah', 'pelajaran', 'renungan', 'refleksi',
+            # Communication/message quality
+            'pesan', 'cerita', 'kisah', 'ungkapan', 'kata', 'bahasa',
+            # Inspirational/uplifting
+            'inspirasi', 'harapan', 'semangat', 'motivasi', 'kekuatan', 'cahaya',
+            # Imagery and metaphors
+            'seperti', 'bagaikan', 'laksana', 'ibarat', 'umpama'
+        ]
+        box_title = "📝 Indikator Kualitas Lirik yang Ditemukan"
         box_color = "#2196F3"
     else:
         return
@@ -1274,7 +1288,8 @@ def render_theme_highlight_box(song_data, rubric_key):
             {' '.join([f'<span style="background: #ffeb3b; padding: 3px 6px; border-radius: 4px; font-size: 0.9em; margin: 2px;">{word}</span>' for word in found_words]) if found_words else '<span style="color: #666; font-style: italic;">Tidak ada kata tema yang ditemukan</span>'}
         </div>
         <div style="margin-top: 8px; font-size: 0.9em; color: #666;">
-            💡 <strong>Legend:</strong> <span style="background: #ffeb3b; padding: 2px 4px; border-radius: 3px;">Kata yang di-highlight</span> menunjukkan relevansi dengan tema/kualitas lirik
+            💡 <strong>Legend:</strong> <span style="background: #ffeb3b; padding: 2px 4px; border-radius: 3px;">Kata yang di-highlight</span>
+            {'menunjukkan relevansi dengan tema lomba' if rubric_key == 'tema' else 'menunjukkan indikator kualitas puitis, emosi, dan struktur lirik'}
         </div>
     </div>
     """, unsafe_allow_html=True)
