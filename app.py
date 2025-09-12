@@ -1156,7 +1156,7 @@ def render_comprehensive_content(song_data, tab_type="lyrics"):
 
         # Display selected content
         if selected_source == "📝 Syair (Teks)" and content['lyrics_text']:
-            render_lyrics_text(content['lyrics_text'])
+            render_lyrics_text(content['lyrics_text'], highlight_theme=True)
         elif selected_source == "📄 Syair (PDF)":
             render_lyrics_viewer(song_data)
         elif selected_source == "🎼 Chord" and (content['chords_list'] or content['chords_text']):
@@ -1166,7 +1166,7 @@ def render_comprehensive_content(song_data, tab_type="lyrics"):
         else:
             # Fallback: show whatever is available
             if content['lyrics_text']:
-                render_lyrics_text(content['lyrics_text'])
+                render_lyrics_text(content['lyrics_text'], highlight_theme=True)
             elif content['lyrics_file_id'] or content['lyrics_file_path']:
                 render_lyrics_viewer(song_data)
             else:
@@ -1206,12 +1206,32 @@ def render_comprehensive_content(song_data, tab_type="lyrics"):
             if content['lyrics_text']:
                 st.markdown("##### 📝 **Syair (Fallback)**")
                 st.info("💡 Konten musik tidak tersedia, menampilkan syair sebagai referensi")
-                render_lyrics_text(content['lyrics_text'])
+                render_lyrics_text(content['lyrics_text'], highlight_theme=True)
             else:
                 st.warning("⚠️ Konten musik dan syair tidak tersedia")
 
-def render_lyrics_text(lyrics_text):
-    """Render lyrics text with proper styling"""
+def render_lyrics_text(lyrics_text, highlight_theme=False):
+    """Render lyrics text with proper styling and optional theme highlighting"""
+
+    # Get configuration for highlighting
+    config = cache_service.get_cached_config()
+    show_highlights = config.get('SHOW_HL_IN_TAB1', 'True').lower() == 'true'
+
+    # Apply theme highlighting if enabled
+    display_text = lyrics_text
+    if highlight_theme and show_highlights:
+        # Theme words to highlight
+        theme_words = ['waktu', 'bersama', 'keluarga', 'harta', 'berharga', 'kasih', 'cinta', 'tuhan', 'berkat', 'syukur']
+
+        for theme_word in theme_words:
+            # Highlight both lowercase and title case
+            display_text = display_text.replace(
+                theme_word, f'<span style="background-color: #fff3cd; padding: 2px 4px; border-radius: 3px; font-weight: bold;">{theme_word}</span>'
+            )
+            display_text = display_text.replace(
+                theme_word.title(), f'<span style="background-color: #fff3cd; padding: 2px 4px; border-radius: 3px; font-weight: bold;">{theme_word.title()}</span>'
+            )
+
     st.markdown(
         f"""
         <div style="
@@ -1226,11 +1246,17 @@ def render_lyrics_text(lyrics_text):
             max-height: 500px;
             overflow-y: auto;
         ">
-            {lyrics_text}
+            {display_text}
         </div>
         """,
         unsafe_allow_html=True
     )
+
+    # Show highlight info if enabled
+    if highlight_theme and show_highlights:
+        st.caption("💡 Kata-kata tema di-highlight dengan warna kuning")
+    elif highlight_theme and not show_highlights:
+        st.caption("ℹ️ Highlight tema dinonaktifkan (SHOW_HL_IN_TAB1 = False)")
 
 def render_chords_text(chords_text):
     """Render chords text with proper styling"""

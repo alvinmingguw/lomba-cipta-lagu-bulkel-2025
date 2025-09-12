@@ -471,7 +471,7 @@ def render_configuration_management():
         'WINNERS_TOP_N', 'SHOW_WINNERS_AUTOMATIC', 'TIMEZONE',
 
         # Display Settings
-        'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
+        'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
         'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
         'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
 
@@ -553,7 +553,7 @@ def render_configuration_management():
         st.markdown("**Display Configuration**")
 
         display_configs = config_df[config_df['key'].isin([
-            'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
+            'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES'
         ])]
@@ -569,7 +569,7 @@ def render_configuration_management():
             with col2:
                 key = f"config_{config['key']}"
 
-                if config['key'] in ['SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'REQUIRE_CONFIRM_PANEL', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES']:
+                if config['key'] in ['SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'REQUIRE_CONFIRM_PANEL', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES']:
                     # Boolean configs
                     current_value = config['value'].lower() == 'true'
                     new_value = st.checkbox("", value=current_value, key=key)
@@ -823,7 +823,7 @@ def render_configuration_management():
             'FORM_OPEN_DATETIME', 'FORM_CLOSE_DATETIME', 'WINNER_ANNOUNCE_DATETIME',
             'WINNERS_TOP_N', 'SHOW_WINNERS_AUTOMATIC', 'TIMEZONE',
             # Display Settings
-            'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
+            'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
             # System Settings
@@ -984,7 +984,7 @@ def render_configuration_cleanup_tab(config_df):
             'WINNERS_TOP_N', 'SHOW_WINNERS_AUTOMATIC', 'TIMEZONE',
 
             # Display Settings
-            'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
+            'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
 
@@ -1096,6 +1096,7 @@ def render_configuration_cleanup_tab(config_df):
                     'TIMEZONE': 'Asia/Jakarta',
 
                     # Display Settings
+                    'SHOW_HL_IN_TAB1': 'True',
                     'SHOW_NILAI_CHIP': 'True',
                     'SHOW_AUTHOR': 'True',
                     'DEFAULT_TEXT_VIEW': 'auto',
