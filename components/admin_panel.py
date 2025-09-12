@@ -918,9 +918,10 @@ def scan_codebase_for_config_usage():
             for line_num, line in enumerate(lines, 1):
                 # Look for config.get('KEY') or config['KEY'] patterns
                 config_patterns = [
-                    r"config\.get\(['\"]([A-Z_]+)['\"]",
-                    r"config\[['\"]([A-Z_]+)['\"]\]",
-                    r"['\"]([A-Z_][A-Z_]+)['\"]",  # Any uppercase string that looks like config
+                    r"config\.get\(['\"]([A-Z][A-Z0-9_]+)['\"]",  # config.get('KEY') - include numbers
+                    r"config\.get\(['\"]([A-Z][A-Z0-9_]+)['\"],",  # config.get('KEY', default) - include numbers
+                    r"config\[['\"]([A-Z][A-Z0-9_]+)['\"]\]",  # config['KEY'] - include numbers
+                    r"['\"]([A-Z][A-Z0-9_]+)['\"]",  # Any uppercase string that looks like config - include numbers
                 ]
 
                 for pattern in config_patterns:
