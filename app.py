@@ -644,10 +644,13 @@ def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, edit
             auto_save_score(judge_id, song_data['id'], rubric_key, ai_score)
 
     # Radio button for scoring
+    # Fix index calculation to prevent out of range error
+    radio_index = max(0, min(int(current_score) - 1, len(options) - 1)) if current_score > 0 else 0
+
     selected_option = st.radio(
         "Pilih nilai:",
         options=options,
-        index=int(current_score) - 1,  # Convert to 0-based index
+        index=radio_index,  # Safe index calculation
         key=f"score_{rubric_key}_{song_data['id']}",
         disabled=input_disabled,
         label_visibility="collapsed"
