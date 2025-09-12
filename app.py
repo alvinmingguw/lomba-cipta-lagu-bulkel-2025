@@ -5987,8 +5987,8 @@ def render_winners_section():
             if all_song_data:
                 # Show multiple audio versions if available
                 if len(all_song_data) > 1:
-                    st.markdown("##### 🎵 Pilihan Audio (Voting Internal)")
-                    st.info("💡 Silakan dengarkan kedua versi untuk membantu menentukan versi final yang akan diumumkan")
+                    # st.markdown("##### 🎵 Pilihan Audio (Voting Internal)")
+                    # st.info("💡 Silakan dengarkan kedua versi untuk membantu menentukan versi final yang akan diumumkan")
 
                     # Determine version names based on v1/v2
                     version_names = []
@@ -6805,9 +6805,9 @@ def render_theme_timeline():
     # Get configuration data for dates
     config = cache_service.get_cached_config()
 
-    # Helper function to format date to Indonesian format
+    # Helper function to format date to Indonesian format with time
     def format_date_indonesian(date_str):
-        """Convert date string to Indonesian format: DD Mmmm YYYY"""
+        """Convert date string to Indonesian format: DD Mmmm YYYY pukul HH:MM"""
         if not date_str:
             return "Belum ditentukan"
 
@@ -6826,7 +6826,9 @@ def render_theme_timeline():
                 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'
             }
 
-            return f"{dt.day} {month_names[dt.month]} {dt.year}"
+            # Format with time
+            jam = dt.strftime('%H:%M')
+            return f"{dt.day} {month_names[dt.month]} {dt.year} pukul {jam}"
         except:
             return date_str
 

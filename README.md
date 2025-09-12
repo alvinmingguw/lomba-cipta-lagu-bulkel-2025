@@ -47,16 +47,16 @@ gki-perumnas-song-contest-2025/
 │   └── scoring_service.py         # 🤖 AI-assisted evaluation
 ├── 🎨 components/                 # UI components
 │   ├── admin_panel.py             # 👨‍💼 Admin interface with tabs
-│   └── login_simple.py            # 🔑 Authentication UI
+│   └── login_simple_clean.py      # 🔑 Authentication UI
 ├── 🎵 song-contest-files/         # Local file storage (mirrors Supabase)
 │   ├── files/                     # Audio, notation, lyrics files
 │   └── certificates/              # Generated certificates
 ├── 🖼️ assets/                     # Static assets (images, banners)
-├── 🗃️ sql/                        # Database setup scripts
+├── 🗃️ sql/                        # Database setup scripts (8 files)
 ├── 📚 docs/                       # Detailed documentation
-├── 🧪 testing/                    # Development and testing files
-├── 📦 archive/                    # Legacy code and migration tools
-└── 🚫 unused/                     # Deprecated components
+├── 🧪 testing/                    # Development and testing files (OAuth debug moved here)
+├── � pages/                      # Streamlit pages (auth.py)
+└── � archive/                    # Legacy code and migration tools (not in production)
 ```
 
 ## 📊 Performance & Architecture
@@ -129,21 +129,45 @@ psql -d your_database -f sql/run_all_setup.sql
 ```
 
 ### **⚙️ Application Configuration**
-Key configuration options in the `config` table:
+The application uses **26 configuration keys** organized in the `configuration` table:
 
+#### **Contest Settings (10 configs)**
 | Config Key | Description | Values |
 |------------|-------------|---------|
 | `THEME` | Contest theme display | String |
 | `FORM_OPEN` | Enable/disable evaluation form | true/false |
+| `SUBMISSION_START_DATETIME` | When song submission opens | DateTime |
+| `SUBMISSION_END_DATETIME` | When song submission closes | DateTime |
 | `FORM_OPEN_DATETIME` | When evaluation opens | DateTime |
 | `FORM_CLOSE_DATETIME` | When evaluation closes | DateTime |
 | `WINNER_ANNOUNCE_DATETIME` | When winners are announced | DateTime |
 | `WINNERS_TOP_N` | Number of winners to display | Integer (1-10) |
+| `SHOW_WINNERS_AUTOMATIC` | Auto-show winners after announcement | true/false |
+| `TIMEZONE` | Application timezone | String (e.g., Asia/Jakarta) |
+
+#### **Display Settings (11 configs)**
+| Config Key | Description | Values |
+|------------|-------------|---------|
+| `SHOW_HL_IN_TAB1` | Show highlights in main tab | true/false |
+| `SHOW_NILAI_CHIP` | Show score chips in evaluation | true/false |
 | `SHOW_AUTHOR` | Show/hide composer names | true/false |
-| `CERTIFICATE_MODE` | Certificate generation mode | STORAGE/GENERATE |
+| `DEFAULT_TEXT_VIEW` | Default text display mode | String |
+| `RUBRIK_INPUT_STYLE` | Rubric input interface style | String |
+| `SLIDER_LAYOUT` | Slider layout configuration | String |
+| `REQUIRE_CONFIRM_PANEL` | Show confirmation panel | true/false |
 | `WINNER_DISPLAY_LAYOUT` | Winner display layout | TABS/COLUMNS |
 | `SHOW_PDF_DOCUMENTS` | Show PDF document links | true/false |
-| `TIMEZONE` | Application timezone | String (e.g., Asia/Jakarta) |
+| `SHOW_WINNER_SCORES` | Show scores in winner display | true/false |
+| `SHOW_ALL_SONGS_SCORES` | Show scores for all songs | true/false |
+
+#### **System Settings (5 configs)**
+| Config Key | Description | Values |
+|------------|-------------|---------|
+| `CERTIFICATE_MODE` | Certificate generation mode | STORAGE/GENERATE |
+| `CERTIFICATE_BUCKET` | Supabase storage bucket name | String |
+| `CERTIFICATE_FOLDER` | Certificate folder path | String |
+| `LOCK_FINAL_EVALUATIONS` | Lock evaluations after submission | true/false |
+| `DETECT_CHORDS_FALLBACK` | Chord detection fallback mode | true/false |
 
 ### **🔐 Authentication Setup**
 - **Google OAuth**: Configure in Supabase Auth settings
@@ -152,15 +176,22 @@ Key configuration options in the `config` table:
 
 ## 🗄️ Database Schema
 
-| Table | Description | Key Fields |
-|-------|-------------|------------|
-| `songs` | Contest songs with metadata | title, composer, audio_file_path |
-| `judges` | Judge information | name, email, auth_user_id |
-| `rubrics` | Evaluation criteria | name, weight, ai_assisted |
-| `evaluations` | Judge evaluations | judge_id, song_id, scores |
-| `keywords` | Theme analysis keywords | keyword, weight, category |
-| `config` | Application configuration | key, value |
-| `auth_profiles` | User authentication | user_id, email, role |
+The application uses **7 core tables** in PostgreSQL:
+
+| Table | Description | Key Fields | Status |
+|-------|-------------|------------|---------|
+| `songs` | Contest songs with metadata | title, composer, audio_file_path, is_active | ✅ Active |
+| `judges` | Judge information | name, email, auth_user_id, role, is_active | ✅ Active |
+| `rubrics` | Evaluation criteria | rubric_key, aspect_name, weight, is_ai_assisted | ✅ Active |
+| `evaluations` | Judge evaluations | judge_id, song_id, rubric_scores, total_score | ✅ Active |
+| `keywords` | Theme analysis keywords | keyword_text, keyword_type, weight | ✅ Active |
+| `configuration` | Application configuration | config_key, config_value, description | ✅ Active |
+| `auth_profiles` | User authentication profiles | email, role, judge_id, is_active | ✅ Active |
+
+### **Removed Tables** (Cleaned up)
+- `winners` - Not used in production (replaced by dynamic leaderboard)
+- `meta` - Unused metadata table
+- `file_metadata` - File management handled by Supabase Storage directly
 
 ## 🏆 Contest Information
 
@@ -208,6 +239,15 @@ Key configuration options in the `config` table:
 
 ## 🆕 Recent Updates (Latest Version)
 
+### **🧹 Project Organization & Cleanup**
+- **📁 Testing Files**: Moved OAuth debug scripts to `testing/` folder for better organization
+- **🗄️ Database Cleanup**: Removed unused tables (`winners`, `meta`, `file_metadata`)
+- **⚙️ Configuration Audit**: Verified all **26 configuration keys** are properly documented (not 38)
+- **📚 Documentation Update**: Updated README with accurate schema and configuration info
+- **🔧 Google Login Fix**: Resolved redirect issues after successful OAuth authentication
+- **🧹 File Organization**: Confirmed `login_simple_clean.py` is the active component (not `login_simple.py`)
+- **📦 Unused Components**: Properly documented unused files in `unused/` and `archive/` folders
+
 ### **🎯 Analytics & Reporting Enhancements**
 - **🏆 Winner Analysis Improvements**:
   - Fixed layout issues with full-width display
@@ -253,20 +293,34 @@ open http://localhost:8501
 
 ### **🧪 Testing & Debugging**
 ```bash
-# Run tests
-python -m pytest testing/
-
 # Check database connection
 python testing/test_connection.py
 
 # Debug authentication
 python testing/test_magic_link.py
+
+# Debug OAuth flow (moved to testing folder)
+python testing/debug_oauth.py
+
+# Test database schema
+python testing/test_schema.sql
 ```
 
 ### **📚 Documentation Structure**
 - **`docs/`**: Detailed technical documentation
-- **`testing/`**: Development and testing files
-- **`sql/`**: Database setup and migration scripts
+- **`testing/`**: Development and testing files (OAuth debug scripts moved here)
+- **`sql/`**: Database setup and migration scripts (8 files)
+- **`archive/`**: Legacy code and migration tools (not in production)
+- **`unused/`**: Deprecated components and old scripts (not in production)
+
+### **🧹 Cleanup Summary**
+| Category | Status | Details |
+|----------|--------|---------|
+| **Configuration** | ✅ Verified | 26 configs documented (not 38 as previously stated) |
+| **Database Schema** | ✅ Updated | 7 active tables, 3 unused tables removed |
+| **Testing Files** | ✅ Organized | OAuth debug moved to `testing/` folder |
+| **Components** | ✅ Verified | `login_simple_clean.py` is active component |
+| **Documentation** | ✅ Updated | README reflects current project state |
 
 ## 🚀 Deployment
 
