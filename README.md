@@ -1,4 +1,4 @@
-# 🎵 GKI Perumnas Song Contest 2025
+# 🎵 Lomba Cipta Lagu Bulkel 2025
 
 > **Advanced Digital Judging System** for GKI Perumnas Song Contest
 > Theme: **"Waktu Bersama Harta Berharga"** (Time Together, Precious Treasure)
@@ -11,32 +11,54 @@
 ## 🚀 Quick Start
 
 ```bash
-# 1. Setup Environment
-cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-# Edit with your Supabase credentials
+# 1. Clone Repository
+git clone https://github.com/alvinmingguw/lomba-cipta-lagu-bulkel-2025.git
+cd lomba-cipta-lagu-bulkel-2025
 
 # 2. Install Dependencies
 pip install -r requirements.txt
 
-# 3. Run Application
+# 3. Setup Supabase (see docs/SETUP_GUIDE.md for details)
+# - Create Supabase project
+# - Run SQL setup scripts
+# - Configure secrets.toml
+
+# 4. Run Application
 streamlit run app.py
 
-# 4. Access Application
+# 5. Access Application
 # Public: http://localhost:8501 (Winners & All Songs)
-# Judges: Login via Google OAuth
-# Admin: Use admin panel for management
+# Judges: Login via Google OAuth or Magic Link
+# Admin: Use admin panel for complete management
 ```
+
+## ✨ Key Features
+
+- 🎵 **Complete Song Management** - Audio, notation, lyrics
+- 🏆 **Certificate Download** - Both PARTICIPANT and SONG modes
+- 📊 **Advanced Analytics** - Real-time scoring and insights
+- ⚙️ **Admin Panel** - 39 configurations across 6 organized tabs
+- 🔐 **Secure Authentication** - Google OAuth + Magic Links
+- 📱 **Responsive Design** - Works on all devices
 
 ## 📁 Project Architecture
 
 ```
-gki-perumnas-song-contest-2025/
+lomba-cipta-lagu-bulkel-2025/
 ├── 🎯 app.py                       # Main Streamlit application
 ├── 📋 requirements.txt             # Python dependencies
 ├── 📖 README.md                    # Project documentation
 ├── ⚙️ .streamlit/
-│   ├── secrets.toml               # Supabase configuration (create from example)
-│   └── secrets.toml.example       # Configuration template
+│   └── secrets.toml               # Supabase configuration
+├── 🗃️ sql/                        # Database setup scripts (numbered sequence)
+│   ├── 01_initial_setup.sql       # Tables, indexes, initial data
+│   ├── 02_songs_data.sql          # Complete song database
+│   ├── 03_judges_and_auth.sql     # Judges and authentication
+│   ├── 04_certificate_config.sql  # Certificate configuration
+│   ├── 05_winner_display_config.sql # Winner display config
+│   ├── 06_cleanup_unused_tables.sql # Cleanup unused tables
+│   ├── 07_cleanup_meta_table.sql  # Cleanup meta table
+│   └── run_all_setup.sql          # Complete setup script
 ├── 🔧 services/                   # Core application services
 │   ├── analytics_service.py       # 📊 Scoring and analytics
 │   ├── auth_service.py            # 🔐 Authentication & user management
@@ -46,8 +68,15 @@ gki-perumnas-song-contest-2025/
 │   ├── file_service.py            # 📁 Supabase Storage integration
 │   └── scoring_service.py         # 🤖 AI-assisted evaluation
 ├── 🎨 components/                 # UI components
-│   ├── admin_panel.py             # 👨‍💼 Admin interface with tabs
+│   ├── admin_panel.py             # 👨‍💼 Admin interface with 6 tabs
 │   └── login_simple_clean.py      # 🔑 Authentication UI
+├── 📚 docs/                       # Documentation
+│   ├── SETUP_GUIDE.md             # Complete setup guide
+│   ├── PROJECT_STRUCTURE.md       # Project structure details
+│   └── FEATURES.md                # Feature documentation
+├── 🧪 testing/                    # Testing utilities
+│   ├── test_connection.py         # Database connection tests
+│   └── test_*.py                  # Other test files
 ├── 🎵 song-contest-files/         # Local file storage (mirrors Supabase)
 │   ├── files/                     # Audio, notation, lyrics files
 │   └── certificates/              # Generated certificates
@@ -56,7 +85,6 @@ gki-perumnas-song-contest-2025/
 ├── 📚 docs/                       # Detailed documentation
 ├── 🧪 testing/                    # Development and testing files (OAuth debug moved here)
 ├── � pages/                      # Streamlit pages (auth.py)
-└── � archive/                    # Legacy code and migration tools (not in production)
 ```
 
 ## 📊 Performance & Architecture
@@ -246,7 +274,6 @@ The application uses **7 core tables** in PostgreSQL:
 - **📚 Documentation Update**: Updated README with accurate schema and configuration info
 - **🔧 Google Login Fix**: Resolved redirect issues after successful OAuth authentication
 - **🧹 File Organization**: Confirmed `login_simple_clean.py` is the active component (not `login_simple.py`)
-- **📦 Unused Components**: Properly documented unused files in `unused/` and `archive/` folders
 
 ### **🎯 Analytics & Reporting Enhancements**
 - **🏆 Winner Analysis Improvements**:
@@ -310,8 +337,6 @@ python testing/test_schema.sql
 - **`docs/`**: Detailed technical documentation
 - **`testing/`**: Development and testing files (OAuth debug scripts moved here)
 - **`sql/`**: Database setup and migration scripts (8 files)
-- **`archive/`**: Legacy code and migration tools (not in production)
-- **`unused/`**: Deprecated components and old scripts (not in production)
 
 ### **🧹 Cleanup Summary**
 | Category | Status | Details |

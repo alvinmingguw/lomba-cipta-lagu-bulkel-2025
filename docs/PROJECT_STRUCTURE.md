@@ -3,16 +3,18 @@
 ## 🎯 **Clean & Organized Structure**
 
 ```
-gki-perumnas-song-contest-2025/
+lomba-cipta-lagu-bulkel-2025/
 ├── 🎵 app.py                  # Main Streamlit application
 ├── 📦 requirements.txt        # Python dependencies
 ├── 📖 README.md               # Main documentation
-├── 🗃️ sql/                   # Database setup scripts
+├── 🗃️ sql/                   # Database setup scripts (numbered sequence)
 │   ├── 01_initial_setup.sql   # Tables, indexes, initial data
 │   ├── 02_songs_data.sql      # Complete song database
 │   ├── 03_judges_and_auth.sql # Judges and authentication
-│   ├── add_certificate_config.sql # Certificate configuration
-│   ├── add_winner_display_config.sql # Winner display config
+│   ├── 04_certificate_config.sql # Certificate configuration
+│   ├── 05_winner_display_config.sql # Winner display config
+│   ├── 06_cleanup_unused_tables.sql # Cleanup unused tables
+│   ├── 07_cleanup_meta_table.sql # Cleanup meta table
 │   └── run_all_setup.sql      # Complete setup script
 ├── ⚙️ services/              # Application services
 │   ├── __init__.py
@@ -24,8 +26,9 @@ gki-perumnas-song-contest-2025/
 │   ├── file_service.py        # Supabase Storage integration
 │   └── scoring_service.py     # AI scoring algorithms
 ├── 🎨 components/            # UI components
-│   ├── admin_panel.py         # Admin interface with tabs
-│   └── login_simple.py        # Authentication UI
+│   ├── admin_panel.py         # Admin interface with 6 tabs
+│   ├── login_simple.py        # Authentication UI (legacy)
+│   └── login_simple_clean.py  # Clean authentication UI
 ├── 🎼 song-contest-files/    # Local file storage (mirrors Supabase)
 │   ├── files/                # Audio, notation, lyrics files
 │   └── certificates/         # Generated certificates

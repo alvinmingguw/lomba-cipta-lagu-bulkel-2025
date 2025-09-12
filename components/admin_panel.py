@@ -464,10 +464,10 @@ def render_configuration_management():
         return
 
     # Show configuration summary
-    st.info(f"📊 **Total Configurations:** {len(config_df)} | **Expected:** ~25 active configs")
+    st.info(f"📊 **Total Configurations:** {len(config_df)} | **Expected:** 39 configurations")
 
     # Configuration sections
-    tabs = st.tabs(["🎯 Contest Settings", "🎨 Display Settings", "🔧 System Settings", "🧹 Cleanup"])
+    tabs = st.tabs(["🎯 Contest Settings", "🎨 Display Settings", "🔧 System Settings", "🏆 Certificate Settings", "⚙️ Advanced Settings", "🧹 Cleanup"])
 
     with tabs[0]:  # Contest Settings
         st.markdown("**Contest Configuration**")
@@ -624,15 +624,193 @@ def render_configuration_management():
                     else:
                         st.error("❌ Failed to update")
 
+    with tabs[3]:  # Certificate Settings
+        st.markdown("**Certificate Configuration**")
+
+        # Certificate participant configs
+        cert_participant_configs = config_df[config_df['key'].isin([
+            'CERTIFICATE_LIST_MODE', 'CERTIFICATE_PARTICIPANTS', 'CERTIFICATE_PARTICIPANT_MAPPING'
+        ])]
+
+        for _, config in cert_participant_configs.iterrows():
+            col1, col2 = st.columns([1, 2])
+
+            with col1:
+                st.text(config['key'])
+                if config['key'] == 'CERTIFICATE_LIST_MODE':
+                    st.caption("PARTICIPANT: Use participant names | SONG: Use song titles")
+                elif config['key'] == 'CERTIFICATE_PARTICIPANTS':
+                    st.caption("Comma-separated list of participant names")
+                elif config['key'] == 'CERTIFICATE_PARTICIPANT_MAPPING':
+                    st.caption("JSON mapping: participant name → certificate file")
+
+            with col2:
+                key = f"config_{config['key']}"
+
+                if config['key'] == 'CERTIFICATE_LIST_MODE':
+                    # Dropdown config
+                    options = ['PARTICIPANT', 'SONG']
+                    current_idx = options.index(config['value']) if config['value'] in options else 0
+                    new_value_str = st.selectbox("", options=options, index=current_idx, key=key)
+                elif config['key'] == 'CERTIFICATE_PARTICIPANTS':
+                    # Text area for comma-separated list
+                    new_value_str = st.text_area("", value=config['value'], height=100, key=key)
+                elif config['key'] == 'CERTIFICATE_PARTICIPANT_MAPPING':
+                    # Text area for JSON mapping
+                    new_value_str = st.text_area("", value=config['value'], height=150, key=key)
+                else:
+                    # Text configs
+                    new_value_str = st.text_input("", value=config['value'], key=key)
+
+                # Update button
+                if st.button("💾", key=f"save_{config['key']}", help="Save"):
+                    if db_service.update_configuration(config['key'], new_value_str):
+                        st.success("✅ Updated!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to update")
+
+        # Certificate template configs
+        st.markdown("**Certificate Template Configuration**")
+        cert_template_configs = config_df[config_df['key'].isin([
+            'CERT_TEMPLATE_PARTICIPANT', 'CERT_TEMPLATE_WINNER', 'CERT_TEXT_COLOR_HEX'
+        ])]
+
+        for _, config in cert_template_configs.iterrows():
+            col1, col2 = st.columns([1, 2])
+
+            with col1:
+                st.text(config['key'])
+                if config['key'] == 'CERT_TEXT_COLOR_HEX':
+                    st.caption("Hex color code for certificate text")
+
+            with col2:
+                key = f"config_{config['key']}"
+
+                if config['key'] == 'CERT_TEXT_COLOR_HEX':
+                    # Color picker
+                    try:
+                        current_color = config['value'] if config['value'].startswith('#') else '#000000'
+                        new_color = st.color_picker("", value=current_color, key=key)
+                        new_value_str = new_color
+                    except:
+                        new_value_str = st.text_input("", value=config['value'], key=key)
+                else:
+                    # Text area for templates
+                    new_value_str = st.text_area("", value=config['value'], height=100, key=key)
+
+                # Update button
+                if st.button("💾", key=f"save_{config['key']}", help="Save"):
+                    if db_service.update_configuration(config['key'], new_value_str):
+                        st.success("✅ Updated!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to update")
+
+    with tabs[4]:  # Advanced Settings
+        st.markdown("**Advanced Configuration**")
+
+        # Scoring priority configs
+        st.markdown("**Scoring Priority Settings**")
+        scoring_configs = config_df[config_df['key'].isin([
+            'CHORD_SOURCE_PRIORITY', 'DISPLAY_TEXT_PRIORITY', 'LYRICS_SCORE_PRIORITY', 'THEME_SCORE_PRIORITY'
+        ])]
+
+        for _, config in scoring_configs.iterrows():
+            col1, col2 = st.columns([1, 2])
+
+            with col1:
+                st.text(config['key'])
+                st.caption("Priority order for scoring algorithms")
+
+            with col2:
+                key = f"config_{config['key']}"
+                new_value_str = st.text_area("", value=config['value'], height=80, key=key)
+
+                # Update button
+                if st.button("💾", key=f"save_{config['key']}", help="Save"):
+                    if db_service.update_configuration(config['key'], new_value_str):
+                        st.success("✅ Updated!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to update")
+
+        # Harmony weight configs
+        st.markdown("**Harmony Analysis Weights**")
+        harmony_configs = config_df[config_df['key'].isin([
+            'HARM_W_EXT', 'HARM_W_NONDI', 'HARM_W_SLASH', 'HARM_W_TRANS', 'HARM_W_UNIQ'
+        ])]
+
+        for _, config in harmony_configs.iterrows():
+            col1, col2 = st.columns([1, 2])
+
+            with col1:
+                st.text(config['key'])
+                st.caption("Weight for harmony analysis")
+
+            with col2:
+                key = f"config_{config['key']}"
+                current_num = int(config['value']) if config['value'].isdigit() else 0
+                new_num = st.number_input("", min_value=0, max_value=100, value=current_num, key=key)
+                new_value_str = str(new_num)
+
+                # Update button
+                if st.button("💾", key=f"save_{config['key']}", help="Save"):
+                    if db_service.update_configuration(config['key'], new_value_str):
+                        st.success("✅ Updated!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to update")
+
+        # System integration configs
+        st.markdown("**System Integration**")
+        integration_configs = config_df[config_df['key'].isin([
+            'DRIVE_FOLDER_ROOT_ID'
+        ])]
+
+        for _, config in integration_configs.iterrows():
+            col1, col2 = st.columns([1, 2])
+
+            with col1:
+                st.text(config['key'])
+                st.caption("Google Drive folder ID for file storage")
+
+            with col2:
+                key = f"config_{config['key']}"
+                new_value_str = st.text_input("", value=config['value'], key=key)
+
+                # Update button
+                if st.button("💾", key=f"save_{config['key']}", help="Save"):
+                    if db_service.update_configuration(config['key'], new_value_str):
+                        st.success("✅ Updated!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to update")
+
         # Show other system configs that don't fit the main categories
-        other_configs = config_df[~config_df['key'].isin([
+        # Get all configs that are already handled in other tabs
+        handled_configs = {
+            # Contest Settings
             'THEME', 'FORM_OPEN', 'SUBMISSION_START_DATETIME', 'SUBMISSION_END_DATETIME',
             'FORM_OPEN_DATETIME', 'FORM_CLOSE_DATETIME', 'WINNER_ANNOUNCE_DATETIME',
             'WINNERS_TOP_N', 'SHOW_WINNERS_AUTOMATIC', 'TIMEZONE',
+            # Display Settings
             'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
-            'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES'
-        ] + system_keys)]
+            'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
+            # System Settings
+            'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
+            'LOCK_FINAL_EVALUATIONS', 'DETECT_CHORDS_FALLBACK',
+            # Certificate Settings
+            'CERTIFICATE_LIST_MODE', 'CERTIFICATE_PARTICIPANTS', 'CERTIFICATE_PARTICIPANT_MAPPING',
+            'CERT_TEMPLATE_PARTICIPANT', 'CERT_TEMPLATE_WINNER', 'CERT_TEXT_COLOR_HEX',
+            # Advanced Settings
+            'CHORD_SOURCE_PRIORITY', 'DISPLAY_TEXT_PRIORITY', 'LYRICS_SCORE_PRIORITY', 'THEME_SCORE_PRIORITY',
+            'HARM_W_EXT', 'HARM_W_NONDI', 'HARM_W_SLASH', 'HARM_W_TRANS', 'HARM_W_UNIQ',
+            'DRIVE_FOLDER_ROOT_ID'
+        }
+
+        other_configs = config_df[~config_df['key'].isin(handled_configs)]
 
         if not other_configs.empty:
             st.markdown("**Other System Configurations**")
@@ -664,7 +842,7 @@ def render_configuration_management():
                         else:
                             st.error("❌ Failed to update")
 
-    with tabs[3]:  # Cleanup Tab
+    with tabs[5]:  # Cleanup Tab
         render_configuration_cleanup_tab(config_df)
 
 def render_configuration_cleanup_tab(config_df):
@@ -685,7 +863,20 @@ def render_configuration_cleanup_tab(config_df):
 
         # System Settings
         'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
-        'LOCK_FINAL_EVALUATIONS', 'DETECT_CHORDS_FALLBACK'
+        'LOCK_FINAL_EVALUATIONS', 'DETECT_CHORDS_FALLBACK',
+
+        # Certificate Participant Settings
+        'CERTIFICATE_LIST_MODE', 'CERTIFICATE_PARTICIPANTS', 'CERTIFICATE_PARTICIPANT_MAPPING',
+
+        # Certificate Template Settings
+        'CERT_TEMPLATE_PARTICIPANT', 'CERT_TEMPLATE_WINNER', 'CERT_TEXT_COLOR_HEX',
+
+        # Scoring & Analysis Settings
+        'CHORD_SOURCE_PRIORITY', 'DISPLAY_TEXT_PRIORITY', 'LYRICS_SCORE_PRIORITY', 'THEME_SCORE_PRIORITY',
+        'HARM_W_EXT', 'HARM_W_NONDI', 'HARM_W_SLASH', 'HARM_W_TRANS', 'HARM_W_UNIQ',
+
+        # System Integration
+        'DRIVE_FOLDER_ROOT_ID'
     }
 
     # Find unused configurations
@@ -724,6 +915,7 @@ def render_configuration_cleanup_tab(config_df):
                 from services.database_service import db_service
                 # Default values for missing configs
                 defaults = {
+                    # Contest Settings
                     'THEME': 'LOMBA CIPTA LAGU THEME SONG BULAN KELUARGA GKI PERUMNAS 2025',
                     'FORM_OPEN': 'True',
                     'SUBMISSION_START_DATETIME': '2025-08-01 00:00:00',
@@ -731,19 +923,49 @@ def render_configuration_cleanup_tab(config_df):
                     'FORM_OPEN_DATETIME': '2025-09-01 00:00:00',
                     'FORM_CLOSE_DATETIME': '2025-09-30 23:59:59',
                     'WINNER_ANNOUNCE_DATETIME': '2025-10-15 00:00:00',
-                    'TIMEZONE': 'Asia/Jakarta',
                     'WINNERS_TOP_N': '3',
                     'SHOW_WINNERS_AUTOMATIC': 'False',
+                    'TIMEZONE': 'Asia/Jakarta',
+
+                    # Display Settings
+                    'SHOW_HL_IN_TAB1': 'True',
+                    'SHOW_NILAI_CHIP': 'True',
+                    'SHOW_AUTHOR': 'True',
+                    'DEFAULT_TEXT_VIEW': 'auto',
+                    'RUBRIK_INPUT_STYLE': 'dropdown',
+                    'SLIDER_LAYOUT': 'stacked',
+                    'REQUIRE_CONFIRM_PANEL': 'True',
+                    'WINNER_DISPLAY_LAYOUT': 'COLUMNS',
+                    'SHOW_PDF_DOCUMENTS': 'False',
+                    'SHOW_WINNER_SCORES': 'True',
+                    'SHOW_ALL_SONGS_SCORES': 'False',
+
+                    # System Settings
                     'CERTIFICATE_MODE': 'STORAGE',
                     'CERTIFICATE_BUCKET': 'song-contest-files',
                     'CERTIFICATE_FOLDER': 'certificates',
                     'LOCK_FINAL_EVALUATIONS': 'True',
-                    'SHOW_AUTHOR': 'True',
-                    'SHOW_NILAI_CHIP': 'True',
-                    'WINNER_DISPLAY_LAYOUT': 'COLUMNS',
-                    'SHOW_PDF_DOCUMENTS': 'FALSE',
-                    'SHOW_WINNER_SCORES': 'TRUE',
-                    'SHOW_ALL_SONGS_SCORES': 'FALSE'
+                    'DETECT_CHORDS_FALLBACK': 'True',
+
+                    # Certificate Settings
+                    'CERTIFICATE_LIST_MODE': 'PARTICIPANT',
+                    'CERTIFICATE_PARTICIPANTS': '',
+                    'CERTIFICATE_PARTICIPANT_MAPPING': '{}',
+                    'CERT_TEMPLATE_PARTICIPANT': '',
+                    'CERT_TEMPLATE_WINNER': '',
+                    'CERT_TEXT_COLOR_HEX': '#000000',
+
+                    # Advanced Settings
+                    'CHORD_SOURCE_PRIORITY': '',
+                    'DISPLAY_TEXT_PRIORITY': '',
+                    'LYRICS_SCORE_PRIORITY': '',
+                    'THEME_SCORE_PRIORITY': '',
+                    'HARM_W_EXT': '10',
+                    'HARM_W_NONDI': '10',
+                    'HARM_W_SLASH': '10',
+                    'HARM_W_TRANS': '10',
+                    'HARM_W_UNIQ': '10',
+                    'DRIVE_FOLDER_ROOT_ID': ''
                 }
 
                 added_count = 0

@@ -1,11 +1,11 @@
-# 🚀 Setup Guide
+# 🚀 Complete Setup Guide - Lomba Cipta Lagu Bulkel 2025
 
 ## 📋 Prerequisites
 
 - Python 3.8+
-- PostgreSQL 12+
-- Supabase account
+- Supabase account (free tier is sufficient)
 - Git
+- Google Cloud Console account (for OAuth - optional)
 
 ## 🔧 Installation Steps
 
@@ -22,90 +22,183 @@ cd lomba-cipta-lagu-bulkel-2025
 pip install -r requirements.txt
 ```
 
-### 3. Database Setup
+## 🗄️ **Step 3: Supabase Project Setup**
+
+### **Create New Supabase Project**
+
+1. **Go to [supabase.com](https://supabase.com)**
+2. **Click "New Project"**
+3. **Fill in:**
+   - **Name**: `lomba-cipta-lagu-gki-perumnas-2025`
+   - **Database Password**: Create a strong password
+   - **Region**: `Southeast Asia (Singapore)` (recommended)
+4. **Click "Create new project"**
+5. **Wait 2-3 minutes** for setup to complete
+
+### **Setup Database Schema**
+
+1. **Go to SQL Editor** in your new Supabase project
+2. **Run SQL files in order:**
 
 #### Option A: Complete Fresh Setup
-
 ```bash
 # Run all setup scripts in order
-psql -d your_database -f sql/run_all_setup.sql
+# Copy contents of sql/01_initial_setup.sql to Supabase SQL Editor and run
+# Then copy contents of sql/02_songs_data.sql and run
+# Then copy contents of sql/03_judges_and_auth.sql and run
 ```
 
-#### Option B: Step by Step
-
+#### Option B: Use run_all_setup.sql
 ```bash
-# 1. Initial setup (tables, indexes, basic data)
-psql -d your_database -f sql/01_initial_setup.sql
-
-# 2. Songs data
-psql -d your_database -f sql/02_songs_data.sql
-
-# 3. Judges and authentication
-psql -d your_database -f sql/03_judges_and_auth.sql
-
-# 4. Certificate configuration
-psql -d your_database -f add_certificate_config.sql
+# Copy entire contents of sql/run_all_setup.sql to Supabase SQL Editor
+# Click "Run" - this will create all tables, data, and configurations
 ```
 
-### 4. Supabase Configuration
+**This will create:**
+- ✅ **All tables** with complete data
+- ✅ **All indexes** for performance
+- ✅ **Row Level Security** on all tables
+- ✅ **Complete data** (judges, songs, rubrics, configurations)
 
-#### Create Supabase Project
+## 📁 **Step 4: Storage Setup**
 
-1. Go to [supabase.com](https://supabase.com)
-2. Create new project
-3. Note your project URL and anon key
+### **Create Storage Bucket & Folders**
 
-#### Setup Storage
+1. **Go to Storage** in Supabase dashboard
+2. **Click "New bucket"**
+3. **Name**: `song-contest-files`
+4. **Make it Public**: ✅ (for easier access)
+5. **Click "Create bucket"**
 
-1. Create bucket named `song-contest-files`
-2. Upload song files to appropriate folders:
+### **Create Folder Structure:**
+In the `song-contest-files` bucket, create these folders:
+
+```
+song-contest-files/
+├── files/           # All song files (MP3, M4A, PDF notasi, PDF syair)
+└── certificates/    # Generated certificates
+```
+
+**How to create folders:**
+1. Click on the bucket
+2. Click "Upload" → "Create folder"
+3. Create folder: `files`
+4. Create folder: `certificates`
+
+### **Upload Files**
+
+#### Option A: Manual Upload (Quick)
+1. **Go to Storage** → `song-contest-files`
+2. **Upload to `files/` folder:**
+   - All `.mp3` and `.m4a` files
+   - All `.pdf` files (notation and lyrics)
+
+#### Option B: Automated Migration (Recommended)
+```bash
+python migrate_data.py  # If you have migration script
+```
+
+## 🔐 **Step 5: Authentication Setup**
+
+### **Configure Supabase Auth Settings**
+
+1. **Go to Supabase Dashboard** → Authentication → Providers
+
+2. **Enable Email/Password:**
+   - ✅ Enable email provider
+   - ✅ Enable email confirmations
+   - ✅ Set redirect URL: `http://localhost:8501` (for development)
+
+3. **Enable Magic Links:**
+   - ✅ Enable magic link authentication
+   - ✅ Configure email templates
+
+### **Google OAuth Setup (Optional)**
+
+1. **Go to [Google Cloud Console](https://console.cloud.google.com/)**
+2. **Create OAuth 2.0 credentials**
+3. **Application type:** Web application
+4. **Authorized redirect URIs:**
    ```
-   contest-files/
-   ├── audio/
-   ├── notation/
-   ├── lyrics/
-   └── certificates/
+   https://[your-project-id].supabase.co/auth/v1/callback
+   ```
+5. **Copy Client ID and Client Secret**
+6. **Add to Supabase** → Authentication → Providers → Google
+
+### **Configure Auth Settings**
+
+1. **Go to Authentication → Settings**
+2. **Site URL:** `http://localhost:8501` (for development)
+3. **Redirect URLs:** Add these URLs:
+   ```
+   http://localhost:8501
+   http://localhost:8501/**
+   https://your-production-domain.com
+   https://your-production-domain.com/**
    ```
 
-#### Configure Authentication
+## ⚙️ **Step 6: Environment Configuration**
 
-1. Enable Google OAuth (optional)
-2. Configure email templates for Magic Links
-3. Set up custom SMTP (optional)
-
-### 5. Environment Configuration
+### **Create Secrets File**
 
 Create `.streamlit/secrets.toml`:
 
 ```toml
-[supabase]
-supabase_url = "your-supabase-url"
-supabase_anon_key = "your-anon-key"
-supabase_service_key = "your-service-key"
+# Supabase Configuration
+supabase_url = "https://your-project-id.supabase.co"
+supabase_anon_key = "your-anon-key-here"
 
-[app]
-app_url = "http://localhost:8501"
+# App Configuration
+app_url = "http://localhost:8501"  # Change for production
 
+# Google OAuth (Optional)
 [google_oauth]
 client_id = "your-google-client-id"
 client_secret = "your-google-client-secret"
-redirect_uri = "your-redirect-uri"
 ```
 
-### 6. File Upload
+### **Get Your Credentials**
 
-Upload song files to Supabase Storage:
+1. **Go to Supabase Dashboard** → Settings → API
+2. **Copy:**
+   - **Project URL** → `supabase_url`
+   - **Anon/Public Key** → `supabase_anon_key`
 
+## 🚀 **Step 7: Run Application**
+
+### **Install Dependencies**
 ```bash
-# Use Supabase CLI or web interface
-supabase storage cp files/ supabase://song-contest-files/
+pip install -r requirements.txt
 ```
 
-### 7. Run Application
-
+### **Start Application**
 ```bash
-streamlit run app_new.py
+streamlit run app.py
 ```
+
+### **Access Application**
+- **Local:** `http://localhost:8501`
+- **Network:** Check terminal for network URL
+
+## 🧪 **Step 8: Test the Setup**
+
+### **Verify Basic Functionality**
+1. ✅ Application loads without errors
+2. ✅ Songs list displays correctly
+3. ✅ Audio files play properly
+4. ✅ PDF files open correctly
+
+### **Test Authentication**
+1. ✅ Login page appears
+2. ✅ Magic link authentication works
+3. ✅ Google OAuth works (if configured)
+4. ✅ Admin access works
+
+### **Test Core Features**
+1. ✅ Song evaluation form works
+2. ✅ Scoring system functions
+3. ✅ Analytics display correctly
+4. ✅ Certificate download works
 
 ## 🔐 Authentication Setup
 
@@ -279,6 +372,35 @@ pip install -r requirements.txt --upgrade
 psql -d your_database -f sql/migrations/latest.sql
 ```
 
+## 🔒 **Security & Authentication**
+
+### **Judge-Based Authentication System**
+
+The system ensures **ONLY judges with emails can login/signup**:
+
+- ✅ Judge has email in `judges` table = can login
+- ❌ Judge has no email = cannot login
+- ✅ Admin can manage judge emails through admin panel
+
+### **Authentication Flow**
+```
+User tries to login/signup → Check judges table →
+  ├─ If email exists in judges: Allow access
+  └─ If email not in judges: Block with error message
+```
+
+### **Admin Management**
+- Super admin can add/edit/remove judge emails
+- Real-time management through admin panel
+- No separate whitelist table needed
+
+### **Security Features**
+- Row Level Security (RLS) on all tables
+- Email-based authorization
+- Session management
+- OAuth integration (Google)
+- Magic link authentication
+
 ## 📞 Support
 
 For issues and questions:
@@ -294,3 +416,4 @@ For issues and questions:
 - [Supabase Documentation](https://supabase.com/docs)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Project Features](FEATURES.md)
+- [Project Structure](PROJECT_STRUCTURE.md)

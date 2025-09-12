@@ -6695,7 +6695,6 @@ def render_landing_page():
 
     # Handle special views
     if st.session_state.get('show_certificate', False):
-        st.session_state.show_certificate = False
         render_certificate_section()
         return
     elif st.session_state.get('show_info', False):
@@ -6930,102 +6929,240 @@ def render_theme_timeline():
 
 def render_certificate_section():
     """Render certificate download section"""
+
     st.markdown("### 🏆 Download Sertifikat Peserta")
     st.markdown("**Peserta dapat mengunduh sertifikat secara mandiri:**")
 
     # Back button
-    if st.button("← Kembali ke Beranda", type="secondary"):
-        st.rerun()
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("← Kembali ke Beranda", type="secondary", key="back_to_home_cert", use_container_width=True):
+            st.session_state.show_certificate = False
+            st.rerun()
 
-    st.markdown("---")
+    # Get certificate configuration
+    config = cache_service.get_cached_config()
+    certificate_list_mode = config.get('CERTIFICATE_LIST_MODE', 'SONG').upper()
 
-    # Get list of participants for dropdown
+    # Get list of participants for dropdown based on mode
     try:
         from services.database_service import db_service
-        songs_df = db_service.get_songs()
 
-        if not songs_df.empty:
-            # Create list of "Composer - Title" options
-            song_options = []
-            for _, song in songs_df.iterrows():
-                composer = song.get('composer', 'Unknown')
-                title = song.get('title', 'Unknown')
-                certificate_path = song.get('certificate_path')
+        if certificate_list_mode == 'PARTICIPANT':
+            # PARTICIPANT MODE: Use participant names from config with song details
+            participants_str = config.get('CERTIFICATE_PARTICIPANTS', '')
+            participant_mapping_str = config.get('CERTIFICATE_PARTICIPANT_MAPPING', '{}')
 
-                # Only include songs that have certificate_path
-                if certificate_path:
-                    option = f"{composer} - {title}"
-                    song_options.append({
-                        'display': option,
-                        'composer': composer,
-                        'title': title,
-                        'certificate_path': certificate_path
+            if participants_str:
+                import json
+                participant_names = [name.strip() for name in participants_str.split(',') if name.strip()]
+
+                try:
+                    participant_mapping = json.loads(participant_mapping_str)
+                except:
+                    participant_mapping = {}
+
+                # Get songs data to show participant's works
+                songs_df = db_service.get_songs()
+
+                # Create participant options with their songs
+                participant_options = []
+                for name in participant_names:
+                    # Get mapped certificate file or use default pattern
+                    certificate_file = participant_mapping.get(name, f"Participant_{name}.pdf")
+
+                    # Find songs by this composer (flexible matching for collaborations)
+                    song_titles = []
+                    if not songs_df.empty:
+                        # Try exact match first
+                        exact_match = songs_df[songs_df['composer'] == name]
+                        if not exact_match.empty:
+                            song_titles = exact_match['title'].tolist()
+                        else:
+                            # Try partial match for collaborations (e.g., "Merys" in "Merys & Yosef")
+                            partial_match = songs_df[songs_df['composer'].str.contains(name.split()[0], case=False, na=False)]
+                            if not partial_match.empty:
+                                song_titles = partial_match['title'].tolist()
+
+                    participant_options.append({
+                        'display': name,
+                        'name': name,
+                        'certificate_file': certificate_file,
+                        'songs': song_titles
                     })
 
-            # Sort by composer name
-            song_options.sort(key=lambda x: x['composer'])
+                # Sort by participant name
+                participant_options.sort(key=lambda x: x['name'])
 
-            col1, col2 = st.columns([2, 1])
+                # Simple dropdown with just participant names
+                display_options = ["-- Pilih Peserta --"] + [p['name'] for p in participant_options]
 
-            with col1:
-                if song_options:
-                    display_options = ["-- Pilih Peserta & Karya --"] + [opt['display'] for opt in song_options]
-                    selected_option = st.selectbox(
-                        "Pilih peserta dan karya:",
-                        display_options,
-                        key="participant_selector"
-                    )
-                else:
-                    st.info("📋 Tidak ada sertifikat yang tersedia")
+                selected_option = st.selectbox(
+                    "Pilih peserta:",
+                    display_options,
+                    key="participant_selector"
+                )
 
-            with col2:
-                if song_options and 'selected_option' in locals() and selected_option and selected_option != "-- Pilih Peserta & Karya --":
-                    # Find the selected song data
-                    selected_song_data = None
-                    for opt in song_options:
-                        if opt['display'] == selected_option:
-                            selected_song_data = opt
+                # Show details after selection
+                if selected_option and selected_option != "-- Pilih Peserta --":
+                    # Find the selected participant
+                    selected_participant = None
+                    for participant in participant_options:
+                        if participant['name'] == selected_option:
+                            selected_participant = participant
                             break
 
-                    if selected_song_data:
-                        certificate_path = selected_song_data['certificate_path']
-                        composer = selected_song_data['composer']
-                        title = selected_song_data['title']
+                    if selected_participant:
+                        st.markdown("---")
+
+                        # Display participant info
+                        st.markdown(f"### 👤 {selected_participant['name']}")
+
+                        # Display songs
+                        if selected_participant['songs']:
+                            st.markdown("**Karya yang dilombakan:**")
+                            for i, song in enumerate(selected_participant['songs'], 1):
+                                st.markdown(f"{i}. 🎵 {song}")
+                        else:
+                            st.markdown("**Karya:** _Data akan ditampilkan setelah tersedia_")
+
+                        st.markdown("")  # spacing
+
+                        # Download button
+                        participant_name = selected_participant['name']
+                        certificate_file = selected_participant['certificate_file']
 
                         # Construct direct public URL
                         import urllib.parse
                         supabase_project_url = st.secrets["supabase_url"]
                         bucket_name = "song-contest-files"
                         folder_name = "certificates"
-                        encoded_path = urllib.parse.quote(f"{folder_name}/{certificate_path}")
+                        encoded_path = urllib.parse.quote(f"{folder_name}/{certificate_file}")
                         direct_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
 
-                        # Download button
-                        st.markdown(f"""
-                        <a href="{direct_url}" target="_blank" style="text-decoration: none;">
-                            <button style="
-                                background-color: #4CAF50;
-                                color: white;
-                                padding: 10px 20px;
-                                border: none;
-                                border-radius: 5px;
-                                cursor: pointer;
-                                font-size: 16px;
-                                width: 100%;
-                            ">
-                                📥 Download Sertifikat
-                            </button>
-                        </a>
-                        """, unsafe_allow_html=True)
+                        # Centered download button
+                        col1, col2, col3 = st.columns([1, 2, 1])
+                        with col2:
+                            st.markdown(f"""
+                            <a href="{direct_url}" target="_blank" style="text-decoration: none;">
+                                <button style="
+                                    background: linear-gradient(45deg, #4CAF50, #45a049);
+                                    color: white;
+                                    border: none;
+                                    padding: 15px 30px;
+                                    border-radius: 10px;
+                                    font-size: 16px;
+                                    font-weight: bold;
+                                    cursor: pointer;
+                                    width: 100%;
+                                    transition: all 0.3s ease;
+                                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                                ">
+                                    📥 Download Sertifikat
+                                </button>
+                            </a>
+                            """, unsafe_allow_html=True)
 
-                        st.caption(f"Peserta: {composer}")
-                        st.caption(f"Karya: {title}")
-                        st.caption(f"File: {certificate_path}")
-                    else:
-                        st.warning("⚠️ Data sertifikat tidak ditemukan")
-                        st.info("💡 Hubungi panitia jika ada pertanyaan")
+                        st.caption(f"📄 File: {certificate_file}")
+
+            else:
+                st.warning("⚠️ Daftar peserta belum dikonfigurasi")
+
         else:
-            st.info("📋 Data peserta belum tersedia")
+            # SONG MODE: Use songs from database (original behavior)
+            songs_df = db_service.get_songs()
+
+            if not songs_df.empty:
+                # Create list of "Composer - Title" options
+                song_options = []
+                for _, song in songs_df.iterrows():
+                    composer = song.get('composer', 'Unknown')
+                    title = song.get('title', 'Unknown')
+                    certificate_path = song.get('certificate_path')
+
+                    # Only include songs that have certificate_path
+                    if certificate_path:
+                        option = f"{composer} - {title}"
+                        song_options.append({
+                            'display': option,
+                            'composer': composer,
+                            'title': title,
+                            'certificate_path': certificate_path
+                        })
+
+                # Sort by composer name
+                song_options.sort(key=lambda x: x['composer'])
+
+                if song_options:
+                    # Simple dropdown with song options
+                    display_options = ["-- Pilih Peserta & Karya --"] + [opt['display'] for opt in song_options]
+                    selected_option = st.selectbox(
+                        "Pilih peserta dan karya:",
+                        display_options,
+                        key="participant_selector"
+                    )
+
+                    # Show details after selection
+                    if selected_option and selected_option != "-- Pilih Peserta & Karya --":
+                        # Find the selected song
+                        selected_song = None
+                        for song_opt in song_options:
+                            if song_opt['display'] == selected_option:
+                                selected_song = song_opt
+                                break
+
+                        if selected_song:
+                            st.markdown("---")
+
+                            # Display song info
+                            st.markdown(f"### 👤 {selected_song['composer']}")
+                            st.markdown(f"**Karya yang dilombakan:**")
+                            st.markdown(f"1. 🎵 {selected_song['title']}")
+
+                            st.markdown("")  # spacing
+
+                            # Download button
+                            certificate_path = selected_song['certificate_path']
+
+                            # Construct direct public URL
+                            import urllib.parse
+                            supabase_project_url = st.secrets["supabase_url"]
+                            bucket_name = "song-contest-files"
+
+                            # certificate_path now includes 'certificates/' prefix from database
+                            encoded_path = urllib.parse.quote(certificate_path)
+                            direct_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
+
+                            # Centered download button
+                            col1, col2, col3 = st.columns([1, 2, 1])
+                            with col2:
+                                st.markdown(f"""
+                                <a href="{direct_url}" target="_blank" style="text-decoration: none;">
+                                    <button style="
+                                        background: linear-gradient(45deg, #4CAF50, #45a049);
+                                        color: white;
+                                        border: none;
+                                        padding: 15px 30px;
+                                        border-radius: 10px;
+                                        font-size: 16px;
+                                        font-weight: bold;
+                                        cursor: pointer;
+                                        width: 100%;
+                                        transition: all 0.3s ease;
+                                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                                    ">
+                                        📥 Download Sertifikat
+                                    </button>
+                                </a>
+                                """, unsafe_allow_html=True)
+
+                            st.caption(f"📄 File: {certificate_path}")
+                else:
+                    st.info("📋 Tidak ada sertifikat yang tersedia")
+            else:
+                st.info("📋 Data peserta belum tersedia")
+
+
 
     except Exception as e:
         st.error(f"❌ Error loading participants: {e}")
