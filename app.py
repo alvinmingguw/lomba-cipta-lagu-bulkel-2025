@@ -469,7 +469,10 @@ def render_comprehensive_rubric_analysis(rubric, song_data, ai_suggestions, ai_e
 
         # HIGHLIGHT BOX for tema and lirik rubrics
         if rubric_key in ['tema', 'lirik']:
-            st.markdown("#### 🎨 Highlight Kata Tema")
+            if rubric_key == 'tema':
+                st.markdown("#### 🎯 Highlight Kata Tema")
+            else:  # lirik
+                st.markdown("#### 📝 Highlight Kualitas Lirik")
             render_theme_highlight_box(song_data, rubric_key)
 
         # AI Analysis with detailed explanation
@@ -1239,20 +1242,29 @@ def render_theme_highlight_box(song_data, rubric_key):
         box_title = "🎯 Kata-kata Tema yang Ditemukan"
         box_color = "#4CAF50"
     elif rubric_key == 'lirik':
-        # Keywords for lyrical quality - focus on poetic elements, structure, and emotional depth
+        # Keywords for lyrical quality - comprehensive poetic analysis
         theme_words = [
-            # Poetic quality indicators
-            'indah', 'puitis', 'syair', 'sajak', 'bait', 'rima',
-            # Emotional depth
-            'hati', 'jiwa', 'rasa', 'perasaan', 'emosi', 'rindu', 'duka', 'suka',
-            # Spiritual/meaningful words
-            'makna', 'arti', 'hikmah', 'pelajaran', 'renungan', 'refleksi',
-            # Communication/message quality
-            'pesan', 'cerita', 'kisah', 'ungkapan', 'kata', 'bahasa',
-            # Inspirational/uplifting
-            'inspirasi', 'harapan', 'semangat', 'motivasi', 'kekuatan', 'cahaya',
-            # Imagery and metaphors
-            'seperti', 'bagaikan', 'laksana', 'ibarat', 'umpama'
+            # Poetic quality & structure
+            'indah', 'puitis', 'syair', 'sajak', 'bait', 'rima', 'irama', 'melodi', 'lagu',
+            # Emotional depth & feelings
+            'hati', 'jiwa', 'rasa', 'perasaan', 'emosi', 'rindu', 'duka', 'suka', 'cinta', 'kasih',
+            # Spiritual & meaningful depth
+            'makna', 'arti', 'hikmah', 'pelajaran', 'renungan', 'refleksi', 'dalam', 'mendalam',
+            # Communication & message quality
+            'pesan', 'cerita', 'kisah', 'ungkapan', 'kata', 'bahasa', 'berkata', 'menyapa', 'bicara',
+            # Inspirational & uplifting
+            'inspirasi', 'harapan', 'semangat', 'motivasi', 'kekuatan', 'cahaya', 'terang', 'sinar',
+            # Imagery & metaphors (key for poetic quality!)
+            'seperti', 'bagaikan', 'laksana', 'ibarat', 'umpama', 'bagai', 'layaknya', 'bak',
+            # Value & quality expressions
+            'berharga', 'bernilai', 'mulia', 'agung', 'luhur', 'suci', 'kudus', 'sejati', 'nyata',
+            # Beauty & aesthetics
+            'cantik', 'elok', 'molek', 'anggun', 'gemilang', 'cemerlang', 'indah',
+            # Depth & authenticity
+            'hakiki', 'asli', 'murni', 'tulus', 'ikhlas', 'sungguh', 'benar',
+            # Poetic expressions from actual songs
+            'dipanggil', 'mendekat', 'menyapa', 'tengah', 'dunia', 'sibuk', 'cepat',
+            'hadir', 'tak', 'ternilai', 'kebersamaan', 'melimpah', 'kekal'
         ]
         box_title = "📝 Indikator Kualitas Lirik yang Ditemukan"
         box_color = "#2196F3"

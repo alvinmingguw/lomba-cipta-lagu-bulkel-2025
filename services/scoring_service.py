@@ -51,8 +51,18 @@ class ScoringService:
         }
         
         self.imagery_words = [
-            "harta", "permata", "berharga", "tak ternilai", "mutiara",
-            "pelabuhan", "sauh", "jangkar", "bahtera", "rumahku"
+            # Value & treasure imagery
+            "harta", "permata", "berharga", "tak ternilai", "mutiara", "berlian", "emas",
+            # Nautical & journey imagery
+            "pelabuhan", "sauh", "jangkar", "bahtera", "rumahku", "jalan", "perjalanan",
+            # Light & spiritual imagery
+            "cahaya", "terang", "sinar", "bersinar", "gemilang", "cemerlang",
+            # Nature & beauty imagery
+            "bunga", "kembang", "taman", "sungai", "mata air", "embun", "fajar",
+            # Metaphorical expressions from actual songs
+            "seperti", "bagaikan", "laksana", "ibarat", "umpama", "bagai", "layaknya",
+            # Depth & authenticity
+            "dalam", "mendalam", "nyata", "sejati", "hakiki", "murni", "tulus"
         ]
         
         self.cliche_phrases = [
