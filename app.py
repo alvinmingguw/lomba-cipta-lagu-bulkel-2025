@@ -479,6 +479,18 @@ def render_comprehensive_rubric_analysis(rubric, song_data, ai_suggestions, ai_e
         st.markdown("#### 🤖 Analisis Mendalam")
         st.info(f"**Skor: {ai_score}/5** - {ai_explanation}")
 
+        # Add disclaimer for AI scoring
+        st.markdown("""
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 0.9em;">
+            <strong>⚠️ Disclaimer AI Scoring:</strong><br>
+            Skor AI adalah <strong>estimasi awal</strong> berdasarkan analisis teks dan musik.
+            Untuk penilaian final yang akurat, diperlukan <strong>evaluasi manual oleh juri</strong>
+            yang mempertimbangkan konteks, kreativitas, dan aspek subjektif lainnya.
+            <br><br>
+            <em>Lagu pemenang mungkin memiliki kualitas yang tidak terdeteksi oleh AI.</em>
+        </div>
+        """, unsafe_allow_html=True)
+
         # Detailed breakdown
         try:
             breakdown = generate_score_breakdown(rubric_key, song_data, ai_score)
@@ -1713,7 +1725,17 @@ def build_suggestions(song_data):
                 phrases = [(row['keyword_text'], row['weight']) for _, row in keywords_df.iterrows() if row['keyword_type'] == 'phrase']
                 keywords = [(row['keyword_text'], row['weight']) for _, row in keywords_df.iterrows() if row['keyword_type'] == 'keyword']
                 theme_relevance = scoring_service.score_theme_relevance(lyrics_text, keywords, phrases)
-                tema_score = max(1, min(5, int(theme_relevance / 20) + 1))  # Convert 0-100 to 1-5
+                # More generous scoring for winning songs: 0-100 -> 1-5 with better distribution
+                if theme_relevance >= 60:
+                    tema_score = 5
+                elif theme_relevance >= 40:
+                    tema_score = 4
+                elif theme_relevance >= 20:
+                    tema_score = 3
+                elif theme_relevance >= 10:
+                    tema_score = 2
+                else:
+                    tema_score = 1
             else:
                 # Fallback to simple keyword matching
                 theme_keywords = ['waktu', 'bersama', 'harta', 'berharga', 'keluarga', 'kasih', 'berkat']
@@ -1730,7 +1752,17 @@ def build_suggestions(song_data):
         if lyrics_text:
             # Use scoring service for lyrical quality
             lirik_quality = scoring_service.score_lyrical_quality(lyrics_text)
-            lirik_score = max(1, min(5, int(lirik_quality / 20) + 1))  # Convert 0-100 to 1-5
+            # More generous scoring for winning songs: 0-100 -> 1-5 with better distribution
+            if lirik_quality >= 60:
+                lirik_score = 5
+            elif lirik_quality >= 40:
+                lirik_score = 4
+            elif lirik_quality >= 25:
+                lirik_score = 3
+            elif lirik_quality >= 15:
+                lirik_score = 2
+            else:
+                lirik_score = 1
         else:
             # Analyze title structure and length
             if len(title) > 15 and any(word in title.lower() for word in ['kasih', 'berkat', 'bersama']):

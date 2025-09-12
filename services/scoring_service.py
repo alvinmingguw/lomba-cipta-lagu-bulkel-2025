@@ -201,6 +201,13 @@ class ScoringService:
         # Calculate final score
         final_score = variety_score + bonus_score
 
+        # Special boost for sophisticated songs (like winning songs)
+        # If song has good variety + complexity, boost it
+        if unique_count >= 8 and total_chords >= 20:
+            final_score += 0.5  # Boost for sophisticated songs
+        elif unique_count >= 6 and total_chords >= 15:
+            final_score += 0.3  # Moderate boost
+
         # Ensure reasonable range for congregational music
         final_score = max(2.0, min(5.0, final_score))  # Minimum 2, not 1
 
@@ -246,7 +253,69 @@ class ScoringService:
             score += matches * float(weight)
         
         return float(min(round(score, 2), 100.0))
-    
+
+    def score_lyrical_quality(self, text: str) -> float:
+        """
+        Score lyrical quality based on poetic elements, depth, and sophistication
+
+        Args:
+            text: Lyrics text to analyze
+
+        Returns:
+            Lyrical quality score (0-100)
+        """
+        if not text:
+            return 0.0
+
+        normalized_text = self._normalize_text(text)
+        score = 0.0
+
+        # 1. Poetic Quality Indicators (30 points max)
+        poetic_words = [
+            'indah', 'puitis', 'syair', 'sajak', 'bait', 'rima', 'irama', 'melodi',
+            'cantik', 'elok', 'molek', 'anggun', 'gemilang', 'cemerlang'
+        ]
+        poetic_matches = sum(1 for word in poetic_words if word in normalized_text)
+        score += min(30, poetic_matches * 5)
+
+        # 2. Emotional Depth (25 points max)
+        emotional_words = [
+            'hati', 'jiwa', 'rasa', 'perasaan', 'emosi', 'rindu', 'duka', 'suka',
+            'cinta', 'kasih', 'tulus', 'ikhlas', 'dalam', 'mendalam'
+        ]
+        emotional_matches = sum(1 for word in emotional_words if word in normalized_text)
+        score += min(25, emotional_matches * 4)
+
+        # 3. Imagery & Metaphors (25 points max) - CRITICAL for poetic quality!
+        imagery_words = [
+            'seperti', 'bagaikan', 'laksana', 'ibarat', 'umpama', 'bagai', 'layaknya',
+            'cahaya', 'terang', 'sinar', 'harta', 'permata', 'mutiara', 'berlian'
+        ]
+        imagery_matches = sum(1 for word in imagery_words if word in normalized_text)
+        score += min(25, imagery_matches * 6)  # Higher weight for metaphors
+
+        # 4. Spiritual & Meaningful Content (20 points max)
+        spiritual_words = [
+            'makna', 'arti', 'hikmah', 'pelajaran', 'renungan', 'refleksi',
+            'berkat', 'syukur', 'tuhan', 'kudus', 'suci', 'sejati', 'nyata'
+        ]
+        spiritual_matches = sum(1 for word in spiritual_words if word in normalized_text)
+        score += min(20, spiritual_matches * 4)
+
+        # 5. Length & Structure Bonus (bonus points for substantial lyrics)
+        word_count = len(normalized_text.split())
+        if word_count >= 50:
+            score += 10  # Substantial lyrics
+        elif word_count >= 30:
+            score += 5   # Adequate length
+
+        # 6. Repetition & Flow (check for good structure)
+        lines = text.split('\n')
+        if len(lines) >= 8:  # Multiple verses/sections
+            score += 5
+
+        return float(min(round(score, 2), 100.0))
+
     # ==================== UTILITY FUNCTIONS ====================
     
     def _normalize_text(self, text: str) -> str:
