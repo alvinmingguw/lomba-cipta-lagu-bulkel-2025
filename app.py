@@ -547,7 +547,7 @@ def render_comprehensive_rubric_analysis(rubric, song_data, ai_suggestions, ai_e
         </div>
         """, unsafe_allow_html=True)
 
-def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, editing_locked, ai_suggestions):
+def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, editing_locked, ai_suggestions, can_evaluate=True):
     """Render scoring controls for a specific rubric using radio buttons"""
     rubric_key = rubric['rubric_key']
 
@@ -604,6 +604,15 @@ def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, edit
     for score in range(1, 6):
         options.append(f"{score} - {descriptions[score]}")
 
+    # Check if input should be disabled
+    input_disabled = editing_locked or not can_evaluate
+
+    # Show status message if evaluation is disabled
+    if not can_evaluate:
+        st.info("🔒 Mode lihat saja - penilaian tidak dapat diubah")
+    elif editing_locked:
+        st.warning("🔒 Penilaian sudah di-lock")
+
     # AI suggestion display
     if rubric_key in ai_suggestions:
         ai_score = ai_suggestions[rubric_key]
@@ -611,7 +620,7 @@ def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, edit
 
         # Quick apply AI suggestion button
         if st.button(f"✨ Terapkan Saran", key=f"apply_ai_{rubric_key}_{song_data['id']}",
-                    disabled=editing_locked, help="Terapkan skor yang disarankan"):
+                    disabled=input_disabled, help="Terapkan skor yang disarankan"):
             auto_save_score(judge_id, song_data['id'], rubric_key, ai_score)
 
     # Radio button for scoring
@@ -620,15 +629,15 @@ def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, edit
         options=options,
         index=int(current_score) - 1,  # Convert to 0-based index
         key=f"score_{rubric_key}_{song_data['id']}",
-        disabled=editing_locked,
+        disabled=input_disabled,
         label_visibility="collapsed"
     )
 
     # Extract score from selected option
     score = int(selected_option.split(' - ')[0])
 
-    # Auto-save when score changes
-    if not editing_locked and score != current_score:
+    # Auto-save when score changes (only if evaluation is allowed)
+    if can_evaluate and not editing_locked and score != current_score:
         auto_save_score(judge_id, song_data['id'], rubric_key, score)
 
     # Score visualization
@@ -872,7 +881,7 @@ def generate_comprehensive_recommendations(rubric_key, song_data):
 
 # Sticky mode removed - using accordion only
 
-def render_accordion_mode(rubric, song_data, ai_suggestions, ai_explanations, existing_scores, judge_id, editing_locked):
+def render_accordion_mode(rubric, song_data, ai_suggestions, ai_explanations, existing_scores, judge_id, editing_locked, can_evaluate=True):
     """Render accordion mode - collapsible sections with score in header"""
     rubric_key = rubric['rubric_key']
     current_score = existing_scores.get(rubric_key, 0)
@@ -916,7 +925,7 @@ def render_accordion_mode(rubric, song_data, ai_suggestions, ai_explanations, ex
         with col_scoring:
             # Scoring controls
             st.markdown("#### 📝 Penilaian")
-            score = render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, editing_locked, ai_suggestions)
+            score = render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, editing_locked, ai_suggestions, can_evaluate)
 
 def render_rubric_chart(rubric_key, song_data, ai_score, max_score):
     """Render visual chart for specific rubric"""
@@ -2678,17 +2687,23 @@ def render_evaluation_tab(current_user):
     # Check form schedule (allow admin to bypass)
     schedule_status = check_form_schedule()
 
-    if not schedule_status['can_evaluate'] and current_user['role'] != 'admin':
+    # Determine if evaluation is allowed
+    can_evaluate = schedule_status['can_evaluate'] or current_user['role'] == 'admin'
+
+    # Show schedule status but don't block access completely
+    if not can_evaluate:
         if schedule_status['is_before_open']:
-            st.error("⏰ **Form belum dibuka**")
+            st.warning("⏰ **Form belum dibuka** - Anda dapat mendengarkan lagu tapi belum bisa menilai")
             st.info(f"Form akan dibuka pada: {schedule_status['form_open'].strftime('%d/%m/%Y %H:%M')}")
         elif schedule_status['is_after_close']:
-            st.error("⏰ **Form sudah ditutup**")
+            st.warning("⏰ **Form sudah ditutup** - Anda dapat mendengarkan lagu tapi tidak bisa mengubah nilai")
             st.info(f"Form ditutup pada: {schedule_status['form_close'].strftime('%d/%m/%Y %H:%M')}")
         else:
-            st.error("⏰ **Form penilaian tidak tersedia**")
+            st.warning("⏰ **Form penilaian tidak tersedia** - Mode hanya lihat")
             st.info("Silakan hubungi admin untuk informasi lebih lanjut")
-        return
+
+        st.markdown("---")
+        st.info("💡 **Mode Lihat Saja**: Anda tetap dapat mengakses audio, notasi, dan syair lagu")
 
     # Get effective user (handles admin impersonation)
     effective_user = get_effective_user(current_user)
@@ -2703,9 +2718,9 @@ def render_evaluation_tab(current_user):
         return
 
     # Render scoring interface directly
-    render_penilaian_tab(judge_id, judge_name, effective_user)
+    render_penilaian_tab(judge_id, judge_name, effective_user, can_evaluate)
 
-def render_penilaian_tab(judge_id, judge_name, effective_user):
+def render_penilaian_tab(judge_id, judge_name, effective_user, can_evaluate=True):
     """Render the evaluation/scoring tab"""
 
     # Create judge_info object for compatibility
@@ -3068,7 +3083,7 @@ def render_penilaian_tab(judge_id, judge_name, effective_user):
         """, unsafe_allow_html=True)
 
         # Render using accordion mode only
-        render_accordion_mode(rubric, song_data, ai_suggestions, ai_explanations, existing_scores, judge_id, editing_locked)
+        render_accordion_mode(rubric, song_data, ai_suggestions, ai_explanations, existing_scores, judge_id, editing_locked, can_evaluate)
 
         # Close card container
         st.markdown('</div></div>', unsafe_allow_html=True)
