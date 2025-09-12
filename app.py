@@ -467,6 +467,11 @@ def render_comprehensive_rubric_analysis(rubric, song_data, ai_suggestions, ai_e
             # Fallback insights
             st.info(f"🔍 **Analisis {aspect_name}**: Skor AI menunjukkan nilai {ai_score}/5 untuk aspek ini.")
 
+        # HIGHLIGHT BOX for tema and lirik rubrics
+        if rubric_key in ['tema', 'lirik']:
+            st.markdown("#### 🎨 Highlight Kata Tema")
+            render_theme_highlight_box(song_data, rubric_key)
+
         # AI Analysis with detailed explanation
         st.markdown("#### 🤖 Analisis Mendalam")
         st.info(f"**Skor: {ai_score}/5** - {ai_explanation}")
@@ -1210,6 +1215,70 @@ def render_comprehensive_content(song_data, tab_type="lyrics"):
             else:
                 st.warning("⚠️ Konten musik dan syair tidak tersedia")
 
+def render_theme_highlight_box(song_data, rubric_key):
+    """Render theme highlight box for tema and lirik rubrics"""
+    lyrics_text = song_data.get('lyrics_text', '')
+
+    if not lyrics_text:
+        st.info("📝 Teks lirik tidak tersedia untuk analisis highlight")
+        return
+
+    # Get configuration for highlighting
+    config = cache_service.get_cached_config()
+    show_highlights = config.get('SHOW_HL_IN_TAB1', 'True').lower() == 'true'
+
+    if not show_highlights:
+        st.info("ℹ️ Highlight tema dinonaktifkan (SHOW_HL_IN_TAB1 = False)")
+        return
+
+    # Theme words to highlight based on rubric
+    if rubric_key == 'tema':
+        theme_words = ['waktu', 'bersama', 'keluarga', 'harta', 'berharga', 'kasih', 'cinta', 'tuhan', 'berkat', 'syukur']
+        box_title = "🎯 Kata-kata Tema yang Ditemukan"
+        box_color = "#4CAF50"
+    elif rubric_key == 'lirik':
+        theme_words = ['indah', 'puitis', 'makna', 'pesan', 'hati', 'jiwa', 'rasa', 'emosi', 'inspirasi', 'harapan']
+        box_title = "📝 Kata-kata Kualitas Lirik"
+        box_color = "#2196F3"
+    else:
+        return
+
+    # Find matching words
+    found_words = []
+    lyrics_lower = lyrics_text.lower()
+    for word in theme_words:
+        if word.lower() in lyrics_lower:
+            found_words.append(word)
+
+    # Apply highlighting to text
+    display_text = lyrics_text
+    for word in found_words:
+        import re
+        pattern = re.compile(re.escape(word), re.IGNORECASE)
+        display_text = pattern.sub(
+            f'<span style="background-color: #ffeb3b; padding: 2px 4px; border-radius: 3px; font-weight: bold; color: #333;">{word}</span>',
+            display_text
+        )
+
+    # Display highlight box
+    st.markdown(f"""
+    <div style="border: 2px solid {box_color}; border-radius: 10px; padding: 15px; margin: 15px 0; background: linear-gradient(135deg, {box_color}10, {box_color}05);">
+        <h4 style="color: {box_color}; margin: 0 0 10px 0;">{box_title}</h4>
+        <div style="background: white; padding: 12px; border-radius: 6px; border-left: 4px solid {box_color}; margin-bottom: 10px;">
+            <div style="font-family: 'Georgia', serif; line-height: 1.6; color: #333; max-height: 200px; overflow-y: auto;">
+                {display_text.replace(chr(10), '<br>')}
+            </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+            <strong style="color: {box_color};">Kata ditemukan:</strong>
+            {' '.join([f'<span style="background: #ffeb3b; padding: 3px 6px; border-radius: 4px; font-size: 0.9em; margin: 2px;">{word}</span>' for word in found_words]) if found_words else '<span style="color: #666; font-style: italic;">Tidak ada kata tema yang ditemukan</span>'}
+        </div>
+        <div style="margin-top: 8px; font-size: 0.9em; color: #666;">
+            💡 <strong>Legend:</strong> <span style="background: #ffeb3b; padding: 2px 4px; border-radius: 3px;">Kata yang di-highlight</span> menunjukkan relevansi dengan tema/kualitas lirik
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 def render_lyrics_text(lyrics_text, highlight_theme=False):
     """Render lyrics text with proper styling and optional theme highlighting"""
 
@@ -1344,14 +1413,39 @@ def render_notation_viewer(song_data):
         </div>
         """, unsafe_allow_html=True)
 
-        # Embed PDF viewer with larger size
-        st.markdown(f"""
-        <div style="border: 3px solid #4CAF50; border-radius: 15px; overflow: hidden; margin: 20px 0; box-shadow: 0 6px 12px rgba(0,0,0,0.2);">
-            <iframe src="{pdf_url}" width="100%" height="700" type="application/pdf" style="border: none;">
-                <p>Browser Anda tidak mendukung PDF viewer. <a href="{pdf_url}" target="_blank">Klik di sini untuk membuka PDF</a></p>
-            </iframe>
-        </div>
-        """, unsafe_allow_html=True)
+        # PDF viewer alternatives (Chrome blocks iframe PDF)
+        st.markdown("**📄 PDF Viewer:**")
+
+        # Try different PDF viewing methods
+        col1, col2 = st.columns([3, 1])
+
+        with col1:
+            st.markdown(f"""
+            <div style="border: 3px solid #4CAF50; border-radius: 15px; padding: 20px; margin: 20px 0; box-shadow: 0 6px 12px rgba(0,0,0,0.2); text-align: center; background: #f8f9fa;">
+                <h4 style="color: #4CAF50; margin-bottom: 15px;">📄 Notasi PDF</h4>
+                <p style="margin-bottom: 15px;">Chrome memblokir PDF di iframe. Gunakan tombol di samping untuk membuka PDF.</p>
+                <a href="{pdf_url}" target="_blank" style="
+                    display: inline-block;
+                    background: #4CAF50;
+                    color: white;
+                    padding: 12px 24px;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    margin: 5px;
+                ">🔗 Buka PDF di Tab Baru</a>
+                <br>
+                <small style="color: #666;">💡 PDF akan terbuka di tab baru untuk penilaian</small>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            st.markdown("**🔗 Quick Actions:**")
+            if st.button("📄 Buka PDF", key=f"open_notation_{song_data.get('id', 'unknown')}", help="Buka PDF di tab baru"):
+                st.markdown(f'<script>window.open("{pdf_url}", "_blank");</script>', unsafe_allow_html=True)
+
+            st.markdown(f"[📱 Download PDF]({pdf_url})")
+            st.caption("💡 Klik 'Buka PDF' atau gunakan link download")
 
         st.info("💡 **Tip**: Gunakan PDF original di atas sebagai referensi utama untuk penilaian")
 
@@ -1406,14 +1500,39 @@ def render_lyrics_viewer(song_data):
         </div>
         """, unsafe_allow_html=True)
 
-        # Embed PDF viewer with larger size
-        st.markdown(f"""
-        <div style="border: 3px solid #2196F3; border-radius: 15px; overflow: hidden; margin: 20px 0; box-shadow: 0 6px 12px rgba(0,0,0,0.2);">
-            <iframe src="{pdf_url}" width="100%" height="700" type="application/pdf" style="border: none;">
-                <p>Browser Anda tidak mendukung PDF viewer. <a href="{pdf_url}" target="_blank">Klik di sini untuk membuka PDF</a></p>
-            </iframe>
-        </div>
-        """, unsafe_allow_html=True)
+        # PDF viewer alternatives (Chrome blocks iframe PDF)
+        st.markdown("**📄 PDF Viewer:**")
+
+        # Try different PDF viewing methods
+        col1, col2 = st.columns([3, 1])
+
+        with col1:
+            st.markdown(f"""
+            <div style="border: 3px solid #2196F3; border-radius: 15px; padding: 20px; margin: 20px 0; box-shadow: 0 6px 12px rgba(0,0,0,0.2); text-align: center; background: #f8f9fa;">
+                <h4 style="color: #2196F3; margin-bottom: 15px;">📝 Syair PDF</h4>
+                <p style="margin-bottom: 15px;">Chrome memblokir PDF di iframe. Gunakan tombol di samping untuk membuka PDF.</p>
+                <a href="{pdf_url}" target="_blank" style="
+                    display: inline-block;
+                    background: #2196F3;
+                    color: white;
+                    padding: 12px 24px;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    margin: 5px;
+                ">🔗 Buka PDF di Tab Baru</a>
+                <br>
+                <small style="color: #666;">💡 PDF akan terbuka di tab baru untuk penilaian</small>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            st.markdown("**🔗 Quick Actions:**")
+            if st.button("📄 Buka PDF", key=f"open_lyrics_{song_data.get('id', 'unknown')}", help="Buka PDF di tab baru"):
+                st.markdown(f'<script>window.open("{pdf_url}", "_blank");</script>', unsafe_allow_html=True)
+
+            st.markdown(f"[📱 Download PDF]({pdf_url})")
+            st.caption("💡 Klik 'Buka PDF' atau gunakan link download")
 
         st.info("💡 **Tip**: Gunakan PDF original di atas sebagai referensi utama untuk penilaian")
 
