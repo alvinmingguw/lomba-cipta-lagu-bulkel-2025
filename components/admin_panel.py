@@ -463,8 +463,36 @@ def render_configuration_management():
         st.error(f"Error loading configuration: {e}")
         return
 
+    # Calculate expected configurations dynamically
+    expected_configs_count = {
+        # Contest Settings
+        'THEME', 'FORM_OPEN', 'SUBMISSION_START_DATETIME', 'SUBMISSION_END_DATETIME',
+        'FORM_OPEN_DATETIME', 'FORM_CLOSE_DATETIME', 'WINNER_ANNOUNCE_DATETIME',
+        'WINNERS_TOP_N', 'SHOW_WINNERS_AUTOMATIC', 'TIMEZONE',
+
+        # Display Settings
+        'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
+        'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
+        'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
+
+        # System Settings
+        'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
+        'LOCK_FINAL_EVALUATIONS', 'DETECT_CHORDS_FALLBACK',
+
+        # Certificate Settings
+        'CERTIFICATE_LIST_MODE', 'CERTIFICATE_PARTICIPANTS', 'CERTIFICATE_PARTICIPANT_MAPPING',
+        'CERT_TEMPLATE_PARTICIPANT', 'CERT_TEMPLATE_WINNER', 'CERT_TEXT_COLOR_HEX',
+
+        # Scoring & Analysis Settings
+        'CHORD_SOURCE_PRIORITY', 'DISPLAY_TEXT_PRIORITY', 'LYRICS_SCORE_PRIORITY', 'THEME_SCORE_PRIORITY',
+        'HARM_W_EXT', 'HARM_W_NONDI', 'HARM_W_SLASH', 'HARM_W_TRANS', 'HARM_W_UNIQ',
+
+        # System Integration
+        'DRIVE_FOLDER_ROOT_ID'
+    }
+
     # Show configuration summary
-    st.info(f"📊 **Total Configurations:** {len(config_df)} | **Expected:** 39 configurations")
+    st.info(f"📊 **Total Configurations:** {len(config_df)} | **Expected:** {len(expected_configs_count)} configurations")
 
     # Configuration sections
     tabs = st.tabs(["🎯 Contest Settings", "🎨 Display Settings", "🔧 System Settings", "🏆 Certificate Settings", "⚙️ Advanced Settings", "🧹 Cleanup"])
@@ -525,7 +553,7 @@ def render_configuration_management():
         st.markdown("**Display Configuration**")
 
         display_configs = config_df[config_df['key'].isin([
-            'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
+            'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES'
         ])]
@@ -541,7 +569,7 @@ def render_configuration_management():
             with col2:
                 key = f"config_{config['key']}"
 
-                if config['key'] in ['SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'REQUIRE_CONFIRM_PANEL', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES']:
+                if config['key'] in ['SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'REQUIRE_CONFIRM_PANEL', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES']:
                     # Boolean configs
                     current_value = config['value'].lower() == 'true'
                     new_value = st.checkbox("", value=current_value, key=key)
@@ -795,7 +823,7 @@ def render_configuration_management():
             'FORM_OPEN_DATETIME', 'FORM_CLOSE_DATETIME', 'WINNER_ANNOUNCE_DATETIME',
             'WINNERS_TOP_N', 'SHOW_WINNERS_AUTOMATIC', 'TIMEZONE',
             # Display Settings
-            'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
+            'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
             # System Settings
@@ -845,6 +873,26 @@ def render_configuration_management():
     with tabs[5]:  # Cleanup Tab
         render_configuration_cleanup_tab(config_df)
 
+def should_include_config(config_key):
+    """Filter out false positive configurations"""
+    # Exclude Streamlit environment variables
+    if config_key.startswith('STREAMLIT_'):
+        return False
+
+    # Exclude incomplete regex matches
+    if config_key in ['HARM_W_', 'CERT_', 'SHOW_', 'FORM_']:
+        return False
+
+    # Exclude common false positives
+    false_positives = {
+        'HTTP_STATUS', 'ERROR_CODE', 'SUCCESS_CODE', 'DEBUG_MODE',
+        'TEST_MODE', 'DEV_MODE', 'PROD_MODE', 'LOCAL_MODE'
+    }
+    if config_key in false_positives:
+        return False
+
+    return True
+
 def scan_codebase_for_config_usage():
     """Scan codebase to find which configurations are actually used"""
     import os
@@ -880,10 +928,12 @@ def scan_codebase_for_config_usage():
                     for match in matches:
                         # Filter to likely config keys (uppercase, underscores)
                         if len(match) > 3 and match.isupper() and '_' in match:
-                            used_configs.add(match)
-                            if match not in config_usage:
-                                config_usage[match] = []
-                            config_usage[match].append((file_path, line_num, line.strip()))
+                            # Filter out false positives
+                            if should_include_config(match):
+                                used_configs.add(match)
+                                if match not in config_usage:
+                                    config_usage[match] = []
+                                config_usage[match].append((file_path, line_num, line.strip()))
 
         except Exception as e:
             pass  # Skip files that can't be read
@@ -934,7 +984,7 @@ def render_configuration_cleanup_tab(config_df):
             'WINNERS_TOP_N', 'SHOW_WINNERS_AUTOMATIC', 'TIMEZONE',
 
             # Display Settings
-            'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
+            'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
 
@@ -1046,7 +1096,6 @@ def render_configuration_cleanup_tab(config_df):
                     'TIMEZONE': 'Asia/Jakarta',
 
                     # Display Settings
-                    'SHOW_HL_IN_TAB1': 'True',
                     'SHOW_NILAI_CHIP': 'True',
                     'SHOW_AUTHOR': 'True',
                     'DEFAULT_TEXT_VIEW': 'auto',
