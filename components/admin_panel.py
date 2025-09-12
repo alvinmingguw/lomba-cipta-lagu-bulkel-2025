@@ -850,6 +850,7 @@ def render_configuration_cleanup_tab(config_df):
     st.markdown("**🧹 Configuration Cleanup**")
 
     # Define all configuration keys that should exist based on code analysis
+    # ALL THESE CONFIGS ARE ACTIVELY USED IN THE APPLICATION
     expected_configs = {
         # Contest Settings
         'THEME', 'FORM_OPEN', 'SUBMISSION_START_DATETIME', 'SUBMISSION_END_DATETIME',
@@ -865,17 +866,15 @@ def render_configuration_cleanup_tab(config_df):
         'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
         'LOCK_FINAL_EVALUATIONS', 'DETECT_CHORDS_FALLBACK',
 
-        # Certificate Participant Settings
+        # Certificate Settings - ACTIVELY USED in app.py certificate download
         'CERTIFICATE_LIST_MODE', 'CERTIFICATE_PARTICIPANTS', 'CERTIFICATE_PARTICIPANT_MAPPING',
-
-        # Certificate Template Settings
         'CERT_TEMPLATE_PARTICIPANT', 'CERT_TEMPLATE_WINNER', 'CERT_TEXT_COLOR_HEX',
 
-        # Scoring & Analysis Settings
+        # Scoring & Analysis Settings - ACTIVELY USED in scoring_service.py and admin panel
         'CHORD_SOURCE_PRIORITY', 'DISPLAY_TEXT_PRIORITY', 'LYRICS_SCORE_PRIORITY', 'THEME_SCORE_PRIORITY',
         'HARM_W_EXT', 'HARM_W_NONDI', 'HARM_W_SLASH', 'HARM_W_TRANS', 'HARM_W_UNIQ',
 
-        # System Integration
+        # System Integration - ACTIVELY USED in admin panel
         'DRIVE_FOLDER_ROOT_ID'
     }
 
@@ -883,6 +882,11 @@ def render_configuration_cleanup_tab(config_df):
     current_keys = set(config_df['key'].tolist())
     unused_configs = current_keys - expected_configs
     missing_configs = expected_configs - current_keys
+
+    # Safety warning
+    if unused_configs:
+        st.warning("⚠️ **PERINGATAN**: Konfigurasi di bawah mungkin masih digunakan di bagian lain aplikasi. Jangan hapus tanpa verifikasi!")
+        st.info("💡 **Tips**: Cek kode aplikasi terlebih dahulu sebelum menghapus konfigurasi apapun.")
 
     col1, col2 = st.columns(2)
 
@@ -893,14 +897,20 @@ def render_configuration_cleanup_tab(config_df):
             for key in sorted(unused_configs):
                 st.text(f"• {key}")
 
-            if st.button("🗑️ Remove All Unused", key="remove_unused", help="Remove all unused configurations"):
+            st.error("🚨 **DANGER ZONE** - Penghapusan konfigurasi dapat merusak aplikasi!")
+
+            # Require confirmation
+            confirm_delete = st.checkbox("☑️ Saya yakin ingin menghapus konfigurasi ini", key="confirm_delete_unused")
+
+            if confirm_delete and st.button("🗑️ Remove All Unused", key="remove_unused", help="Remove all unused configurations"):
                 from services.database_service import db_service
                 removed_count = 0
                 for key in unused_configs:
                     # Note: You'll need to implement delete_config method in database_service
-                    st.write(f"Would remove: {key}")
+                    st.write(f"⚠️ Would remove: {key}")
                     removed_count += 1
-                st.success(f"Would remove {removed_count} unused configurations")
+                st.warning(f"⚠️ Would remove {removed_count} configurations - FEATURE DISABLED FOR SAFETY")
+                st.info("💡 Manual verification required before implementing delete functionality")
         else:
             st.success("✅ No unused configurations found")
 
