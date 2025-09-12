@@ -758,11 +758,13 @@ def generate_score_breakdown(rubric_key, song_data, ai_score):
             {'aspect': 'Kemudahan Pemahaman', 'score': ai_score, 'reason': 'Clarity dan accessibility'}
         ]
     elif rubric_key == 'musik':
+        # More balanced scoring for music aspects
+        base_score = max(3.0, ai_score)  # Ensure minimum decent score
         breakdown = [
-            {'aspect': 'Kualitas Melodi', 'score': ai_score, 'reason': 'Keindahan dan flow melodis'},
-            {'aspect': 'Kekayaan Harmoni', 'score': min(5, ai_score + 0.4), 'reason': 'Kompleksitas dan variasi chord'},
-            {'aspect': 'Aransemen', 'score': min(5, ai_score - 0.1), 'reason': 'Kualitas pengaturan musik'},
-            {'aspect': 'Produksi', 'score': ai_score, 'reason': 'Kualitas recording dan mixing'}
+            {'aspect': 'Kualitas Melodi', 'score': min(5, base_score + 0.2), 'reason': 'Keindahan dan flow melodis'},
+            {'aspect': 'Kekayaan Harmoni', 'score': ai_score, 'reason': 'Kompleksitas dan variasi chord'},
+            {'aspect': 'Aransemen', 'score': min(5, base_score + 0.1), 'reason': 'Kualitas pengaturan musik'},
+            {'aspect': 'Produksi', 'score': min(5, base_score + 0.3), 'reason': 'Kualitas recording dan mixing'}
         ]
     else:
         breakdown = [
@@ -1727,18 +1729,18 @@ def build_suggestions(song_data):
                 lirik_score = 2
 
         # 3. MUSIK - Kekayaan Musik (Advanced analysis)
-        musik_score = 3  # Default
+        musik_score = 4  # More generous default
         if chords_text:
             # Parse chords and analyze
             chord_list = [chord.strip() for chord in chords_text.split() if chord.strip()]
             if chord_list:
                 musik_quality = scoring_service.score_harmonic_richness(chord_list)
-                musik_score = musik_quality  # Already 1-5 scale
+                musik_score = musik_quality  # Already 2-5 scale (improved)
             else:
-                musik_score = 3
+                musik_score = 4  # Generous default for empty chord list
         else:
-            # Default based on composer info
-            musik_score = 4 if composer else 3
+            # More generous default - assume good quality if no data
+            musik_score = 4  # Benefit of doubt for missing chord data
 
         # Return only the 3 AI-analyzable rubrics
         # kreativ and jemaat require manual assessment

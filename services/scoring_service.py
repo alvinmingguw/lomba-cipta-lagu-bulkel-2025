@@ -133,52 +133,68 @@ class ScoringService:
     def score_harmonic_richness(self, chord_sequence: List[str]) -> int:
         """
         Score harmonic richness (1-5) based on chord complexity and variety
-        
+        Optimized for congregational songs - balanced scoring
+
         Args:
             chord_sequence: List of chord symbols
-            
+
         Returns:
             Score from 1 to 5
         """
         if not chord_sequence:
-            return 1
-        
+            return 2  # Default for missing data, not 1
+
         unique_chords = list(dict.fromkeys(chord_sequence))
-        
-        # Calculate features
-        uniqueness = min(len(set(unique_chords)) / 10.0, 1.0)
-        
-        # Transition entropy
-        bigrams = list(zip(chord_sequence, chord_sequence[1:])) if len(chord_sequence) > 1 else []
-        if bigrams:
-            bigram_counts = Counter(bigrams)
-            total = sum(bigram_counts.values())
-            transition_entropy = self._calculate_entropy([v/total for v in bigram_counts.values()])
+        unique_count = len(set(unique_chords))
+        total_chords = len(chord_sequence)
+
+        # Base score from chord variety (more generous)
+        if unique_count >= 8:
+            variety_score = 5
+        elif unique_count >= 6:
+            variety_score = 4
+        elif unique_count >= 4:
+            variety_score = 3
+        elif unique_count >= 3:
+            variety_score = 2
         else:
-            transition_entropy = 0.0
-        
-        # Chord complexity features
-        extensions = sum(1 for c in chord_sequence if self._has_extension(c)) / max(1, len(chord_sequence))
-        slash_chords = sum(1 for c in chord_sequence if "/" in c) / max(1, len(chord_sequence))
-        non_diatonic = sum(1 for c in chord_sequence if self._is_non_diatonic(c)) / max(1, len(chord_sequence))
-        
-        # Calculate weighted score
-        raw_score = (
-            15 * uniqueness +
-            20 * transition_entropy +
-            30 * extensions +
-            20 * slash_chords +
-            15 * non_diatonic
-        )
-        
-        # Penalties for overly simple progressions
-        if extensions == 0 and slash_chords == 0 and non_diatonic == 0:
-            raw_score -= 18  # No color at all
-        if len(set(unique_chords)) <= 4 and transition_entropy < 0.25:
-            raw_score -= 8   # Few chords and monotonous transitions
-        
-        raw_score = max(0.0, min(100.0, raw_score))
-        return self._map_score_to_scale(raw_score)
+            variety_score = 1
+
+        # Bonus features (not penalties)
+        bonus_score = 0
+
+        # Extensions bonus (7th, 9th, etc.)
+        extensions = sum(1 for c in chord_sequence if self._has_extension(c))
+        if extensions > 0:
+            extension_ratio = extensions / max(1, len(chord_sequence))
+            if extension_ratio >= 0.3:
+                bonus_score += 1.0  # Many extensions
+            elif extension_ratio >= 0.1:
+                bonus_score += 0.5  # Some extensions
+
+        # Slash chords bonus
+        slash_chords = sum(1 for c in chord_sequence if "/" in c)
+        if slash_chords > 0:
+            bonus_score += min(0.5, slash_chords / max(1, len(chord_sequence)) * 2)
+
+        # Non-diatonic bonus (but not required)
+        non_diatonic = sum(1 for c in chord_sequence if self._is_non_diatonic(c))
+        if non_diatonic > 0:
+            bonus_score += min(0.3, non_diatonic / max(1, len(chord_sequence)))
+
+        # Progression length bonus
+        if total_chords >= 16:
+            bonus_score += 0.3  # Good length
+        elif total_chords >= 8:
+            bonus_score += 0.2  # Adequate length
+
+        # Calculate final score
+        final_score = variety_score + bonus_score
+
+        # Ensure reasonable range for congregational music
+        final_score = max(2.0, min(5.0, final_score))  # Minimum 2, not 1
+
+        return int(round(final_score))
     
     def _has_extension(self, chord: str) -> bool:
         """Check if chord has extensions (7th, 9th, etc.)"""
