@@ -845,38 +845,146 @@ def render_configuration_management():
     with tabs[5]:  # Cleanup Tab
         render_configuration_cleanup_tab(config_df)
 
+def scan_codebase_for_config_usage():
+    """Scan codebase to find which configurations are actually used"""
+    import os
+    import re
+
+    # Files to scan
+    scan_paths = [
+        'app.py',
+        'components/',
+        'services/',
+        'sql/'
+    ]
+
+    used_configs = set()
+    config_usage = {}  # config_key -> list of (file, line_number, context)
+
+    def scan_file(file_path):
+        """Scan a single file for config usage"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+
+            for line_num, line in enumerate(lines, 1):
+                # Look for config.get('KEY') or config['KEY'] patterns
+                config_patterns = [
+                    r"config\.get\(['\"]([A-Z_]+)['\"]",
+                    r"config\[['\"]([A-Z_]+)['\"]\]",
+                    r"['\"]([A-Z_][A-Z_]+)['\"]",  # Any uppercase string that looks like config
+                ]
+
+                for pattern in config_patterns:
+                    matches = re.findall(pattern, line)
+                    for match in matches:
+                        # Filter to likely config keys (uppercase, underscores)
+                        if len(match) > 3 and match.isupper() and '_' in match:
+                            used_configs.add(match)
+                            if match not in config_usage:
+                                config_usage[match] = []
+                            config_usage[match].append((file_path, line_num, line.strip()))
+
+        except Exception as e:
+            pass  # Skip files that can't be read
+
+    # Scan all files
+    for path in scan_paths:
+        if os.path.isfile(path):
+            scan_file(path)
+        elif os.path.isdir(path):
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    if file.endswith('.py'):
+                        scan_file(os.path.join(root, file))
+
+    return used_configs, config_usage
+
 def render_configuration_cleanup_tab(config_df):
-    """Render configuration cleanup tab"""
+    """Render configuration cleanup tab with intelligent scanning"""
     st.markdown("**🧹 Configuration Cleanup**")
 
-    # Define all configuration keys that should exist based on code analysis
-    # ALL THESE CONFIGS ARE ACTIVELY USED IN THE APPLICATION
-    expected_configs = {
-        # Contest Settings
-        'THEME', 'FORM_OPEN', 'SUBMISSION_START_DATETIME', 'SUBMISSION_END_DATETIME',
-        'FORM_OPEN_DATETIME', 'FORM_CLOSE_DATETIME', 'WINNER_ANNOUNCE_DATETIME',
-        'WINNERS_TOP_N', 'SHOW_WINNERS_AUTOMATIC', 'TIMEZONE',
+    # Add scan button
+    col1, col2 = st.columns([1, 1])
 
-        # Display Settings
-        'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
-        'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
-        'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
+    with col1:
+        if st.button("🔍 Scan Codebase", help="Scan all Python files to detect which configs are actually used"):
+            # Scan codebase for actual usage
+            with st.spinner("🔍 Scanning codebase for configuration usage..."):
+                used_configs, config_usage = scan_codebase_for_config_usage()
 
-        # System Settings
-        'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
-        'LOCK_FINAL_EVALUATIONS', 'DETECT_CHORDS_FALLBACK',
+            # Store results in session state
+            st.session_state.scan_results = {
+                'used_configs': used_configs,
+                'config_usage': config_usage
+            }
+            st.success(f"✅ Scanned codebase and found {len(used_configs)} configurations in use")
 
-        # Certificate Settings - ACTIVELY USED in app.py certificate download
-        'CERTIFICATE_LIST_MODE', 'CERTIFICATE_PARTICIPANTS', 'CERTIFICATE_PARTICIPANT_MAPPING',
-        'CERT_TEMPLATE_PARTICIPANT', 'CERT_TEMPLATE_WINNER', 'CERT_TEXT_COLOR_HEX',
+    with col2:
+        use_manual_list = st.checkbox("📝 Use Manual List", value=True,
+                                     help="Use manually curated list instead of automatic scan")
 
-        # Scoring & Analysis Settings - ACTIVELY USED in scoring_service.py and admin panel
-        'CHORD_SOURCE_PRIORITY', 'DISPLAY_TEXT_PRIORITY', 'LYRICS_SCORE_PRIORITY', 'THEME_SCORE_PRIORITY',
-        'HARM_W_EXT', 'HARM_W_NONDI', 'HARM_W_SLASH', 'HARM_W_TRANS', 'HARM_W_UNIQ',
+    # Determine which configs to consider as "expected"
+    if use_manual_list or 'scan_results' not in st.session_state:
+        # Manual curated list (current approach)
+        expected_configs = {
+            # Contest Settings
+            'THEME', 'FORM_OPEN', 'SUBMISSION_START_DATETIME', 'SUBMISSION_END_DATETIME',
+            'FORM_OPEN_DATETIME', 'FORM_CLOSE_DATETIME', 'WINNER_ANNOUNCE_DATETIME',
+            'WINNERS_TOP_N', 'SHOW_WINNERS_AUTOMATIC', 'TIMEZONE',
 
-        # System Integration - ACTIVELY USED in admin panel
-        'DRIVE_FOLDER_ROOT_ID'
-    }
+            # Display Settings
+            'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
+            'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
+            'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
+
+            # System Settings
+            'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
+            'LOCK_FINAL_EVALUATIONS', 'DETECT_CHORDS_FALLBACK',
+
+            # Certificate Settings
+            'CERTIFICATE_LIST_MODE', 'CERTIFICATE_PARTICIPANTS', 'CERTIFICATE_PARTICIPANT_MAPPING',
+            'CERT_TEMPLATE_PARTICIPANT', 'CERT_TEMPLATE_WINNER', 'CERT_TEXT_COLOR_HEX',
+
+            # Scoring & Analysis Settings
+            'CHORD_SOURCE_PRIORITY', 'DISPLAY_TEXT_PRIORITY', 'LYRICS_SCORE_PRIORITY', 'THEME_SCORE_PRIORITY',
+            'HARM_W_EXT', 'HARM_W_NONDI', 'HARM_W_SLASH', 'HARM_W_TRANS', 'HARM_W_UNIQ',
+
+            # System Integration
+            'DRIVE_FOLDER_ROOT_ID'
+        }
+        st.info("📝 Using manually curated configuration list")
+    else:
+        # Use scan results
+        scan_data = st.session_state.scan_results
+        used_configs = scan_data['used_configs']
+        config_usage = scan_data['config_usage']
+
+        # Essential configs that should always be kept (even if not detected in scan)
+        essential_configs = {
+            'THEME', 'FORM_OPEN', 'TIMEZONE', 'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET'
+        }
+
+        expected_configs = used_configs | essential_configs
+        st.success(f"🔍 Using scan results: {len(expected_configs)} configurations detected")
+
+        # Show scan details
+        with st.expander("📊 Scan Results Details"):
+            for config in sorted(expected_configs):
+                if config in config_usage:
+                    usage_count = len(config_usage[config])
+                    st.text(f"• {config} (found in {usage_count} places)")
+
+                    # Show first few usages
+                    if st.checkbox(f"Show details for {config}", key=f"details_{config}"):
+                        for file_path, line_num, context in config_usage[config][:3]:
+                            st.code(f"{file_path}:{line_num} - {context}")
+                        if len(config_usage[config]) > 3:
+                            st.caption(f"... and {len(config_usage[config]) - 3} more")
+                else:
+                    st.text(f"• {config} (essential config)")
+
+    st.markdown("---")
 
     # Find unused configurations
     current_keys = set(config_df['key'].tolist())
