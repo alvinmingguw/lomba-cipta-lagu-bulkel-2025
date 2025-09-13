@@ -6679,7 +6679,7 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                 "Pilih lagu:",
                 range(len(song_options) + 1),
                 format_func=lambda x: "Pilih lagu..." if x == 0 else song_options[x-1],
-                key="song_selector",
+                key="landing_song_selector",
                 label_visibility="collapsed"
             )
 
@@ -6689,6 +6689,10 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
             if hasattr(st.session_state, 'landing_audio_cache'):
                 del st.session_state.landing_audio_cache
         st.session_state.last_landing_selection = selected_idx
+
+        # Ensure we stay on landing page when dropdown changes
+        if 'show_dashboard' in st.session_state:
+            st.session_state.show_dashboard = False
 
         if selected_idx > 0:
             # Get selected song
