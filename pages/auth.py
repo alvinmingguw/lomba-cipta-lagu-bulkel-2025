@@ -295,75 +295,24 @@ def main():
         # st.info("🔗 Klik tombol di bawah untuk login dengan Google:")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            # Use JavaScript to break out of iframe for Streamlit Cloud
+            # Simple and reliable solution - new tab with clear instructions
             oauth_url = st.session_state['google_oauth_url']
 
-            # Add alternative popup option
-            st.info("💡 **Pilihan Login:** Karena keterbatasan Streamlit Cloud, pilih salah satu:")
-            col1, col2 = st.columns(2)
+            st.warning("⚠️ **Penting:** Karena keterbatasan Streamlit Cloud, login akan membuka tab baru. Setelah login berhasil, **kembali ke tab ini** dan refresh halaman.")
 
-            with col1:
-                st.markdown(f"""
-                <div style="text-align: center; margin: 10px 0;">
-                    <button onclick="
-                        var popup = window.open('{oauth_url}', 'oauth', 'width=500,height=600,scrollbars=yes,resizable=yes');
-                        var checkClosed = setInterval(function() {{
-                            if (popup.closed) {{
-                                clearInterval(checkClosed);
-                                window.location.reload();
-                            }}
-                        }}, 1000);
-                    " style="
-                        background: linear-gradient(90deg, #4285f4, #34a853);
-                        color: white;
-                        border: none;
-                        padding: 12px 20px;
-                        border-radius: 8px;
-                        font-size: 1rem;
-                        font-weight: bold;
-                        cursor: pointer;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                        width: 100%;
-                        transition: all 0.3s ease;
-                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        🪟 Popup Window
-                    </button>
-                </div>
-                """, unsafe_allow_html=True)
-
+            col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                st.markdown(f"""
-                <div style="text-align: center; margin: 10px 0;">
-                    <button onclick="
-                        try {{
-                            if (window.top && window.top !== window) {{
-                                window.top.location.href = '{oauth_url}';
-                            }} else if (window.parent && window.parent !== window) {{
-                                window.parent.location.href = '{oauth_url}';
-                            }} else {{
-                                window.location.href = '{oauth_url}';
-                            }}
-                        }} catch(e) {{
-                            // Fallback: open in new tab
-                            window.open('{oauth_url}', '_blank');
-                        }}
-                    " style="
-                        background: linear-gradient(90deg, #ff6b6b, #ee5a24);
-                        color: white;
-                        border: none;
-                        padding: 12px 20px;
-                        border-radius: 8px;
-                        font-size: 1rem;
-                        font-weight: bold;
-                        cursor: pointer;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                        width: 100%;
-                        transition: all 0.3s ease;
-                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        🔄 Same Tab/New Tab
-                    </button>
-                </div>
-                """, unsafe_allow_html=True)
+                st.link_button(
+                    "🚀 Login dengan Google (Tab Baru)",
+                    oauth_url,
+                    use_container_width=True
+                )
+
+                st.markdown("---")
+                st.info("📋 **Langkah-langkah:**\n1. Klik tombol di atas\n2. Login di tab baru yang terbuka\n3. Kembali ke tab ini\n4. Refresh halaman (F5 atau Ctrl+R)")
+
+                if st.button("🔄 Refresh Halaman Ini", type="secondary", use_container_width=True):
+                    st.rerun()
 
             # Debug: Show the URL for testing
             # with st.expander("🔍 Debug Info (klik untuk lihat URL)"):
@@ -384,56 +333,18 @@ def main():
                             st.success("✅ Google OAuth URL generated!")
                             st.info("🔗 Click button below to continue:")
 
-                            # Big prominent button with iframe-breaking JavaScript
-                            st.markdown(f"""
-                            <div style="text-align: center; margin: 20px 0;">
-                                <button onclick="
-                                    try {{
-                                        if (window.top && window.top !== window) {{
-                                            window.top.location.href = '{oauth_url}';
-                                        }} else if (window.parent && window.parent !== window) {{
-                                            window.parent.location.href = '{oauth_url}';
-                                        }} else {{
-                                            window.location.href = '{oauth_url}';
-                                        }}
-                                    }} catch(e) {{
-                                        // Fallback: open in new tab with auto-close
-                                        var newTab = window.open('{oauth_url}', '_blank');
-                                        if (newTab) {{
-                                            // Try to close current tab after a delay
-                                            setTimeout(function() {{
-                                                try {{
-                                                    window.close();
-                                                }} catch(e) {{
-                                                    console.log('Cannot close tab automatically');
-                                                }}
-                                            }}, 1000);
-                                        }}
-                                    }}
-                                " style="
-                                    background: linear-gradient(90deg, #4285f4, #34a853);
-                                    color: white;
-                                    border: none;
-                                    padding: 15px 30px;
-                                    border-radius: 10px;
-                                    font-size: 1.2rem;
-                                    font-weight: bold;
-                                    cursor: pointer;
-                                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                                    width: 100%;
-                                    max-width: 400px;
-                                    transition: all 0.3s ease;
-                                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                    🚀 Lanjutkan ke Google
-                                </button>
-                            </div>
-                            """, unsafe_allow_html=True)
+                            # Simple link button for new tab
+                            st.link_button(
+                                "🚀 Lanjutkan ke Google (Tab Baru)",
+                                oauth_url,
+                                use_container_width=True
+                            )
 
                             # Debug: Show the URL for testing
                             # with st.expander("🔍 Debug Info (klik untuk lihat URL)"):
                             #     st.code(oauth_url)
 
-                            st.warning("⚠️ After login, you'll be redirected back to this app automatically.")
+                            st.info("💡 Setelah login berhasil, kembali ke tab ini dan refresh halaman.")
                         else:
                             st.error("❌ Gagal membuat link login Google. Silakan coba lagi.")
                     except Exception as e:
