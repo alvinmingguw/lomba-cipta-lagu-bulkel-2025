@@ -1453,30 +1453,47 @@ def render_notation_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 🎼 **Notasi Musik (PDF Original)**")
 
-        # Inline PDF viewer using object tag
+        # Enhanced PDF viewer with better embedding
         st.markdown(f"""
-        <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 10px; margin: 20px 0; background: #f8f9fa;">
-            <div style="text-align: center; margin-bottom: 10px;">
+        <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 15px; margin: 20px 0; background: #f8f9fa;">
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: #4CAF50;">📄 Notasi Musik (PDF)</h4>
                 <a href="{pdf_url}" download style="
                     background: #4CAF50;
                     color: white;
-                    padding: 8px 16px;
+                    padding: 10px 20px;
                     text-decoration: none;
-                    border-radius: 5px;
+                    border-radius: 8px;
                     font-weight: bold;
                     margin-right: 10px;
+                    display: inline-block;
+                ">📥 Download PDF</a>
+                <a href="{pdf_url}" target="_blank" style="
+                    background: #2196F3;
+                    color: white;
+                    padding: 10px 20px;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    display: inline-block;
+                ">🔗 Buka di Tab Baru</a>
             </div>
-            <object data="{pdf_url}" type="application/pdf" width="100%" height="600px" style="border: 1px solid #ddd; border-radius: 5px;">
-                <div style="text-align: center; padding: 40px; background: #fff; border-radius: 5px;">
-                    <p style="margin-bottom: 15px;">📄 PDF tidak dapat ditampilkan di browser ini.</p>
-                    <a href="{pdf_url}" target="_blank" style="
-                        background: #4CAF50;
-                        color: white;
-                        padding: 12px 24px;
-                        text-decoration: none;
-                        border-radius: 8px;
-                        font-weight: bold;
-                    ">🔗 Buka PDF di Tab Baru</a>
+
+            <!-- Try iframe first for better compatibility -->
+            <iframe src="{pdf_url}#toolbar=1&navpanes=1&scrollbar=1"
+                    width="100%"
+                    height="700px"
+                    style="border: 1px solid #ddd; border-radius: 8px;"
+                    onload="this.style.display='block';"
+                    onerror="this.style.display='none'; document.getElementById('pdf-fallback-notation').style.display='block';">
+            </iframe>
+
+            <!-- Fallback object tag -->
+            <object id="pdf-fallback-notation" data="{pdf_url}" type="application/pdf" width="100%" height="700px"
+                    style="border: 1px solid #ddd; border-radius: 8px; display: none;">
+                <div style="text-align: center; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">
+                    <p style="margin-bottom: 15px; font-size: 1.1rem;">📄 PDF tidak dapat ditampilkan langsung di browser ini.</p>
+                    <p style="margin-bottom: 20px; color: #666;">Gunakan tombol di atas untuk download atau buka di tab baru.</p>
                 </div>
             </object>
         </div>
@@ -1522,30 +1539,47 @@ def render_lyrics_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 📄 **Syair Lagu (PDF Original)**")
 
-        # Inline PDF viewer using object tag
+        # Enhanced PDF viewer with better embedding
         st.markdown(f"""
-        <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 10px; margin: 20px 0; background: #f8f9fa;">
-            <div style="text-align: center; margin-bottom: 10px;">
+        <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 15px; margin: 20px 0; background: #f8f9fa;">
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: #2196F3;">📝 Syair Lagu (PDF)</h4>
                 <a href="{pdf_url}" download style="
                     background: #2196F3;
                     color: white;
-                    padding: 8px 16px;
+                    padding: 10px 20px;
                     text-decoration: none;
-                    border-radius: 5px;
+                    border-radius: 8px;
                     font-weight: bold;
                     margin-right: 10px;
+                    display: inline-block;
+                ">📥 Download PDF</a>
+                <a href="{pdf_url}" target="_blank" style="
+                    background: #4CAF50;
+                    color: white;
+                    padding: 10px 20px;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    display: inline-block;
+                ">🔗 Buka di Tab Baru</a>
             </div>
-            <object data="{pdf_url}" type="application/pdf" width="100%" height="600px" style="border: 1px solid #ddd; border-radius: 5px;">
-                <div style="text-align: center; padding: 40px; background: #fff; border-radius: 5px;">
-                    <p style="margin-bottom: 15px;">📄 PDF tidak dapat ditampilkan di browser ini.</p>
-                    <a href="{pdf_url}" target="_blank" style="
-                        background: #2196F3;
-                        color: white;
-                        padding: 12px 24px;
-                        text-decoration: none;
-                        border-radius: 8px;
-                        font-weight: bold;
-                    ">🔗 Buka PDF di Tab Baru</a>
+
+            <!-- Try iframe first for better compatibility -->
+            <iframe src="{pdf_url}#toolbar=1&navpanes=1&scrollbar=1"
+                    width="100%"
+                    height="700px"
+                    style="border: 1px solid #ddd; border-radius: 8px;"
+                    onload="this.style.display='block';"
+                    onerror="this.style.display='none'; document.getElementById('pdf-fallback-lyrics').style.display='block';">
+            </iframe>
+
+            <!-- Fallback object tag -->
+            <object id="pdf-fallback-lyrics" data="{pdf_url}" type="application/pdf" width="100%" height="700px"
+                    style="border: 1px solid #ddd; border-radius: 8px; display: none;">
+                <div style="text-align: center; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">
+                    <p style="margin-bottom: 15px; font-size: 1.1rem;">📄 PDF tidak dapat ditampilkan langsung di browser ini.</p>
+                    <p style="margin-bottom: 20px; color: #666;">Gunakan tombol di atas untuk download atau buka di tab baru.</p>
                 </div>
             </object>
         </div>
@@ -6259,40 +6293,100 @@ def render_winners_section():
 
                                 # PDF buttons if enabled
                                 if show_pdf:
-                                    st.markdown("**📄 PDF**")
-                                    if song_data.get('lyrics_pdf_url'):
-                                        st.markdown(f"""
-                                        <a href="{song_data['lyrics_pdf_url']}" target="_blank" style="text-decoration: none;">
-                                            <button style="
-                                                background-color: #007bff;
-                                                color: white;
-                                                padding: 6px 10px;
-                                                border: none;
-                                                border-radius: 4px;
-                                                cursor: pointer;
-                                                font-size: 0.8rem;
-                                                margin: 2px;
-                                                width: 48%;
-                                            ">📝 Syair</button>
-                                        </a>
-                                        """, unsafe_allow_html=True)
+                                    st.markdown("**📄 PDF Documents**")
 
-                                    if song_data.get('notation_pdf_url'):
-                                        st.markdown(f"""
-                                        <a href="{song_data['notation_pdf_url']}" target="_blank" style="text-decoration: none;">
+                                    # Get PDF URLs using file service
+                                    lyrics_pdf_url = None
+                                    notation_pdf_url = None
+
+                                    # Try to get lyrics PDF URL
+                                    if song_data.get('lyrics_file_id'):
+                                        lyrics_pdf_url = file_service.get_file_url(song_data['lyrics_file_id'])
+                                    elif song_data.get('lyrics_file_path'):
+                                        lyrics_path = song_data['lyrics_file_path']
+                                        if lyrics_path:
+                                            try:
+                                                if lyrics_path.startswith('files/'):
+                                                    clean_path = lyrics_path
+                                                else:
+                                                    clean_path = f"files/{lyrics_path}"
+                                                lyrics_pdf_url = file_service.get_public_url(clean_path)
+                                                if not lyrics_pdf_url:
+                                                    import urllib.parse
+                                                    supabase_project_url = st.secrets["supabase_url"]
+                                                    bucket_name = "song-contest-files"
+                                                    encoded_path = urllib.parse.quote(clean_path)
+                                                    lyrics_pdf_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
+                                            except:
+                                                pass
+
+                                    # Try to get notation PDF URL
+                                    if song_data.get('notation_file_id'):
+                                        notation_pdf_url = file_service.get_file_url(song_data['notation_file_id'])
+                                    elif song_data.get('notation_file_path'):
+                                        notation_path = song_data['notation_file_path']
+                                        if notation_path:
+                                            try:
+                                                if notation_path.startswith('files/'):
+                                                    clean_path = notation_path
+                                                else:
+                                                    clean_path = f"files/{notation_path}"
+                                                notation_pdf_url = file_service.get_public_url(clean_path)
+                                                if not notation_pdf_url:
+                                                    import urllib.parse
+                                                    supabase_project_url = st.secrets["supabase_url"]
+                                                    bucket_name = "song-contest-files"
+                                                    encoded_path = urllib.parse.quote(clean_path)
+                                                    notation_pdf_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
+                                            except:
+                                                pass
+
+                                    # Display PDF buttons
+                                    pdf_buttons_html = ""
+                                    if lyrics_pdf_url:
+                                        pdf_buttons_html += f"""
+                                        <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
                                             <button style="
-                                                background-color: #28a745;
+                                                background-color: #2196F3;
                                                 color: white;
-                                                padding: 6px 10px;
+                                                padding: 8px 12px;
                                                 border: none;
-                                                border-radius: 4px;
+                                                border-radius: 6px;
                                                 cursor: pointer;
-                                                font-size: 0.8rem;
-                                                margin: 2px;
+                                                font-size: 0.85rem;
+                                                margin: 3px;
                                                 width: 48%;
-                                            ">🎼 Notasi</button>
+                                                font-weight: bold;
+                                            ">📝 Syair PDF</button>
                                         </a>
+                                        """
+
+                                    if notation_pdf_url:
+                                        pdf_buttons_html += f"""
+                                        <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
+                                            <button style="
+                                                background-color: #4CAF50;
+                                                color: white;
+                                                padding: 8px 12px;
+                                                border: none;
+                                                border-radius: 6px;
+                                                cursor: pointer;
+                                                font-size: 0.85rem;
+                                                margin: 3px;
+                                                width: 48%;
+                                                font-weight: bold;
+                                            ">🎼 Notasi PDF</button>
+                                        </a>
+                                        """
+
+                                    if pdf_buttons_html:
+                                        st.markdown(f"""
+                                        <div style="text-align: center; margin: 10px 0;">
+                                            {pdf_buttons_html}
+                                        </div>
                                         """, unsafe_allow_html=True)
+                                    else:
+                                        st.info("📄 PDF documents tidak tersedia untuk lagu ini")
 
                     else:
                         # TABS layout: Current tabbed layout
