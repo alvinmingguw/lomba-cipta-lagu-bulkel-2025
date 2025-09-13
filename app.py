@@ -1453,30 +1453,22 @@ def render_notation_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 🎼 **Notasi Musik (PDF Original)**")
 
-        # Enhanced PDF viewer with better embedding
+        # Simple PDF button - no embed
         st.markdown(f"""
-        <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 15px; margin: 20px 0; background: #f8f9fa;">
-            <div style="text-align: center; margin-bottom: 15px;">
-                <h4 style="margin: 0 0 10px 0; color: #4CAF50;">📄 Notasi Musik (PDF)</h4>
-                <a href="{pdf_url}" target="_blank" style="
-                    background: #4CAF50;
-                    color: white;
-                    padding: 10px 20px;
-                    text-decoration: none;
-                    border-radius: 8px;
-                    font-weight: bold;
-                    display: inline-block;
-                ">🔗 Buka PDF</a>
-            </div>
-
-            <!-- Direct embed with fallback -->
-            <embed src="{pdf_url}" type="application/pdf" width="100%" height="700px"
-                   style="border: 1px solid #ddd; border-radius: 8px;">
-                <div style="text-align: center; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">
-                    <p style="margin-bottom: 15px; font-size: 1.1rem;">📄 PDF tidak dapat ditampilkan langsung di browser ini.</p>
-                    <p style="margin-bottom: 20px; color: #666;">Gunakan tombol di atas untuk download atau buka di tab baru.</p>
-                </div>
-            </embed>
+        <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 20px; margin: 20px 0; background: #f8f9fa; text-align: center;">
+            <h4 style="margin: 0 0 15px 0; color: #4CAF50;">📄 Notasi Musik (PDF)</h4>
+            <p style="margin: 0 0 20px 0; color: #666;">Klik tombol di bawah untuk membuka PDF di tab baru</p>
+            <a href="{pdf_url}" target="_blank" style="
+                background: #4CAF50;
+                color: white;
+                padding: 15px 30px;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 1.1rem;
+                display: inline-block;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            ">🔗 Buka Notasi PDF</a>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1520,30 +1512,22 @@ def render_lyrics_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 📄 **Syair Lagu (PDF Original)**")
 
-        # Enhanced PDF viewer with better embedding
+        # Simple PDF button - no embed
         st.markdown(f"""
-        <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 15px; margin: 20px 0; background: #f8f9fa;">
-            <div style="text-align: center; margin-bottom: 15px;">
-                <h4 style="margin: 0 0 10px 0; color: #2196F3;">📝 Syair Lagu (PDF)</h4>
-                <a href="{pdf_url}" target="_blank" style="
-                    background: #2196F3;
-                    color: white;
-                    padding: 10px 20px;
-                    text-decoration: none;
-                    border-radius: 8px;
-                    font-weight: bold;
-                    display: inline-block;
-                ">🔗 Buka PDF</a>
-            </div>
-
-            <!-- Direct embed with fallback -->
-            <embed src="{pdf_url}" type="application/pdf" width="100%" height="700px"
-                   style="border: 1px solid #ddd; border-radius: 8px;">
-                <div style="text-align: center; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">
-                    <p style="margin-bottom: 15px; font-size: 1.1rem;">📄 PDF tidak dapat ditampilkan langsung di browser ini.</p>
-                    <p style="margin-bottom: 20px; color: #666;">Gunakan tombol di atas untuk download atau buka di tab baru.</p>
-                </div>
-            </embed>
+        <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 20px; margin: 20px 0; background: #f8f9fa; text-align: center;">
+            <h4 style="margin: 0 0 15px 0; color: #2196F3;">📝 Syair Lagu (PDF)</h4>
+            <p style="margin: 0 0 20px 0; color: #666;">Klik tombol di bawah untuk membuka PDF di tab baru</p>
+            <a href="{pdf_url}" target="_blank" style="
+                background: #2196F3;
+                color: white;
+                padding: 15px 30px;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 1.1rem;
+                display: inline-block;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            ">🔗 Buka Syair PDF</a>
         </div>
         """, unsafe_allow_html=True)
 
@@ -6080,7 +6064,7 @@ def render_winners_section():
     except:
         # Fallback to default values if config not available
         winner_layout = 'COLUMNS'  # Default to COLUMNS layout (side-by-side with full score)
-        show_pdf = False  # Default to hide PDF since text versions are available
+        show_pdf = True  # Default to show PDF options
         show_scores = True  # Default to show scores
 
     try:
