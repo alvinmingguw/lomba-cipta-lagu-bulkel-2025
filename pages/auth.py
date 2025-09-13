@@ -213,26 +213,23 @@ def main():
                     if 'google_oauth_url' in st.session_state:
                         del st.session_state['google_oauth_url']
 
-                    # Set session state to show dashboard and redirect
-                    st.session_state.show_dashboard = True
-
-                    # Auto redirect to main app with dashboard enabled
+                    # Auto redirect to dashboard using URL parameter
                     st.markdown("""
-                    <meta http-equiv="refresh" content="2; url=/">
+                    <meta http-equiv="refresh" content="2; url=/?dashboard=true">
                     <script>
                         // Clear any oauth processing flags
                         sessionStorage.removeItem('oauth_processing');
                         localStorage.removeItem('oauth_processing');
 
-                        // Immediate redirect to main app
+                        // Immediate redirect to dashboard
                         setTimeout(function() {
-                            window.location.replace(window.location.origin + '/');
+                            window.location.replace(window.location.origin + '/?dashboard=true');
                         }, 500);
 
                         // Fallback redirect if first attempt fails
                         setTimeout(function() {
                             if (window.location.search.includes('code=')) {
-                                window.location.href = window.location.origin + '/';
+                                window.location.href = window.location.origin + '/?dashboard=true';
                             }
                         }, 2000);
                     </script>

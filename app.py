@@ -5826,27 +5826,23 @@ def handle_auth_callbacks():
                     # Clear URL parameters and redirect to main app
                     st.query_params.clear()
 
-                    # Set session state to show dashboard and redirect
-                    st.session_state.show_dashboard = True
-
-                    # Auto redirect to main app with dashboard enabled
+                    # Auto redirect to dashboard using URL parameter
                     st.markdown("""
-                    <meta http-equiv="refresh" content="2">
+                    <meta http-equiv="refresh" content="2; url=/?dashboard=true">
                     <script>
                         // Clear any oauth processing flags
                         sessionStorage.removeItem('oauth_processing');
                         localStorage.removeItem('oauth_processing');
 
-                        // Immediate redirect to clean URL
+                        // Immediate redirect to dashboard
                         setTimeout(function() {
-                            const cleanUrl = window.location.origin + window.location.pathname;
-                            window.location.replace(cleanUrl);
+                            window.location.replace(window.location.origin + '/?dashboard=true');
                         }, 500);
 
                         // Fallback redirect if first attempt fails
                         setTimeout(function() {
                             if (window.location.search.includes('code=')) {
-                                window.location.href = window.location.origin + window.location.pathname;
+                                window.location.href = window.location.origin + '/?dashboard=true';
                             }
                         }, 2000);
                     </script>
@@ -7450,6 +7446,13 @@ def main():
 
     # Check authentication
     current_user = auth_service.get_current_user()
+
+    # Check for dashboard parameter (from OAuth redirect)
+    if st.query_params.get("dashboard") == "true":
+        st.session_state.show_dashboard = True
+        # Clear the parameter to clean URL
+        st.query_params.clear()
+        st.rerun()
 
     # TEMPORARY: Test mode bypass
     if st.query_params.get("test") == "true":
