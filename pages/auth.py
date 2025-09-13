@@ -285,24 +285,49 @@ def main():
     # Login page header
     st.markdown("""
     <div class="login-container">
-        <div class="login-title">🔐 Login Juri</div>
-        <div class="login-subtitle">Silakan login menggunakan akun Google Anda</div>
+        <div class="login-title">🎵 Selamat Datang, Juri!</div>
+        <div class="login-subtitle">Mari masuk untuk mulai menilai karya lagu peserta</div>
     </div>
     """, unsafe_allow_html=True)
     
     # Check if we have OAuth URL ready
     if 'google_oauth_url' in st.session_state:
-        st.info("🔗 Klik tombol di bawah untuk login dengan Google:")
+        # st.info("🔗 Klik tombol di bawah untuk login dengan Google:")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.link_button(
-                "� Lanjutkan ke Google",
-                st.session_state['google_oauth_url'],
-                use_container_width=True
-            )
-            if st.button("🔄 Buat Link Baru", type="secondary", width='stretch'):
-                del st.session_state['google_oauth_url']
-                st.rerun()
+            # Use HTML link styled as button to redirect in same tab
+            oauth_url = st.session_state['google_oauth_url']
+
+            st.markdown(f"""
+            <div style="text-align: center; margin: 20px 0;">
+                <a href="{oauth_url}" target="_self" style="
+                    display: inline-block;
+                    background: linear-gradient(90deg, #4285f4, #34a853);
+                    color: white;
+                    text-decoration: none;
+                    border: none;
+                    padding: 15px 30px;
+                    border-radius: 10px;
+                    font-size: 1.2rem;
+                    font-weight: bold;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                    width: 100%;
+                    max-width: 400px;
+                    text-align: center;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    🚀 Masuk dengan Google
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Debug: Show the URL for testing
+            # with st.expander("🔍 Debug Info (klik untuk lihat URL)"):
+            #     st.code(oauth_url)
+            # if st.button("🔄 Buat Link Baru", type="secondary", width='stretch'):
+            #     del st.session_state['google_oauth_url']
+            #     st.rerun()
     else:
         # Login button
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -316,14 +341,34 @@ def main():
                             st.success("✅ Google OAuth URL generated!")
                             st.info("🔗 Click button below to continue:")
 
-                            # Big prominent button
-                            col1, col2, col3 = st.columns([1, 2, 1])
-                            with col2:
-                                st.link_button(
-                                    "🚀 Continue to Google",
-                                    oauth_url,
-                                    use_container_width=True
-                                )
+                            # Big prominent link styled as button
+                            st.markdown(f"""
+                            <div style="text-align: center; margin: 20px 0;">
+                                <a href="{oauth_url}" target="_self" style="
+                                    display: inline-block;
+                                    background: linear-gradient(90deg, #4285f4, #34a853);
+                                    color: white;
+                                    text-decoration: none;
+                                    border: none;
+                                    padding: 15px 30px;
+                                    border-radius: 10px;
+                                    font-size: 1.2rem;
+                                    font-weight: bold;
+                                    cursor: pointer;
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                    width: 100%;
+                                    max-width: 400px;
+                                    text-align: center;
+                                    transition: all 0.3s ease;
+                                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                    🚀 Lanjutkan ke Google
+                                </a>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                            # Debug: Show the URL for testing
+                            # with st.expander("🔍 Debug Info (klik untuk lihat URL)"):
+                            #     st.code(oauth_url)
 
                             st.warning("⚠️ After login, you'll be redirected back to this app automatically.")
                         else:

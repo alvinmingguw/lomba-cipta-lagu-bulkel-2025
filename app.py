@@ -619,8 +619,8 @@ def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, edit
         5: 'Sangat Baik'
     })
 
-    # Create radio button options
-    options = []
+    # Create radio button options with "Belum dinilai" option
+    options = ["0 - Belum dinilai"]
     for score in range(1, 6):
         options.append(f"{score} - {descriptions[score]}")
 
@@ -645,7 +645,10 @@ def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, edit
 
     # Radio button for scoring
     # Fix index calculation to prevent out of range error
-    radio_index = max(0, min(int(current_score) - 1, len(options) - 1)) if current_score > 0 else 0
+    # current_score 0 → index 0 (Belum dinilai)
+    # current_score 1 → index 1 (1 - ...)
+    # current_score 2 → index 2 (2 - ...)
+    radio_index = max(0, min(int(current_score), len(options) - 1))
 
     selected_option = st.radio(
         "Pilih nilai:",
@@ -664,9 +667,13 @@ def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, edit
         auto_save_score(judge_id, song_data['id'], rubric_key, score)
 
     # Score visualization
-    score_percentage = (score / rubric['max_score']) * 100
-    st.progress(score_percentage / 100)
-    st.caption(f"Skor: {score}/{rubric['max_score']} ({score_percentage:.0f}%)")
+    if score == 0:
+        st.progress(0)
+        st.caption(f"Skor: Belum dinilai")
+    else:
+        score_percentage = (score / rubric['max_score']) * 100
+        st.progress(score_percentage / 100)
+        st.caption(f"Skor: {score}/{rubric['max_score']} ({score_percentage:.0f}%)")
 
     return score
 
@@ -1446,52 +1453,36 @@ def render_notation_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 🎼 **Notasi Musik (PDF Original)**")
 
-        # Download/open button at top for easy access
+        # Inline PDF viewer using object tag
         st.markdown(f"""
-        <div style="text-align: center; margin: 15px 0;">
-            <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
-                <div style="background: linear-gradient(90deg, #4CAF50, #45a049); color: white; padding: 15px 30px; border-radius: 10px; text-align: center; display: inline-block; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3); font-size: 1.1rem;">
-                    📄 Buka PDF Notasi di Tab Baru
-                </div>
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # PDF viewer alternatives (Chrome blocks iframe PDF)
-        st.markdown("**📄 PDF Viewer:**")
-
-        # Try different PDF viewing methods
-        col1, col2 = st.columns([3, 1])
-
-        with col1:
-            st.markdown(f"""
-            <div style="border: 3px solid #4CAF50; border-radius: 15px; padding: 20px; margin: 20px 0; box-shadow: 0 6px 12px rgba(0,0,0,0.2); text-align: center; background: #f8f9fa;">
-                <h4 style="color: #4CAF50; margin-bottom: 15px;">📄 Notasi PDF</h4>
-                <p style="margin-bottom: 15px;">Chrome memblokir PDF di iframe. Gunakan tombol di samping untuk membuka PDF.</p>
-                <a href="{pdf_url}" target="_blank" style="
-                    display: inline-block;
+        <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 10px; margin: 20px 0; background: #f8f9fa;">
+            <div style="text-align: center; margin-bottom: 10px;">
+                <a href="{pdf_url}" download style="
                     background: #4CAF50;
                     color: white;
-                    padding: 12px 24px;
+                    padding: 8px 16px;
                     text-decoration: none;
-                    border-radius: 8px;
+                    border-radius: 5px;
                     font-weight: bold;
-                    margin: 5px;
-                ">🔗 Buka PDF di Tab Baru</a>
-                <br>
-                <small style="color: #666;">💡 PDF akan terbuka di tab baru untuk penilaian</small>
+                    margin-right: 10px;
+                ">📥 Download PDF</a>
+                <small style="color: #666;">Klik untuk download atau scroll di bawah untuk melihat</small>
             </div>
-            """, unsafe_allow_html=True)
-
-        with col2:
-            st.markdown("**🔗 Quick Actions:**")
-            if st.button("📄 Buka PDF", key=f"open_notation_{song_data.get('id', 'unknown')}", help="Buka PDF di tab baru"):
-                st.markdown(f'<script>window.open("{pdf_url}", "_blank");</script>', unsafe_allow_html=True)
-
-            st.markdown(f"[📱 Download PDF]({pdf_url})")
-            st.caption("💡 Klik 'Buka PDF' atau gunakan link download")
-
-        st.info("💡 **Tip**: Gunakan PDF original di atas sebagai referensi utama untuk penilaian")
+            <object data="{pdf_url}" type="application/pdf" width="100%" height="600px" style="border: 1px solid #ddd; border-radius: 5px;">
+                <div style="text-align: center; padding: 40px; background: #fff; border-radius: 5px;">
+                    <p style="margin-bottom: 15px;">📄 PDF tidak dapat ditampilkan di browser ini.</p>
+                    <a href="{pdf_url}" target="_blank" style="
+                        background: #4CAF50;
+                        color: white;
+                        padding: 12px 24px;
+                        text-decoration: none;
+                        border-radius: 8px;
+                        font-weight: bold;
+                    ">🔗 Buka PDF di Tab Baru</a>
+                </div>
+            </object>
+        </div>
+        """, unsafe_allow_html=True)
 
         return
 
@@ -1533,52 +1524,36 @@ def render_lyrics_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 📄 **Syair Lagu (PDF Original)**")
 
-        # Download/open button at top for easy access
+        # Inline PDF viewer using object tag
         st.markdown(f"""
-        <div style="text-align: center; margin: 15px 0;">
-            <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
-                <div style="background: linear-gradient(90deg, #2196F3, #1976D2); color: white; padding: 15px 30px; border-radius: 10px; text-align: center; display: inline-block; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3); font-size: 1.1rem;">
-                    📝 Buka PDF Syair di Tab Baru
-                </div>
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # PDF viewer alternatives (Chrome blocks iframe PDF)
-        st.markdown("**📄 PDF Viewer:**")
-
-        # Try different PDF viewing methods
-        col1, col2 = st.columns([3, 1])
-
-        with col1:
-            st.markdown(f"""
-            <div style="border: 3px solid #2196F3; border-radius: 15px; padding: 20px; margin: 20px 0; box-shadow: 0 6px 12px rgba(0,0,0,0.2); text-align: center; background: #f8f9fa;">
-                <h4 style="color: #2196F3; margin-bottom: 15px;">📝 Syair PDF</h4>
-                <p style="margin-bottom: 15px;">Chrome memblokir PDF di iframe. Gunakan tombol di samping untuk membuka PDF.</p>
-                <a href="{pdf_url}" target="_blank" style="
-                    display: inline-block;
+        <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 10px; margin: 20px 0; background: #f8f9fa;">
+            <div style="text-align: center; margin-bottom: 10px;">
+                <a href="{pdf_url}" download style="
                     background: #2196F3;
                     color: white;
-                    padding: 12px 24px;
+                    padding: 8px 16px;
                     text-decoration: none;
-                    border-radius: 8px;
+                    border-radius: 5px;
                     font-weight: bold;
-                    margin: 5px;
-                ">🔗 Buka PDF di Tab Baru</a>
-                <br>
-                <small style="color: #666;">💡 PDF akan terbuka di tab baru untuk penilaian</small>
+                    margin-right: 10px;
+                ">📥 Download PDF</a>
+                <small style="color: #666;">Klik untuk download atau scroll di bawah untuk melihat</small>
             </div>
-            """, unsafe_allow_html=True)
-
-        with col2:
-            st.markdown("**🔗 Quick Actions:**")
-            if st.button("📄 Buka PDF", key=f"open_lyrics_{song_data.get('id', 'unknown')}", help="Buka PDF di tab baru"):
-                st.markdown(f'<script>window.open("{pdf_url}", "_blank");</script>', unsafe_allow_html=True)
-
-            st.markdown(f"[📱 Download PDF]({pdf_url})")
-            st.caption("💡 Klik 'Buka PDF' atau gunakan link download")
-
-        st.info("💡 **Tip**: Gunakan PDF original di atas sebagai referensi utama untuk penilaian")
+            <object data="{pdf_url}" type="application/pdf" width="100%" height="600px" style="border: 1px solid #ddd; border-radius: 5px;">
+                <div style="text-align: center; padding: 40px; background: #fff; border-radius: 5px;">
+                    <p style="margin-bottom: 15px;">📄 PDF tidak dapat ditampilkan di browser ini.</p>
+                    <a href="{pdf_url}" target="_blank" style="
+                        background: #2196F3;
+                        color: white;
+                        padding: 12px 24px;
+                        text-decoration: none;
+                        border-radius: 8px;
+                        font-weight: bold;
+                    ">🔗 Buka PDF di Tab Baru</a>
+                </div>
+            </object>
+        </div>
+        """, unsafe_allow_html=True)
 
     # Show text content if available (fallback or additional)
     if song_data.get('lyrics_text'):
