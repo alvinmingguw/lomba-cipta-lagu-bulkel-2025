@@ -5826,24 +5826,23 @@ def handle_auth_callbacks():
                     # Clear URL parameters and redirect to main app
                     st.query_params.clear()
 
-                    # Auto redirect using multiple methods for reliability
+                    # Auto redirect to dashboard using multiple methods for reliability
                     st.markdown("""
-                    <meta http-equiv="refresh" content="2">
+                    <meta http-equiv="refresh" content="2; url=/?page=dashboard">
                     <script>
                         // Clear any oauth processing flags
                         sessionStorage.removeItem('oauth_processing');
                         localStorage.removeItem('oauth_processing');
 
-                        // Immediate redirect to clean URL
+                        // Immediate redirect to dashboard
                         setTimeout(function() {
-                            const cleanUrl = window.location.origin + window.location.pathname;
-                            window.location.replace(cleanUrl);
+                            window.location.replace(window.location.origin + '/?page=dashboard');
                         }, 500);
 
                         // Fallback redirect if first attempt fails
                         setTimeout(function() {
                             if (window.location.search.includes('code=')) {
-                                window.location.href = window.location.origin + window.location.pathname;
+                                window.location.href = window.location.origin + '/?page=dashboard';
                             }
                         }, 2000);
                     </script>
@@ -5853,7 +5852,8 @@ def handle_auth_callbacks():
                     st.markdown("---")
                     col1, col2, col3 = st.columns([1, 2, 1])
                     with col2:
-                        if st.button("🏠 Lanjutkan ke Aplikasi", type="primary", key="manual_redirect"):
+                        if st.button("📊 Lanjutkan ke Dashboard", type="primary", key="manual_redirect"):
+                            st.query_params.page = "dashboard"
                             st.rerun()
 
                     # Stop execution to prevent further rendering
