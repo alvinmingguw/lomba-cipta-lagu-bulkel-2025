@@ -1465,8 +1465,6 @@ def render_notation_viewer(song_data):
                     border-radius: 5px;
                     font-weight: bold;
                     margin-right: 10px;
-                ">📥 Download PDF</a>
-                <small style="color: #666;">Klik untuk download atau scroll di bawah untuk melihat</small>
             </div>
             <object data="{pdf_url}" type="application/pdf" width="100%" height="600px" style="border: 1px solid #ddd; border-radius: 5px;">
                 <div style="text-align: center; padding: 40px; background: #fff; border-radius: 5px;">
@@ -1536,8 +1534,6 @@ def render_lyrics_viewer(song_data):
                     border-radius: 5px;
                     font-weight: bold;
                     margin-right: 10px;
-                ">📥 Download PDF</a>
-                <small style="color: #666;">Klik untuk download atau scroll di bawah untuk melihat</small>
             </div>
             <object data="{pdf_url}" type="application/pdf" width="100%" height="600px" style="border: 1px solid #ddd; border-radius: 5px;">
                 <div style="text-align: center; padding: 40px; background: #fff; border-radius: 5px;">
