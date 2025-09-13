@@ -298,32 +298,72 @@ def main():
             # Use JavaScript to break out of iframe for Streamlit Cloud
             oauth_url = st.session_state['google_oauth_url']
 
-            st.markdown(f"""
-            <div style="text-align: center; margin: 20px 0;">
-                <button onclick="
-                    if (window.parent !== window) {{
-                        window.parent.location.href = '{oauth_url}';
-                    }} else {{
-                        window.location.href = '{oauth_url}';
-                    }}
-                " style="
-                    background: linear-gradient(90deg, #4285f4, #34a853);
-                    color: white;
-                    border: none;
-                    padding: 15px 30px;
-                    border-radius: 10px;
-                    font-size: 1.2rem;
-                    font-weight: bold;
-                    cursor: pointer;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                    width: 100%;
-                    max-width: 400px;
-                    transition: all 0.3s ease;
-                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    🚀 Masuk dengan Google
-                </button>
-            </div>
-            """, unsafe_allow_html=True)
+            # Add alternative popup option
+            st.info("💡 **Pilihan Login:** Karena keterbatasan Streamlit Cloud, pilih salah satu:")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown(f"""
+                <div style="text-align: center; margin: 10px 0;">
+                    <button onclick="
+                        var popup = window.open('{oauth_url}', 'oauth', 'width=500,height=600,scrollbars=yes,resizable=yes');
+                        var checkClosed = setInterval(function() {{
+                            if (popup.closed) {{
+                                clearInterval(checkClosed);
+                                window.location.reload();
+                            }}
+                        }}, 1000);
+                    " style="
+                        background: linear-gradient(90deg, #4285f4, #34a853);
+                        color: white;
+                        border: none;
+                        padding: 12px 20px;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-weight: bold;
+                        cursor: pointer;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                        width: 100%;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        🪟 Popup Window
+                    </button>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col2:
+                st.markdown(f"""
+                <div style="text-align: center; margin: 10px 0;">
+                    <button onclick="
+                        try {{
+                            if (window.top && window.top !== window) {{
+                                window.top.location.href = '{oauth_url}';
+                            }} else if (window.parent && window.parent !== window) {{
+                                window.parent.location.href = '{oauth_url}';
+                            }} else {{
+                                window.location.href = '{oauth_url}';
+                            }}
+                        }} catch(e) {{
+                            // Fallback: open in new tab
+                            window.open('{oauth_url}', '_blank');
+                        }}
+                    " style="
+                        background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+                        color: white;
+                        border: none;
+                        padding: 12px 20px;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-weight: bold;
+                        cursor: pointer;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                        width: 100%;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        🔄 Same Tab/New Tab
+                    </button>
+                </div>
+                """, unsafe_allow_html=True)
 
             # Debug: Show the URL for testing
             # with st.expander("🔍 Debug Info (klik untuk lihat URL)"):
@@ -348,10 +388,27 @@ def main():
                             st.markdown(f"""
                             <div style="text-align: center; margin: 20px 0;">
                                 <button onclick="
-                                    if (window.parent !== window) {{
-                                        window.parent.location.href = '{oauth_url}';
-                                    }} else {{
-                                        window.location.href = '{oauth_url}';
+                                    try {{
+                                        if (window.top && window.top !== window) {{
+                                            window.top.location.href = '{oauth_url}';
+                                        }} else if (window.parent && window.parent !== window) {{
+                                            window.parent.location.href = '{oauth_url}';
+                                        }} else {{
+                                            window.location.href = '{oauth_url}';
+                                        }}
+                                    }} catch(e) {{
+                                        // Fallback: open in new tab with auto-close
+                                        var newTab = window.open('{oauth_url}', '_blank');
+                                        if (newTab) {{
+                                            // Try to close current tab after a delay
+                                            setTimeout(function() {{
+                                                try {{
+                                                    window.close();
+                                                }} catch(e) {{
+                                                    console.log('Cannot close tab automatically');
+                                                }}
+                                            }}, 1000);
+                                        }}
                                     }}
                                 " style="
                                     background: linear-gradient(90deg, #4285f4, #34a853);
