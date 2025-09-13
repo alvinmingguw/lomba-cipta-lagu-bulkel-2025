@@ -5826,23 +5826,27 @@ def handle_auth_callbacks():
                     # Clear URL parameters and redirect to main app
                     st.query_params.clear()
 
-                    # Auto redirect to dashboard using multiple methods for reliability
+                    # Set session state to show dashboard and redirect
+                    st.session_state.show_dashboard = True
+
+                    # Auto redirect to main app with dashboard enabled
                     st.markdown("""
-                    <meta http-equiv="refresh" content="2; url=/?page=dashboard">
+                    <meta http-equiv="refresh" content="2">
                     <script>
                         // Clear any oauth processing flags
                         sessionStorage.removeItem('oauth_processing');
                         localStorage.removeItem('oauth_processing');
 
-                        // Immediate redirect to dashboard
+                        // Immediate redirect to clean URL
                         setTimeout(function() {
-                            window.location.replace(window.location.origin + '/?page=dashboard');
+                            const cleanUrl = window.location.origin + window.location.pathname;
+                            window.location.replace(cleanUrl);
                         }, 500);
 
                         // Fallback redirect if first attempt fails
                         setTimeout(function() {
                             if (window.location.search.includes('code=')) {
-                                window.location.href = window.location.origin + '/?page=dashboard';
+                                window.location.href = window.location.origin + window.location.pathname;
                             }
                         }, 2000);
                     </script>
@@ -5853,7 +5857,7 @@ def handle_auth_callbacks():
                     col1, col2, col3 = st.columns([1, 2, 1])
                     with col2:
                         if st.button("📊 Lanjutkan ke Dashboard", type="primary", key="manual_redirect"):
-                            st.query_params.page = "dashboard"
+                            st.session_state.show_dashboard = True
                             st.rerun()
 
                     # Stop execution to prevent further rendering

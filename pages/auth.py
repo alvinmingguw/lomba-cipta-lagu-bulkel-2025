@@ -213,23 +213,26 @@ def main():
                     if 'google_oauth_url' in st.session_state:
                         del st.session_state['google_oauth_url']
 
-                    # Auto redirect to dashboard with multiple methods for reliability
+                    # Set session state to show dashboard and redirect
+                    st.session_state.show_dashboard = True
+
+                    # Auto redirect to main app with dashboard enabled
                     st.markdown("""
-                    <meta http-equiv="refresh" content="2; url=/?page=dashboard">
+                    <meta http-equiv="refresh" content="2; url=/">
                     <script>
                         // Clear any oauth processing flags
                         sessionStorage.removeItem('oauth_processing');
                         localStorage.removeItem('oauth_processing');
 
-                        // Immediate redirect to dashboard
+                        // Immediate redirect to main app
                         setTimeout(function() {
-                            window.location.replace(window.location.origin + '/?page=dashboard');
+                            window.location.replace(window.location.origin + '/');
                         }, 500);
 
                         // Fallback redirect if first attempt fails
                         setTimeout(function() {
                             if (window.location.search.includes('code=')) {
-                                window.location.href = window.location.origin + '/?page=dashboard';
+                                window.location.href = window.location.origin + '/';
                             }
                         }, 2000);
                     </script>
@@ -240,7 +243,7 @@ def main():
                     col1, col2, col3 = st.columns([1, 2, 1])
                     with col2:
                         if st.button("📊 Lanjutkan ke Dashboard", type="primary", key="manual_redirect_auth"):
-                            st.query_params.page = "dashboard"
+                            st.session_state.show_dashboard = True
                             st.switch_page("app.py")
 
                     # Stop execution
