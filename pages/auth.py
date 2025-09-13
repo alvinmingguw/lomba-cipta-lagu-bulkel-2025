@@ -295,16 +295,20 @@ def main():
         # st.info("🔗 Klik tombol di bawah untuk login dengan Google:")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            # Use HTML link styled as button to redirect in same tab
+            # Use JavaScript to break out of iframe for Streamlit Cloud
             oauth_url = st.session_state['google_oauth_url']
 
             st.markdown(f"""
             <div style="text-align: center; margin: 20px 0;">
-                <a href="{oauth_url}" target="_self" style="
-                    display: inline-block;
+                <button onclick="
+                    if (window.parent !== window) {{
+                        window.parent.location.href = '{oauth_url}';
+                    }} else {{
+                        window.location.href = '{oauth_url}';
+                    }}
+                " style="
                     background: linear-gradient(90deg, #4285f4, #34a853);
                     color: white;
-                    text-decoration: none;
                     border: none;
                     padding: 15px 30px;
                     border-radius: 10px;
@@ -314,11 +318,10 @@ def main():
                     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
                     width: 100%;
                     max-width: 400px;
-                    text-align: center;
                     transition: all 0.3s ease;
                 " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                     🚀 Masuk dengan Google
-                </a>
+                </button>
             </div>
             """, unsafe_allow_html=True)
 
@@ -341,14 +344,18 @@ def main():
                             st.success("✅ Google OAuth URL generated!")
                             st.info("🔗 Click button below to continue:")
 
-                            # Big prominent link styled as button
+                            # Big prominent button with iframe-breaking JavaScript
                             st.markdown(f"""
                             <div style="text-align: center; margin: 20px 0;">
-                                <a href="{oauth_url}" target="_self" style="
-                                    display: inline-block;
+                                <button onclick="
+                                    if (window.parent !== window) {{
+                                        window.parent.location.href = '{oauth_url}';
+                                    }} else {{
+                                        window.location.href = '{oauth_url}';
+                                    }}
+                                " style="
                                     background: linear-gradient(90deg, #4285f4, #34a853);
                                     color: white;
-                                    text-decoration: none;
                                     border: none;
                                     padding: 15px 30px;
                                     border-radius: 10px;
@@ -358,11 +365,10 @@ def main():
                                     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
                                     width: 100%;
                                     max-width: 400px;
-                                    text-align: center;
                                     transition: all 0.3s ease;
                                 " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                                     🚀 Lanjutkan ke Google
-                                </a>
+                                </button>
                             </div>
                             """, unsafe_allow_html=True)
 
