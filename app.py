@@ -1458,44 +1458,25 @@ def render_notation_viewer(song_data):
         <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 15px; margin: 20px 0; background: #f8f9fa;">
             <div style="text-align: center; margin-bottom: 15px;">
                 <h4 style="margin: 0 0 10px 0; color: #4CAF50;">📄 Notasi Musik (PDF)</h4>
-                <a href="{pdf_url}" download style="
+                <a href="{pdf_url}" target="_blank" style="
                     background: #4CAF50;
                     color: white;
                     padding: 10px 20px;
                     text-decoration: none;
                     border-radius: 8px;
                     font-weight: bold;
-                    margin-right: 10px;
                     display: inline-block;
-                ">📥 Download PDF</a>
-                <a href="{pdf_url}" target="_blank" style="
-                    background: #2196F3;
-                    color: white;
-                    padding: 10px 20px;
-                    text-decoration: none;
-                    border-radius: 8px;
-                    font-weight: bold;
-                    display: inline-block;
-                ">🔗 Buka di Tab Baru</a>
+                ">🔗 Buka PDF</a>
             </div>
 
-            <!-- Try iframe first for better compatibility -->
-            <iframe src="{pdf_url}#toolbar=1&navpanes=1&scrollbar=1"
-                    width="100%"
-                    height="700px"
-                    style="border: 1px solid #ddd; border-radius: 8px;"
-                    onload="this.style.display='block';"
-                    onerror="this.style.display='none'; document.getElementById('pdf-fallback-notation').style.display='block';">
-            </iframe>
-
-            <!-- Fallback object tag -->
-            <object id="pdf-fallback-notation" data="{pdf_url}" type="application/pdf" width="100%" height="700px"
-                    style="border: 1px solid #ddd; border-radius: 8px; display: none;">
+            <!-- Direct embed with fallback -->
+            <embed src="{pdf_url}" type="application/pdf" width="100%" height="700px"
+                   style="border: 1px solid #ddd; border-radius: 8px;">
                 <div style="text-align: center; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">
                     <p style="margin-bottom: 15px; font-size: 1.1rem;">📄 PDF tidak dapat ditampilkan langsung di browser ini.</p>
                     <p style="margin-bottom: 20px; color: #666;">Gunakan tombol di atas untuk download atau buka di tab baru.</p>
                 </div>
-            </object>
+            </embed>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1544,44 +1525,25 @@ def render_lyrics_viewer(song_data):
         <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 15px; margin: 20px 0; background: #f8f9fa;">
             <div style="text-align: center; margin-bottom: 15px;">
                 <h4 style="margin: 0 0 10px 0; color: #2196F3;">📝 Syair Lagu (PDF)</h4>
-                <a href="{pdf_url}" download style="
+                <a href="{pdf_url}" target="_blank" style="
                     background: #2196F3;
                     color: white;
                     padding: 10px 20px;
                     text-decoration: none;
                     border-radius: 8px;
                     font-weight: bold;
-                    margin-right: 10px;
                     display: inline-block;
-                ">📥 Download PDF</a>
-                <a href="{pdf_url}" target="_blank" style="
-                    background: #4CAF50;
-                    color: white;
-                    padding: 10px 20px;
-                    text-decoration: none;
-                    border-radius: 8px;
-                    font-weight: bold;
-                    display: inline-block;
-                ">🔗 Buka di Tab Baru</a>
+                ">🔗 Buka PDF</a>
             </div>
 
-            <!-- Try iframe first for better compatibility -->
-            <iframe src="{pdf_url}#toolbar=1&navpanes=1&scrollbar=1"
-                    width="100%"
-                    height="700px"
-                    style="border: 1px solid #ddd; border-radius: 8px;"
-                    onload="this.style.display='block';"
-                    onerror="this.style.display='none'; document.getElementById('pdf-fallback-lyrics').style.display='block';">
-            </iframe>
-
-            <!-- Fallback object tag -->
-            <object id="pdf-fallback-lyrics" data="{pdf_url}" type="application/pdf" width="100%" height="700px"
-                    style="border: 1px solid #ddd; border-radius: 8px; display: none;">
+            <!-- Direct embed with fallback -->
+            <embed src="{pdf_url}" type="application/pdf" width="100%" height="700px"
+                   style="border: 1px solid #ddd; border-radius: 8px;">
                 <div style="text-align: center; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">
                     <p style="margin-bottom: 15px; font-size: 1.1rem;">📄 PDF tidak dapat ditampilkan langsung di browser ini.</p>
                     <p style="margin-bottom: 20px; color: #666;">Gunakan tombol di atas untuk download atau buka di tab baru.</p>
                 </div>
-            </object>
+            </embed>
         </div>
         """, unsafe_allow_html=True)
 
@@ -6836,6 +6798,101 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                 else:
                     st.info("Tidak ada konten yang tersedia")
 
+            # PDF Documents section
+            st.markdown("---")
+            st.markdown("**📄 PDF Documents**")
+
+            # Get PDF URLs using file service
+            lyrics_pdf_url = None
+            notation_pdf_url = None
+
+            # Try to get lyrics PDF URL
+            if song_data.get('lyrics_file_id'):
+                lyrics_pdf_url = file_service.get_file_url(song_data['lyrics_file_id'])
+            elif song_data.get('lyrics_file_path'):
+                lyrics_path = song_data['lyrics_file_path']
+                if lyrics_path:
+                    try:
+                        if lyrics_path.startswith('files/'):
+                            clean_path = lyrics_path
+                        else:
+                            clean_path = f"files/{lyrics_path}"
+                        lyrics_pdf_url = file_service.get_public_url(clean_path)
+                        if not lyrics_pdf_url:
+                            import urllib.parse
+                            supabase_project_url = st.secrets["supabase_url"]
+                            bucket_name = "song-contest-files"
+                            encoded_path = urllib.parse.quote(clean_path)
+                            lyrics_pdf_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
+                    except:
+                        pass
+
+            # Try to get notation PDF URL
+            if song_data.get('notation_file_id'):
+                notation_pdf_url = file_service.get_file_url(song_data['notation_file_id'])
+            elif song_data.get('notation_file_path'):
+                notation_path = song_data['notation_file_path']
+                if notation_path:
+                    try:
+                        if notation_path.startswith('files/'):
+                            clean_path = notation_path
+                        else:
+                            clean_path = f"files/{notation_path}"
+                        notation_pdf_url = file_service.get_public_url(clean_path)
+                        if not notation_pdf_url:
+                            import urllib.parse
+                            supabase_project_url = st.secrets["supabase_url"]
+                            bucket_name = "song-contest-files"
+                            encoded_path = urllib.parse.quote(clean_path)
+                            notation_pdf_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
+                    except:
+                        pass
+
+            # Display PDF buttons in two columns
+            col_pdf1, col_pdf2 = st.columns(2)
+
+            with col_pdf1:
+                if lyrics_pdf_url:
+                    st.markdown(f"""
+                    <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
+                        <button style="
+                            background-color: #2196F3;
+                            color: white;
+                            padding: 10px 15px;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                            font-weight: bold;
+                            width: 100%;
+                            margin: 5px 0;
+                        ">📝 Syair PDF</button>
+                    </a>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.info("📝 Syair PDF tidak tersedia")
+
+            with col_pdf2:
+                if notation_pdf_url:
+                    st.markdown(f"""
+                    <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
+                        <button style="
+                            background-color: #4CAF50;
+                            color: white;
+                            padding: 10px 15px;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                            font-weight: bold;
+                            width: 100%;
+                            margin: 5px 0;
+                        ">🎼 Notasi PDF</button>
+                    </a>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.info("🎼 Notasi PDF tidak tersedia")
+
     except Exception as e:
         st.error(f"Error loading songs: {e}")
         st.info("Belum ada data lagu yang tersedia.")
@@ -7610,8 +7667,8 @@ def render_main_app(current_user):
         # Show user info in sidebar (still need navigation)
         render_user_sidebar(current_user)
 
-        # Show admin impersonation controls in sidebar (if admin)
-        render_admin_impersonation_sidebar(current_user)
+        # DON'T show admin impersonation on landing page - only in dashboard
+        # render_admin_impersonation_sidebar(current_user)
 
         # Render landing page for authenticated user
         render_landing_page()
