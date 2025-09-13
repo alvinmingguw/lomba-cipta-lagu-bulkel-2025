@@ -298,18 +298,18 @@ def main():
             # Simple and reliable solution - new tab with clear instructions
             oauth_url = st.session_state['google_oauth_url']
 
-            st.warning("⚠️ **Penting:** Karena keterbatasan Streamlit Cloud, login akan membuka tab baru. Setelah login berhasil, **kembali ke tab ini** dan refresh halaman.")
+            # st.warning("⚠️ **Penting:** Karena keterbatasan Streamlit Cloud, login akan membuka tab baru. Setelah login berhasil, **kembali ke tab ini** dan refresh halaman.")
 
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
                 st.link_button(
-                    "🚀 Login dengan Google (Tab Baru)",
+                    "🚀 Login dengan Google",
                     oauth_url,
                     use_container_width=True
                 )
 
-                st.markdown("---")
-                st.info("📋 **Langkah-langkah:**\n1. Klik tombol di atas\n2. Login di tab baru yang terbuka\n3. Kembali ke tab ini\n4. Refresh halaman (F5 atau Ctrl+R)")
+                # st.markdown("---")
+                # st.info("📋 **Langkah-langkah:**\n1. Klik tombol di atas\n2. Login di tab baru yang terbuka\n3. Kembali ke tab ini\n4. Refresh halaman (F5 atau Ctrl+R)")
 
                 if st.button("🔄 Refresh Halaman Ini", type="secondary", use_container_width=True):
                     st.rerun()
@@ -335,7 +335,7 @@ def main():
 
                             # Simple link button for new tab
                             st.link_button(
-                                "🚀 Lanjutkan ke Google (Tab Baru)",
+                                "🚀 Lanjutkan ke Google",
                                 oauth_url,
                                 use_container_width=True
                             )
