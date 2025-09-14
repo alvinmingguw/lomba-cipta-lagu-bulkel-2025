@@ -2396,7 +2396,7 @@ def check_form_schedule():
         # Get schedule configuration
         form_open_str = config.get('FORM_OPEN_DATETIME', '2024-01-01 00:00:00')
         form_close_str = config.get('FORM_CLOSE_DATETIME', '2024-12-31 23:59:59')
-        winner_announce_str = config.get('WINNER_ANNOUNCE_DATETIME', '2025-01-01 00:00:00')
+        winner_announce_str = config.get('WINNER_ANNOUNCE_DATETIME', '2024-09-14 11:00:00')
 
         # Parse datetime strings
         form_open = tz.localize(datetime.strptime(form_open_str, '%Y-%m-%d %H:%M:%S'))
@@ -6084,14 +6084,7 @@ def get_contest_status(config):
 
 def render_winners_section():
     """Render winners section with actual winners data"""
-    st.markdown("""
-    <div class="winners-card">
-        <h2>🏆 Pemenang Lomba Cipta Lagu Bulkel 2025</h2>
-        <p style="font-size: 1.2rem; margin: 1rem 0;">
-            Selamat kepada pemenang!
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Removed ambiguous winner card that looks clickable
 
     # Get configuration for winner display layout
     try:
@@ -6125,12 +6118,16 @@ def render_winners_section():
 
         # Filter leaderboard to only include songs with lyric_video_url
         if not songs_df.empty:
-            # Get songs that have lyric_video_url
-            songs_with_video = songs_df[songs_df['lyric_video_url'].notna() & (songs_df['lyric_video_url'] != '')]
-            if not songs_with_video.empty:
-                # Filter leaderboard to only include these songs
-                video_song_titles = songs_with_video['title'].tolist()
-                leaderboard_df = leaderboard_df[leaderboard_df['title'].isin(video_song_titles)]
+            # Check if lyric_video_url column exists
+            if 'lyric_video_url' in songs_df.columns:
+                # Get songs that have lyric_video_url
+                songs_with_video = songs_df[songs_df['lyric_video_url'].notna() & (songs_df['lyric_video_url'] != '')]
+                if not songs_with_video.empty:
+                    # Filter leaderboard to only include these songs
+                    video_song_titles = songs_with_video['title'].tolist()
+                    leaderboard_df = leaderboard_df[leaderboard_df['title'].isin(video_song_titles)]
+            else:
+                st.warning("Column 'lyric_video_url' not found in songs table")
 
         if leaderboard_df.empty:
             st.info("🎵 Pemenang dengan lyric video akan segera diumumkan")
@@ -7021,7 +7018,7 @@ def render_landing_sidebar():
 
         # Song Display Section - Only show if winners are announced
         config = cache_service.get_cached_config()
-        winner_announce_str = config.get('WINNER_ANNOUNCE_DATETIME', '2025-09-10 07:00:00')
+        winner_announce_str = config.get('WINNER_ANNOUNCE_DATETIME', '2024-09-14 11:00:00')
         timezone_str = config.get('TIMEZONE', 'Asia/Jakarta')
 
         try:
@@ -7221,9 +7218,6 @@ def render_landing_page():
     st.markdown("""
     <div style="text-align: center; margin: 2rem 0;">
         <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">🏆 Pengumuman Pemenang</h3>
-        <p style="color: #7f8c8d; margin-bottom: 1rem; font-size: 1.1rem;">
-            Lyric Video - Lagu Pemenang Juara 1
-        </p>
         <div style="background: linear-gradient(135deg, #FFD700, #FFA500);
                     padding: 10px 20px; border-radius: 20px; display: inline-block; margin-bottom: 1rem;">
             <span style="color: #8B4513; font-weight: bold; font-size: 1rem;">
@@ -7239,56 +7233,49 @@ def render_landing_page():
         # Get winner song with lyric video from database
         try:
             songs_df = db_service.get_songs()
-            if not songs_df.empty:
-                # Filter songs that have lyric_video_url
-                winner_songs = songs_df[songs_df['lyric_video_url'].notna() & (songs_df['lyric_video_url'] != '')]
-                if not winner_songs.empty:
-                    # Get the first winner song with lyric video
-                    winner_song = winner_songs.iloc[0]
-                    lyric_video_url = winner_song['lyric_video_url']
-                    song_title = winner_song['title']
-                    composer = winner_song['composer']
 
-                    st.markdown(f"""
-                    <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
-                        <iframe
-                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
-                            src="{lyric_video_url}"
-                            title="Lyric Video - {song_title}"
-                            frameborder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            referrerpolicy="strict-origin-when-cross-origin"
-                            allowfullscreen>
-                        </iframe>
-                    </div>
-                    """, unsafe_allow_html=True)
+            if not songs_df.empty:
+                # Check if lyric_video_url column exists
+                if 'lyric_video_url' in songs_df.columns:
+                    # Filter songs that have lyric_video_url
+                    winner_songs = songs_df[songs_df['lyric_video_url'].notna() & (songs_df['lyric_video_url'] != '')]
+
+                    if not winner_songs.empty:
+                        # Get the first winner song with lyric video
+                        winner_song = winner_songs.iloc[0]
+                        lyric_video_url = winner_song['lyric_video_url']
+                        song_title = winner_song['title']
+
+                        st.markdown(f"""
+                        <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
+                            <iframe
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
+                                src="{lyric_video_url}"
+                                title="Lyric Video - {song_title}"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.info("🎵 Lyric video akan segera tersedia")
                 else:
+                    st.warning("Column 'lyric_video_url' not found in songs table")
                     st.info("🎵 Lyric video akan segera tersedia")
             else:
                 st.info("🎵 Lyric video akan segera tersedia")
         except Exception as e:
             st.error(f"Error loading lyric video: {e}")
-            # Fallback to hardcoded video
-            st.markdown("""
-            <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
-                <iframe
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
-                    src="https://www.youtube.com/embed/K3MOLcvMoD4?si=3wYON16GK3vo7kgY"
-                    title="Lyric Video - Harta Yang S'jati"
-                    frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin"
-                    allowfullscreen>
-                </iframe>
-            </div>
-            """, unsafe_allow_html=True)
+            st.info("🎵 Lyric video akan segera tersedia")
 
         # Video description
         st.markdown("""
         <div style="text-align: center; margin-top: 1rem; padding: 15px;
                     background: #f8f9fa; border-radius: 10px; border-left: 4px solid #FFD700;">
             <p style="margin: 0; color: #666; font-size: 0.9rem;">
-                📝 Meskipun Versi 2 memiliki skor tertinggi, Versi 1 dipilih karena lebih easy listening
+                📝 Meskipun Versi 2 memiliki skor tertinggi, Versi 1 dipilih karena lebih cocok dengan jemaat
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -7298,7 +7285,6 @@ def render_landing_page():
     st.markdown("""
     <div style="text-align: center; margin: 2rem 0 1rem 0;">
         <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">📁 Kompilasi Lagu & PDF</h3>
-        <p style="color: #666; margin: 0;">Akses lengkap semua materi lomba</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -7321,7 +7307,7 @@ def render_landing_page():
             " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎵</div>
                 <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Semua Lagu Peserta</h4>
-                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">8 lagu untuk wilayah & PHBG<br>Urutan nomor asli</p>
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">8 lagu untuk wilayah & PHBG<br></p>
             </div>
         </a>
         """, unsafe_allow_html=True)
@@ -7738,7 +7724,7 @@ def render_info_section():
         submission_end_dt = config.get('SUBMISSION_END_DATETIME', '2025-08-31 23:59:59')
         form_open_dt = config.get('FORM_OPEN_DATETIME', '2025-09-01 00:00:00')
         form_close_dt = config.get('FORM_CLOSE_DATETIME', '2025-09-30 23:59:59')
-        winner_announce_dt = config.get('WINNER_ANNOUNCE_DATETIME', '2025-09-14 11:00:00')
+        winner_announce_dt = config.get('WINNER_ANNOUNCE_DATETIME', '2024-09-14 11:00:00')
 
         # Format with Indonesian day names
         submission_start = format_date_indonesian(submission_start_dt)
