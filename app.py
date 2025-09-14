@@ -7107,10 +7107,10 @@ def render_landing_page():
     st.markdown('<div class="landing-container">', unsafe_allow_html=True)
 
     # Title
-    st.markdown("""
-    <h1 style="color: #2c3e50; margin-bottom: 0.5rem;">🎵 Lomba Cipta Lagu Bulkel 2025</h1>
-    <h3 style="color: #7f8c8d; margin-bottom: 2rem;">WAKTU BERSAMA HARTA BERHARGA</h3>
-    """, unsafe_allow_html=True)
+    # st.markdown("""
+    # <h1 style="color: #2c3e50; margin-bottom: 0.5rem;">🎵 Lomba Cipta Lagu Bulkel 2025</h1>
+    # <h3 style="color: #7f8c8d; margin-bottom: 2rem;">WAKTU BERSAMA HARTA BERHARGA</h3>
+    # """, unsafe_allow_html=True)
 
     # Display poster
     try:
@@ -7122,6 +7122,31 @@ def render_landing_page():
         st.markdown('</div>', unsafe_allow_html=True)
     except:
         st.warning("⚠️ Poster tidak dapat dimuat")
+
+    # YouTube video section
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; margin: 2rem 0;">
+        <h3 style="color: #2c3e50; margin-bottom: 1rem;">🎥 Video Promosi Lomba</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Center the YouTube video
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        st.markdown("""
+        <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
+            <iframe
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
+                src="https://www.youtube.com/embed/K3MOLcvMoD4?si=3wYON16GK3vo7kgY"
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen>
+            </iframe>
+        </div>
+        """, unsafe_allow_html=True)
 
     # Contest status section
     if contest_status['is_closed'] and contest_status['show_winners']:
