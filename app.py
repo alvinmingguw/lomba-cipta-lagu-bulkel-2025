@@ -6313,7 +6313,7 @@ def render_winners_section():
         # Add sound effect
         st.markdown("""
         <script>
-        function playWinnerSound() {
+        setTimeout(() => {
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -6342,9 +6342,7 @@ def render_winners_section():
             } catch (e) {
                 console.log('Audio not supported:', e);
             }
-        }
-
-        setTimeout(playWinnerSound, 500);
+        }, 500);
         </script>
         """, unsafe_allow_html=True)
 
@@ -7238,7 +7236,22 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                     st.balloons()
 
                     # Find the rank for celebration message
-                    original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
+                    # original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
+                    # try:
+                    #     original_rank = original_df_sorted[original_df_sorted['title'] == selected_song['title']].index[0] + 1
+                    #     if original_rank == 1:
+                    #         st.success("🥇 Selamat! Anda memilih lagu JUARA 1!")
+                    #     elif original_rank == 2:
+                    #         st.success("🥈 Selamat! Anda memilih lagu JUARA 2!")
+                    #     elif original_rank == 3:
+                    #         st.success("🥉 Selamat! Anda memilih lagu JUARA 3!")
+                    #     else:
+                    #         st.success(f"🏆 Selamat! Anda memilih lagu pemenang!")
+                    # except:
+                    #     st.success("🏆 Selamat! Anda memilih lagu pemenang!")
+
+                    # Find the rank for celebration message
+                    # original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
                     # try:
                     #     original_rank = original_df_sorted[original_df_sorted['title'] == selected_song['title']].index[0] + 1
                     #     if original_rank == 1:
@@ -7282,7 +7295,7 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                     </script>
                     """, unsafe_allow_html=True)
                     # Find the rank for celebration message
-                    original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
+                    # original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
                     # try:
                     #     original_rank = original_df_sorted[original_df_sorted['title'] == selected_song['title']].index[0] + 1
                     #     if original_rank == 1:
@@ -7861,16 +7874,19 @@ def render_landing_page():
 
             # Celebration button with sound effects
             if st.button("🎊 Lets Celebrate! 🎊", type="primary", use_container_width=True):
-                # Hybrid approach: Use both st.balloons() and JavaScript effects
-                st.balloons()  # Streamlit's built-in balloons
+                # Use JavaScript-only effects to avoid stopping audio
+                pass  # No st.balloons() to avoid page refresh
+
+                # Simple approach: Use st.balloons() but with minimal impact
+                st.balloons()
                 # st.success("🎉 Selamat merayakan para pemenang! 🎉")
 
-                # Add JavaScript sound effect
+                # Add sound effect that works
                 st.markdown("""
                 <script>
-                // Simple celebration sound using Web Audio API
-                function playBeep() {
+                setTimeout(() => {
                     try {
+                        // Simple beep sound
                         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                         const oscillator = audioContext.createOscillator();
                         const gainNode = audioContext.createGain();
@@ -7904,10 +7920,7 @@ def render_landing_page():
                     } catch (e) {
                         console.log('Audio not supported:', e);
                     }
-                }
-
-                // Play sound after a short delay
-                setTimeout(playBeep, 100);
+                }, 500);
                 </script>
                 """, unsafe_allow_html=True)
         
