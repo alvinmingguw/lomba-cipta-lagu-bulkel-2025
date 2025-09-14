@@ -45,6 +45,38 @@ from components.admin_panel import render_admin_panel
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ==================== UTILITY FUNCTIONS ====================
+
+def format_date_indonesian(date_str):
+    """Convert date string to Indonesian format: Hari, DD Mmmm YYYY pukul HH:MM"""
+    if not date_str:
+        return "Belum ditentukan"
+
+    try:
+        from datetime import datetime
+        # Parse the date string
+        if 'T' in date_str:
+            dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        else:
+            dt = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+
+        # Indonesian day names
+        day_names = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+
+        # Indonesian month names
+        month_names = {
+            1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
+            5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus',
+            9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'
+        }
+
+        # Format with day name and time
+        hari = day_names[dt.weekday()]
+        jam = dt.strftime('%H:%M')
+        return f"{hari}, {dt.day} {month_names[dt.month]} {dt.year} pukul {jam}"
+    except:
+        return date_str
+
 # ==================== PAGE CONFIG ====================
 
 st.set_page_config(
@@ -6938,6 +6970,40 @@ def render_landing_sidebar():
             st.session_state.show_certificate = True
             st.rerun()
 
+        # Google Drive Links Section
+        st.markdown("---")
+        st.markdown("### 📁 Kompilasi Lagu & PDF")
+
+        # All Songs (without winner, original order)
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/1_GltfIbmh1SDMCK7MhGrVcrq_pcby1q1?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
+                🎵 Semua Lagu Peserta<br>
+                <small style="opacity: 0.9;">8 lagu untuk wilayah & PHBG</small>
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
+        # Winner Theme Song
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/1P12024Z8lKgKw137e5o2zVwPgl787TSC?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
+                🏆 Theme Song 2025<br>
+                <small style="opacity: 0.8;">Lagu, Partitur & Video</small>
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
+        # Closing Song
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/16DuWouMrek3tmZbbof9PtoEM749aVLu6?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="background: linear-gradient(135deg, #9C27B0, #7B1FA2); color: white; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
+                🎼 Lagu Penutup Bulkel<br>
+                <small style="opacity: 0.9;">by Bpk Parulian</small>
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
         # Check if user is logged in for dynamic login/dashboard button
         current_user = auth_service.get_current_user()
         if current_user:
@@ -7187,33 +7253,6 @@ def render_theme_timeline():
     """Render beautiful theme timeline card"""
     # Get configuration data for dates
     config = cache_service.get_cached_config()
-
-    # Helper function to format date to Indonesian format with time
-    def format_date_indonesian(date_str):
-        """Convert date string to Indonesian format: DD Mmmm YYYY pukul HH:MM"""
-        if not date_str:
-            return "Belum ditentukan"
-
-        try:
-            from datetime import datetime
-            # Parse the date string
-            if 'T' in date_str:
-                dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-            else:
-                dt = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
-
-            # Indonesian month names
-            month_names = {
-                1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
-                5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus',
-                9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'
-            }
-
-            # Format with time
-            jam = dt.strftime('%H:%M')
-            return f"{dt.day} {month_names[dt.month]} {dt.year} pukul {jam}"
-        except:
-            return date_str
 
     # Get dates from configuration
     submission_start = config.get('SUBMISSION_START_DATETIME', '')
@@ -7562,19 +7601,29 @@ def render_info_section():
 
     st.markdown("---")
 
-    # Contest information with dynamic dates
+    # Contest information with dynamic dates from configuration table
     try:
         config = db_service.get_config()
-        submission_start = config.get('SUBMISSION_START_DATE', '1 Agustus 2025')
-        submission_end = config.get('SUBMISSION_END_DATE', '31 Agustus 2025')
-        judging_end = config.get('JUDGING_END_DATE', '3 September 2025')
-        winner_announce = config.get('WINNER_ANNOUNCEMENT_DATE', '14 September 2025')
+        # Get datetime fields and format them properly with day names
+        submission_start_dt = config.get('SUBMISSION_START_DATETIME', '2025-08-01 00:00:00')
+        submission_end_dt = config.get('SUBMISSION_END_DATETIME', '2025-08-31 23:59:59')
+        form_open_dt = config.get('FORM_OPEN_DATETIME', '2025-09-01 00:00:00')
+        form_close_dt = config.get('FORM_CLOSE_DATETIME', '2025-09-30 23:59:59')
+        winner_announce_dt = config.get('WINNER_ANNOUNCE_DATETIME', '2025-09-14 11:00:00')
+
+        # Format with Indonesian day names
+        submission_start = format_date_indonesian(submission_start_dt)
+        submission_end = format_date_indonesian(submission_end_dt)
+        judging_start = format_date_indonesian(form_open_dt)
+        judging_end = format_date_indonesian(form_close_dt)
+        winner_announce = format_date_indonesian(winner_announce_dt)
     except:
         # Fallback dates
-        submission_start = '1 Agustus 2025'
-        submission_end = '31 Agustus 2025'
-        judging_end = '3 September 2025'
-        winner_announce = '14 September 2025'
+        submission_start = 'Kamis, 1 Agustus 2025 pukul 00:00'
+        submission_end = 'Minggu, 31 Agustus 2025 pukul 23:59'
+        judging_start = 'Senin, 1 September 2025 pukul 00:00'
+        judging_end = 'Selasa, 30 September 2025 pukul 23:59'
+        winner_announce = 'Sabtu, 14 September 2025 pukul 11:00'
 
     st.markdown(f"""
     #### 🎯 Tema Lomba
@@ -7585,7 +7634,7 @@ def render_info_section():
 
     #### 📅 Timeline
     - **Pendaftaran**: {submission_start} - {submission_end}
-    - **Penilaian**: {submission_end} - {judging_end}
+    - **Penilaian**: {judging_start} - {judging_end}
     - **Pengumuman**: {winner_announce}
 
     #### 🏆 Kategori Penilaian
