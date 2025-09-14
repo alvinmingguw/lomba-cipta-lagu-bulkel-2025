@@ -1492,48 +1492,19 @@ def render_notation_viewer(song_data):
         tab_view, tab_download = st.tabs(["👁️ Lihat PDF", "📥 Download"])
 
         with tab_view:
-            try:
-                # Try to embed PDF using iframe
-                import streamlit.components.v1 as components
-                st.markdown("**📄 Preview Notasi PDF:**")
-                components.iframe(
-                    src=pdf_url,
-                    width=None,
-                    height=600,
-                    scrolling=True
-                )
-            except:
-                # Fallback to HTML iframe
+            with st.expander("🎼 Notasi PDF Preview", expanded=False):
+                # Use Google Docs Viewer for better compatibility
+                google_viewer_url = f"https://docs.google.com/viewer?url={pdf_url}&embedded=true"
                 st.markdown(f"""
-                <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 10px; margin: 10px 0;">
-                    <iframe
-                        src="{pdf_url}"
+                <iframe src="{google_viewer_url}"
                         width="100%"
-                        height="600px"
-                        style="border: none; border-radius: 8px;">
-                        <p>Browser Anda tidak mendukung iframe. <a href="{pdf_url}" target="_blank">Klik di sini untuk membuka PDF</a></p>
-                    </iframe>
-                </div>
+                        height="600"
+                        style="border: 1px solid #ddd; border-radius: 8px;">
+                </iframe>
                 """, unsafe_allow_html=True)
 
         with tab_download:
-            st.markdown(f"""
-            <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 20px; margin: 20px 0; background: #f8f9fa; text-align: center;">
-                <h4 style="margin: 0 0 15px 0; color: #4CAF50;">📄 Download Notasi Musik</h4>
-                <p style="margin: 0 0 20px 0; color: #666;">Klik tombol di bawah untuk membuka PDF di tab baru</p>
-                <a href="{pdf_url}" target="_blank" style="
-                    background: #4CAF50;
-                    color: white;
-                    padding: 15px 30px;
-                    text-decoration: none;
-                    border-radius: 8px;
-                    font-weight: bold;
-                    font-size: 1.1rem;
-                    display: inline-block;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                ">🔗 Buka Notasi PDF</a>
-            </div>
-            """, unsafe_allow_html=True)
+            st.info("📄 PDF Preview tersedia di tab View di atas")
 
         return
 
@@ -1582,48 +1553,19 @@ def render_lyrics_viewer(song_data):
         tab_view, tab_download = st.tabs(["👁️ Lihat PDF", "📥 Download"])
 
         with tab_view:
-            try:
-                # Try to embed PDF using iframe
-                import streamlit.components.v1 as components
-                st.markdown("**📝 Preview Syair PDF:**")
-                components.iframe(
-                    src=pdf_url,
-                    width=None,
-                    height=600,
-                    scrolling=True
-                )
-            except:
-                # Fallback to HTML iframe
+            with st.expander("📝 Syair PDF Preview", expanded=False):
+                # Use Google Docs Viewer for better compatibility
+                google_viewer_url = f"https://docs.google.com/viewer?url={pdf_url}&embedded=true"
                 st.markdown(f"""
-                <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 10px; margin: 10px 0;">
-                    <iframe
-                        src="{pdf_url}"
+                <iframe src="{google_viewer_url}"
                         width="100%"
-                        height="600px"
-                        style="border: none; border-radius: 8px;">
-                        <p>Browser Anda tidak mendukung iframe. <a href="{pdf_url}" target="_blank">Klik di sini untuk membuka PDF</a></p>
-                    </iframe>
-                </div>
+                        height="600"
+                        style="border: 1px solid #ddd; border-radius: 8px;">
+                </iframe>
                 """, unsafe_allow_html=True)
 
         with tab_download:
-            st.markdown(f"""
-            <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 20px; margin: 20px 0; background: #f8f9fa; text-align: center;">
-                <h4 style="margin: 0 0 15px 0; color: #2196F3;">📝 Download Syair Lagu</h4>
-                <p style="margin: 0 0 20px 0; color: #666;">Klik tombol di bawah untuk membuka PDF di tab baru</p>
-                <a href="{pdf_url}" target="_blank" style="
-                    background: #2196F3;
-                    color: white;
-                    padding: 15px 30px;
-                    text-decoration: none;
-                    border-radius: 8px;
-                    font-weight: bold;
-                    font-size: 1.1rem;
-                    display: inline-block;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                ">🔗 Buka Syair PDF</a>
-            </div>
-            """, unsafe_allow_html=True)
+            st.info("📝 PDF Preview tersedia di tab View di atas")
 
     # Show text content if available (fallback or additional)
     if song_data.get('lyrics_text'):
@@ -6542,75 +6484,32 @@ def render_winners_section():
                                             except:
                                                 pass
 
-                                    # Display PDF buttons
-                                    pdf_buttons_html = ""
-                                    if lyrics_pdf_url:
-                                        pdf_buttons_html += f"""
-                                        <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
-                                            <button style="
-                                                background-color: #2196F3;
-                                                color: white;
-                                                padding: 8px 12px;
-                                                border: none;
-                                                border-radius: 6px;
-                                                cursor: pointer;
-                                                font-size: 0.85rem;
-                                                margin: 3px;
-                                                width: 48%;
-                                                font-weight: bold;
-                                            ">📝 Syair PDF</button>
-                                        </a>
-                                        """
-
-                                    if notation_pdf_url:
-                                        pdf_buttons_html += f"""
-                                        <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
-                                            <button style="
-                                                background-color: #4CAF50;
-                                                color: white;
-                                                padding: 8px 12px;
-                                                border: none;
-                                                border-radius: 6px;
-                                                cursor: pointer;
-                                                font-size: 0.85rem;
-                                                margin: 3px;
-                                                width: 48%;
-                                                font-weight: bold;
-                                            ">🎼 Notasi PDF</button>
-                                        </a>
-                                        """
-
-                                    if pdf_buttons_html:
-                                        st.markdown(f"""
-                                        <div style="text-align: center; margin: 10px 0;">
-                                            {pdf_buttons_html}
-                                        </div>
-                                        """, unsafe_allow_html=True)
-
-                                        # Embedded PDF viewers
-                                        if lyrics_pdf_url:
-                                            st.markdown("**📝 Syair PDF Preview:**")
-                                            # Use Google Docs Viewer for better compatibility
-                                            google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
-                                            st.markdown(f"""
-                                            <iframe src="{google_viewer_url}"
-                                                    width="100%"
-                                                    height="500"
-                                                    style="border: 1px solid #ddd; border-radius: 8px;">
-                                            </iframe>
-                                            """, unsafe_allow_html=True)
-
+                                    # Display PDF embedded viewers in expanders
+                                    if lyrics_pdf_url or notation_pdf_url:
                                         if notation_pdf_url:
-                                            st.markdown("**🎼 Notasi PDF Preview:**")
-                                            # Use Google Docs Viewer for better compatibility
-                                            google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
-                                            st.markdown(f"""
-                                            <iframe src="{google_viewer_url}"
-                                                    width="100%"
-                                                    height="500"
-                                                    style="border: 1px solid #ddd; border-radius: 8px;">
-                                            </iframe>
-                                            """, unsafe_allow_html=True)
+                                            with st.expander("🎼 Notasi PDF Preview", expanded=False):
+                                                # Use Google Docs Viewer for better compatibility
+                                                google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
+                                                st.markdown(f"""
+                                                <iframe src="{google_viewer_url}"
+                                                        width="100%"
+                                                        height="600"
+                                                        style="border: 1px solid #ddd; border-radius: 8px;">
+                                                </iframe>
+                                                """, unsafe_allow_html=True)
+                                        if lyrics_pdf_url:
+                                            with st.expander("📝 Syair PDF Preview", expanded=False):
+                                                # Use Google Docs Viewer for better compatibility
+                                                google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
+                                                st.markdown(f"""
+                                                <iframe src="{google_viewer_url}"
+                                                        width="100%"
+                                                        height="600"
+                                                        style="border: 1px solid #ddd; border-radius: 8px;">
+                                                </iframe>
+                                                """, unsafe_allow_html=True)
+
+           
                                     else:
                                         st.info("📄 PDF documents tidak tersedia untuk lagu ini")
 
@@ -6798,41 +6697,32 @@ def render_winners_section():
                                     with col:
                                         st.markdown(f"**{version_name}**")
 
-                                        # Lyrics PDF
-                                        if song_data.get('lyrics_pdf_url'):
-                                            st.markdown(f"""
-                                            <a href="{song_data['lyrics_pdf_url']}" target="_blank" style="text-decoration: none;">
-                                                <button style="
-                                                    background-color: #007bff;
-                                                    color: white;
-                                                    padding: 8px 12px;
-                                                    border: none;
-                                                    border-radius: 5px;
-                                                    cursor: pointer;
-                                                    font-size: 0.85rem;
-                                                    margin: 2px 0;
-                                                    width: 100%;
-                                                ">📝 Syair PDF</button>
-                                            </a>
-                                            """, unsafe_allow_html=True)
-
-                                        # Notation PDF
+                                        # PDF embedded viewers in expanders
                                         if song_data.get('notation_pdf_url'):
-                                            st.markdown(f"""
-                                            <a href="{song_data['notation_pdf_url']}" target="_blank" style="text-decoration: none;">
-                                                <button style="
-                                                    background-color: #28a745;
-                                                    color: white;
-                                                    padding: 8px 12px;
-                                                    border: none;
-                                                    border-radius: 5px;
-                                                    cursor: pointer;
-                                                    font-size: 0.85rem;
-                                                    margin: 2px 0;
-                                                    width: 100%;
-                                                ">🎼 Notasi PDF</button>
-                                            </a>
-                                            """, unsafe_allow_html=True)
+                                            with st.expander("🎼 Notasi PDF Preview", expanded=False):
+                                                # Use Google Docs Viewer for better compatibility
+                                                google_viewer_url = f"https://docs.google.com/viewer?url={song_data['notation_pdf_url']}&embedded=true"
+                                                st.markdown(f"""
+                                                <iframe src="{google_viewer_url}"
+                                                        width="100%"
+                                                        height="500"
+                                                        style="border: 1px solid #ddd; border-radius: 8px;">
+                                                </iframe>
+                                                """, unsafe_allow_html=True)
+                                                
+                                        if song_data.get('lyrics_pdf_url'):
+                                            with st.expander("📝 Syair PDF Preview", expanded=False):
+                                                # Use Google Docs Viewer for better compatibility
+                                                google_viewer_url = f"https://docs.google.com/viewer?url={song_data['lyrics_pdf_url']}&embedded=true"
+                                                st.markdown(f"""
+                                                <iframe src="{google_viewer_url}"
+                                                        width="100%"
+                                                        height="500"
+                                                        style="border: 1px solid #ddd; border-radius: 8px;">
+                                                </iframe>
+                                                """, unsafe_allow_html=True)
+
+                                        
                 else:
                     # Single version display
                     song_data = all_song_data[0]
@@ -6936,77 +6826,32 @@ def render_winners_section():
                                 except:
                                     pass
 
-                        # Display PDF buttons and embedded viewers
+                        # Display PDF embedded viewers in expanders
                         if lyrics_pdf_url or notation_pdf_url:
-                            # PDF buttons
-                            pdf_buttons_html = ""
-                            if lyrics_pdf_url:
-                                pdf_buttons_html += f"""
-                                <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
-                                    <button style="
-                                        background-color: #2196F3;
-                                        color: white;
-                                        padding: 8px 12px;
-                                        border: none;
-                                        border-radius: 6px;
-                                        cursor: pointer;
-                                        font-size: 0.85rem;
-                                        margin: 3px;
-                                        width: 48%;
-                                        font-weight: bold;
-                                    ">📝 Syair PDF</button>
-                                </a>
-                                """
-
                             if notation_pdf_url:
-                                pdf_buttons_html += f"""
-                                <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
-                                    <button style="
-                                        background-color: #4CAF50;
-                                        color: white;
-                                        padding: 8px 12px;
-                                        border: none;
-                                        border-radius: 6px;
-                                        cursor: pointer;
-                                        font-size: 0.85rem;
-                                        margin: 3px;
-                                        width: 48%;
-                                        font-weight: bold;
-                                    ">🎼 Notasi PDF</button>
-                                </a>
-                                """
-
-                            if pdf_buttons_html:
-                                st.markdown(f"""
-                                <div style="text-align: center; margin: 10px 0;">
-                                    {pdf_buttons_html}
-                                </div>
-                                """, unsafe_allow_html=True)
-
-                            # Embedded PDF viewers
+                                with st.expander("🎼 Notasi PDF Preview", expanded=False):
+                                    # Use Google Docs Viewer for better compatibility
+                                    google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
+                                    st.markdown(f"""
+                                    <iframe src="{google_viewer_url}"
+                                            width="100%"
+                                            height="600"
+                                            style="border: 1px solid #ddd; border-radius: 8px;">
+                                    </iframe>
+                                    """, unsafe_allow_html=True)
                             if lyrics_pdf_url:
-                                st.markdown("**📝 Syair PDF Preview:**")
-                                # Use Google Docs Viewer for better compatibility
-                                google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
-                                st.markdown(f"""
-                                <iframe src="{google_viewer_url}"
-                                        width="100%"
-                                        height="600"
-                                        style="border: 1px solid #ddd; border-radius: 8px;">
-                                </iframe>
-                                """, unsafe_allow_html=True)
+                                with st.expander("📝 Syair PDF Preview", expanded=False):
+                                    # Use Google Docs Viewer for better compatibility
+                                    google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
+                                    st.markdown(f"""
+                                    <iframe src="{google_viewer_url}"
+                                            width="100%"
+                                            height="600"
+                                            style="border: 1px solid #ddd; border-radius: 8px;">
+                                    </iframe>
+                                    """, unsafe_allow_html=True)
 
-                            if notation_pdf_url:
-                                st.markdown("**🎼 Notasi PDF Preview:**")
-                                # Use Google Docs Viewer for better compatibility
-                                google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
-                                st.markdown(f"""
-                                <iframe src="{google_viewer_url}"
-                                        width="100%"
-                                        height="600"
-                                        style="border: 1px solid #ddd; border-radius: 8px;">
-                                </iframe>
-                                """, unsafe_allow_html=True)
+
                         else:
                             st.info("📄 PDF documents tidak tersedia")
 
@@ -7278,50 +7123,35 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                     except:
                         pass
 
-            # Display PDF buttons in two columns (simple approach)
-            col_pdf1, col_pdf2 = st.columns(2)
+            # Display PDF embedded viewers in expanders
+            if lyrics_pdf_url or notation_pdf_url:
 
-            with col_pdf1:
-                if lyrics_pdf_url:
-                    st.markdown(f"""
-                    <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
-                        <button style="
-                            background-color: #2196F3;
-                            color: white;
-                            padding: 10px 15px;
-                            border: none;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            font-size: 0.9rem;
-                            font-weight: bold;
-                            width: 100%;
-                            margin: 5px 0;
-                        ">📝 Syair PDF</button>
-                    </a>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.info("📝 Syair PDF tidak tersedia")
-
-            with col_pdf2:
                 if notation_pdf_url:
-                    st.markdown(f"""
-                    <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
-                        <button style="
-                            background-color: #4CAF50;
-                            color: white;
-                            padding: 10px 15px;
-                            border: none;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            font-size: 0.9rem;
-                            font-weight: bold;
-                            width: 100%;
-                            margin: 5px 0;
-                        ">🎼 Notasi PDF</button>
-                    </a>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.info("🎼 Notasi PDF tidak tersedia")
+                    with st.expander("🎼 Notasi PDF Preview", expanded=False):
+                        # Use Google Docs Viewer for better compatibility
+                        google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
+                        st.markdown(f"""
+                        <iframe src="{google_viewer_url}"
+                                width="100%"
+                                height="600"
+                                style="border: 1px solid #ddd; border-radius: 8px;">
+                        </iframe>
+                        """, unsafe_allow_html=True)
+                        
+                if lyrics_pdf_url:
+                    with st.expander("📝 Syair PDF Preview", expanded=False):
+                        # Use Google Docs Viewer for better compatibility
+                        google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
+                        st.markdown(f"""
+                        <iframe src="{google_viewer_url}"
+                                width="100%"
+                                height="600"
+                                style="border: 1px solid #ddd; border-radius: 8px;">
+                        </iframe>
+                        """, unsafe_allow_html=True)
+
+            else:
+                st.info("📄 PDF documents tidak tersedia")
 
     except Exception as e:
         st.error(f"Error loading songs: {e}")
