@@ -735,8 +735,8 @@ def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, edit
         5: 'Sangat Baik'
     })
 
-    # Create radio button options with "Belum dinilai" option
-    options = ["0 - Belum dinilai"]
+    # Create radio button options WITHOUT "Belum dinilai" option
+    options = []
     for score in range(1, 6):
         options.append(f"{score} - {descriptions[score]}")
 
@@ -760,23 +760,40 @@ def render_rubric_scoring_radio(rubric, song_data, current_score, judge_id, edit
             auto_save_score(judge_id, song_data['id'], rubric_key, ai_score)
 
     # Radio button for scoring
-    # Fix index calculation to prevent out of range error
-    # current_score 0 → index 0 (Belum dinilai)
-    # current_score 1 → index 1 (1 - ...)
-    # current_score 2 → index 2 (2 - ...)
-    radio_index = max(0, min(int(current_score), len(options) - 1))
+    # Handle case when current_score is 0 (not yet evaluated)
+    if current_score == 0:
+        # No radio button selected initially
+        selected_option = st.radio(
+            "Pilih nilai:",
+            options=options,
+            index=None,  # No default selection
+            key=f"score_{rubric_key}_{song_data['id']}",
+            disabled=input_disabled,
+            label_visibility="collapsed"
+        )
 
-    selected_option = st.radio(
-        "Pilih nilai:",
-        options=options,
-        index=radio_index,  # Safe index calculation
-        key=f"score_{rubric_key}_{song_data['id']}",
-        disabled=input_disabled,
-        label_visibility="collapsed"
-    )
+        # If user selects something, extract the score
+        if selected_option:
+            score = int(selected_option.split(' - ')[0])
+        else:
+            score = 0  # Keep as 0 if nothing selected
+    else:
+        # current_score 1 → index 0 (1 - ...)
+        # current_score 2 → index 1 (2 - ...)
+        # etc.
+        radio_index = max(0, min(int(current_score) - 1, len(options) - 1))
 
-    # Extract score from selected option
-    score = int(selected_option.split(' - ')[0])
+        selected_option = st.radio(
+            "Pilih nilai:",
+            options=options,
+            index=radio_index,
+            key=f"score_{rubric_key}_{song_data['id']}",
+            disabled=input_disabled,
+            label_visibility="collapsed"
+        )
+
+        # Extract score from selected option
+        score = int(selected_option.split(' - ')[0])
 
     # Auto-save when score changes (only if evaluation is allowed)
     if can_evaluate and not editing_locked and score != current_score:
@@ -7147,7 +7164,7 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                 score_text = f" - Skor: {song_row['avg_score']:.1f}/100" if show_scores else ""
                 song_options.append(f"{winner_emoji}{song_row['title']} - {song_row['composer']}{score_text}")
 
-            # Simple selectbox inside expander
+            # Simple dropdown selection
             selected_idx = st.selectbox(
                 "Pilih lagu:",
                 range(len(song_options) + 1),
@@ -7157,11 +7174,12 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
             )
 
         # Force refresh when selection changes
-        if hasattr(st.session_state, 'last_landing_selection') and st.session_state.last_landing_selection != selected_idx:
+        current_selection = selected_idx
+        if hasattr(st.session_state, 'last_landing_selection') and st.session_state.last_landing_selection != current_selection:
             # Clear audio cache when song changes
             if hasattr(st.session_state, 'landing_audio_cache'):
                 del st.session_state.landing_audio_cache
-        st.session_state.last_landing_selection = selected_idx
+        st.session_state.last_landing_selection = current_selection
 
         # Ensure we stay on landing page when dropdown changes
         if 'show_dashboard' in st.session_state:

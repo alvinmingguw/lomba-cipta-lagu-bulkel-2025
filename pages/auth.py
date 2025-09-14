@@ -293,32 +293,19 @@ def main():
     
     # Check if we have OAuth URL ready
     if 'google_oauth_url' in st.session_state:
+        oauth_url = st.session_state['google_oauth_url']
+
         # st.info("🔗 Klik tombol di bawah untuk login dengan Google:")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            # Simple and reliable solution - new tab with clear instructions
-            oauth_url = st.session_state['google_oauth_url']
+            st.link_button(
+                "🚀 Login dengan Google",
+                oauth_url,
+                use_container_width=True
+            )
 
-            # st.warning("⚠️ **Penting:** Karena keterbatasan Streamlit Cloud, login akan membuka tab baru. Setelah login berhasil, **kembali ke tab ini** dan refresh halaman.")
-
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                st.link_button(
-                    "🚀 Login dengan Google",
-                    oauth_url,
-                    use_container_width=True
-                )
-
-                # st.markdown("---")
-                # st.info("📋 **Langkah-langkah:**\n1. Klik tombol di atas\n2. Login di tab baru yang terbuka\n3. Kembali ke tab ini\n4. Refresh halaman (F5 atau Ctrl+R)")
-
-                # if st.button("🔄 Refresh Halaman Ini", type="secondary", use_container_width=True):
-                #     st.rerun()
-
-            # Debug: Show the URL for testing
-            # with st.expander("🔍 Debug Info (klik untuk lihat URL)"):
-            #     st.code(oauth_url)
-            # if st.button("🔄 Buat Link Baru", type="secondary", width='stretch'):
+            # st.markdown("---")
+            # if st.button("🔄 Buat Link Baru", type="secondary", use_container_width=True):
             #     del st.session_state['google_oauth_url']
             #     st.rerun()
     else:
