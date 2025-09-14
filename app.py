@@ -6596,7 +6596,7 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
     <div class="winners-card">
         <h2>🎵 Semua Lagu Peserta</h2>
         <p style="font-size: 1.1rem; margin: 1rem 0;">
-            Dengarkan semua karya peserta lomba (diurutkan berdasarkan skor)
+            Dengarkan semua karya peserta lomba
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -7134,7 +7134,7 @@ def render_landing_page():
         <div style="background: linear-gradient(135deg, #FFD700, #FFA500);
                     padding: 10px 20px; border-radius: 20px; display: inline-block; margin-bottom: 1rem;">
             <span style="color: #8B4513; font-weight: bold; font-size: 1rem;">
-                🥇 "Harta Yang S'jati" - Sigit Hakatya (Versi 1)
+                🥇 "Harta Yang S'jati" - Sigit Hascarya (Versi 1)
             </span>
         </div>
     </div>
@@ -7162,7 +7162,6 @@ def render_landing_page():
         <div style="text-align: center; margin-top: 1rem; padding: 15px;
                     background: #f8f9fa; border-radius: 10px; border-left: 4px solid #FFD700;">
             <p style="margin: 0; color: #666; font-size: 0.9rem;">
-                🎵 <strong>Lyric Video dengan Running Lyrics</strong> - Cocok untuk sing along!<br>
                 📝 Meskipun Versi 2 memiliki skor tertinggi, Versi 1 dipilih karena lebih easy listening
             </p>
         </div>
