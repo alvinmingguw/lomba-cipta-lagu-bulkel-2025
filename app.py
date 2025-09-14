@@ -5940,6 +5940,7 @@ def handle_auth_callbacks():
 def get_contest_status(config):
     """Get contest status based on configuration"""
     from datetime import datetime
+    import pytz
     import logging
 
     # Default values
@@ -5948,6 +5949,11 @@ def get_contest_status(config):
         'show_winners': False,
         'announcement_date': '31 Desember 2025'
     }
+
+    # Get timezone from config or default to Asia/Jakarta
+    timezone_str = config.get('TIMEZONE', 'Asia/Jakarta') if isinstance(config, dict) else 'Asia/Jakarta'
+    tz = pytz.timezone(timezone_str)
+    current_time = datetime.now(tz)
 
     # Handle both dict and DataFrame formats
     if isinstance(config, dict):
@@ -5972,14 +5978,17 @@ def get_contest_status(config):
             # Try parsing as simple datetime string first (most common format)
             try:
                 close_time = datetime.strptime(form_close, '%Y-%m-%d %H:%M:%S')
+                # Localize to the configured timezone
+                close_time = tz.localize(close_time)
             except ValueError:
                 # Try ISO format
                 if 'T' not in form_close:
                     form_close += ' 23:59:59'
                 close_time = datetime.fromisoformat(form_close.replace('Z', '+00:00'))
+                close_time = close_time.astimezone(tz)
 
             if close_time:
-                status['is_closed'] = datetime.now() > close_time
+                status['is_closed'] = current_time > close_time
 
                 # Format tanggal Indonesia cantik dengan hari
                 hari_indonesia = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
@@ -6010,14 +6019,20 @@ def get_contest_status(config):
             # Try parsing as simple datetime string first (most common format)
             try:
                 announcement_time = datetime.strptime(winner_announcement, '%Y-%m-%d %H:%M:%S')
+                # Localize to the configured timezone
+                announcement_time = tz.localize(announcement_time)
             except ValueError:
                 # Try ISO format
                 if 'T' not in winner_announcement:
                     winner_announcement += ' 00:00:00'
                 announcement_time = datetime.fromisoformat(winner_announcement.replace('Z', '+00:00'))
+                announcement_time = announcement_time.astimezone(tz)
 
             if announcement_time:
-                status['show_winners'] = datetime.now() >= announcement_time
+                status['show_winners'] = current_time >= announcement_time
+
+                # Debug info for timezone issues
+                logging.info(f"Timezone check - Current: {current_time}, Announcement: {announcement_time}, Show winners: {status['show_winners']}")
 
                 # Format tanggal Indonesia cantik dengan hari
                 hari_indonesia = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
@@ -6048,11 +6063,14 @@ def get_contest_status(config):
             # Try parsing as simple datetime string first (most common format)
             try:
                 open_time = datetime.strptime(form_open, '%Y-%m-%d %H:%M:%S')
+                # Localize to the configured timezone
+                open_time = tz.localize(open_time)
             except ValueError:
                 # Try ISO format
                 if 'T' not in form_open:
                     form_open += ' 00:00:00'
                 open_time = datetime.fromisoformat(form_open.replace('Z', '+00:00'))
+                open_time = open_time.astimezone(tz)
 
             if open_time:
                 # Format tanggal Indonesia cantik dengan hari
@@ -6505,7 +6523,7 @@ def render_winners_section():
 
                         with tab1:
                             st.markdown("##### 📝 Full Score (Sama untuk kedua versi)")
-                            if all_song_data[0].get('lyrics_text'):
+                            if all_song_data[0].get('full_score'):
                                 st.markdown(
                                     f"""
                                     <div style="
@@ -6518,11 +6536,32 @@ def render_winners_section():
                                         white-space: pre-wrap;
                                         font-size: 0.95rem;
                                     ">
+                                        {all_song_data[0]['full_score']}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                            elif all_song_data[0].get('lyrics_text'):
+                                st.warning("⚠️ Full Score belum tersedia, menampilkan syair saja:")
+                                st.markdown(
+                                    f"""
+                                    <div style="
+                                        background-color: #fff3cd;
+                                        padding: 1.5rem;
+                                        border-radius: 8px;
+                                        border-left: 3px solid #ffc107;
+                                        font-family: 'Georgia', serif;
+                                        line-height: 1.6;
+                                        white-space: pre-wrap;
+                                        font-size: 0.95rem;
+                                    ">
                                         {all_song_data[0]['lyrics_text']}
                                     </div>
                                     """,
                                     unsafe_allow_html=True
                                 )
+                            else:
+                                st.info("📝 Full Score belum tersedia untuk lagu ini.")
 
                         with tab2:
                             st.markdown("##### 🎸 Perbandingan Chord")
@@ -6670,7 +6709,7 @@ def render_winners_section():
 
                     with col2:
                         st.markdown("##### 📝 Full Score")
-                        if song_data.get('lyrics_text'):
+                        if song_data.get('full_score'):
                             st.markdown(
                                 f"""
                                 <div style="
@@ -6678,6 +6717,27 @@ def render_winners_section():
                                     padding: 1.5rem;
                                     border-radius: 8px;
                                     border-left: 3px solid {border_color};
+                                    font-family: 'Georgia', serif;
+                                    line-height: 1.6;
+                                    white-space: pre-wrap;
+                                    max-height: 300px;
+                                    overflow-y: auto;
+                                    font-size: 0.95rem;
+                                ">
+                                    {song_data['full_score']}
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                        elif song_data.get('lyrics_text'):
+                            st.warning("⚠️ Full Score belum tersedia, menampilkan syair saja:")
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background-color: #fff3cd;
+                                    padding: 1.5rem;
+                                    border-radius: 8px;
+                                    border-left: 3px solid #ffc107;
                                     font-family: 'Georgia', serif;
                                     line-height: 1.6;
                                     white-space: pre-wrap;
