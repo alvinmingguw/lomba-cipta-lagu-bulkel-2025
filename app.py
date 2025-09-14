@@ -1485,24 +1485,55 @@ def render_notation_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 🎼 **Notasi Musik (PDF Original)**")
 
-        # Simple PDF button - no embed
-        st.markdown(f"""
-        <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 20px; margin: 20px 0; background: #f8f9fa; text-align: center;">
-            <h4 style="margin: 0 0 15px 0; color: #4CAF50;">📄 Notasi Musik (PDF)</h4>
-            <p style="margin: 0 0 20px 0; color: #666;">Klik tombol di bawah untuk membuka PDF di tab baru</p>
-            <a href="{pdf_url}" target="_blank" style="
-                background: #4CAF50;
-                color: white;
-                padding: 15px 30px;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: bold;
-                font-size: 1.1rem;
-                display: inline-block;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            ">🔗 Buka Notasi PDF</a>
-        </div>
-        """, unsafe_allow_html=True)
+        # PDF display options
+        st.markdown("### 🎼 **Notasi Musik (PDF Original)**")
+
+        # Create tabs for different viewing options
+        tab_view, tab_download = st.tabs(["👁️ Lihat PDF", "📥 Download"])
+
+        with tab_view:
+            try:
+                # Try to embed PDF using iframe
+                import streamlit.components.v1 as components
+                st.markdown("**📄 Preview Notasi PDF:**")
+                components.iframe(
+                    src=pdf_url,
+                    width=None,
+                    height=600,
+                    scrolling=True
+                )
+            except:
+                # Fallback to HTML iframe
+                st.markdown(f"""
+                <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 10px; margin: 10px 0;">
+                    <iframe
+                        src="{pdf_url}"
+                        width="100%"
+                        height="600px"
+                        style="border: none; border-radius: 8px;">
+                        <p>Browser Anda tidak mendukung iframe. <a href="{pdf_url}" target="_blank">Klik di sini untuk membuka PDF</a></p>
+                    </iframe>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with tab_download:
+            st.markdown(f"""
+            <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 20px; margin: 20px 0; background: #f8f9fa; text-align: center;">
+                <h4 style="margin: 0 0 15px 0; color: #4CAF50;">📄 Download Notasi Musik</h4>
+                <p style="margin: 0 0 20px 0; color: #666;">Klik tombol di bawah untuk membuka PDF di tab baru</p>
+                <a href="{pdf_url}" target="_blank" style="
+                    background: #4CAF50;
+                    color: white;
+                    padding: 15px 30px;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    font-size: 1.1rem;
+                    display: inline-block;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                ">🔗 Buka Notasi PDF</a>
+            </div>
+            """, unsafe_allow_html=True)
 
         return
 
@@ -1544,24 +1575,55 @@ def render_lyrics_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 📄 **Syair Lagu (PDF Original)**")
 
-        # Simple PDF button - no embed
-        st.markdown(f"""
-        <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 20px; margin: 20px 0; background: #f8f9fa; text-align: center;">
-            <h4 style="margin: 0 0 15px 0; color: #2196F3;">📝 Syair Lagu (PDF)</h4>
-            <p style="margin: 0 0 20px 0; color: #666;">Klik tombol di bawah untuk membuka PDF di tab baru</p>
-            <a href="{pdf_url}" target="_blank" style="
-                background: #2196F3;
-                color: white;
-                padding: 15px 30px;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: bold;
-                font-size: 1.1rem;
-                display: inline-block;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            ">🔗 Buka Syair PDF</a>
-        </div>
-        """, unsafe_allow_html=True)
+        # PDF display options
+        st.markdown("### 📄 **Syair Lagu (PDF Original)**")
+
+        # Create tabs for different viewing options
+        tab_view, tab_download = st.tabs(["👁️ Lihat PDF", "📥 Download"])
+
+        with tab_view:
+            try:
+                # Try to embed PDF using iframe
+                import streamlit.components.v1 as components
+                st.markdown("**📝 Preview Syair PDF:**")
+                components.iframe(
+                    src=pdf_url,
+                    width=None,
+                    height=600,
+                    scrolling=True
+                )
+            except:
+                # Fallback to HTML iframe
+                st.markdown(f"""
+                <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 10px; margin: 10px 0;">
+                    <iframe
+                        src="{pdf_url}"
+                        width="100%"
+                        height="600px"
+                        style="border: none; border-radius: 8px;">
+                        <p>Browser Anda tidak mendukung iframe. <a href="{pdf_url}" target="_blank">Klik di sini untuk membuka PDF</a></p>
+                    </iframe>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with tab_download:
+            st.markdown(f"""
+            <div style="border: 2px solid #2196F3; border-radius: 10px; padding: 20px; margin: 20px 0; background: #f8f9fa; text-align: center;">
+                <h4 style="margin: 0 0 15px 0; color: #2196F3;">📝 Download Syair Lagu</h4>
+                <p style="margin: 0 0 20px 0; color: #666;">Klik tombol di bawah untuk membuka PDF di tab baru</p>
+                <a href="{pdf_url}" target="_blank" style="
+                    background: #2196F3;
+                    color: white;
+                    padding: 15px 30px;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    font-size: 1.1rem;
+                    display: inline-block;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                ">🔗 Buka Syair PDF</a>
+            </div>
+            """, unsafe_allow_html=True)
 
     # Show text content if available (fallback or additional)
     if song_data.get('lyrics_text'):
@@ -6105,14 +6167,14 @@ def render_google_drive_section():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; margin: 2rem 0 1rem 0;">
-        <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">📁 Kompilasi Lagu & PDF</h3>
+        <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">📁 Google Drive Kompilasi Lagu & Partitur</h3>
     </div>
     """, unsafe_allow_html=True)
 
     # Create 3 columns for the cards
     col1, col2, col3 = st.columns(3)
 
-    with col1:
+    with col2:
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/1_GltfIbmh1SDMCK7MhGrVcrq_pcby1q1?usp=sharing" target="_blank" style="text-decoration: none;">
             <div style="
@@ -6127,13 +6189,13 @@ def render_google_drive_section():
                 cursor: pointer;
             " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎵</div>
-                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Semua Lagu Peserta</h4>
-                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">8 lagu untuk wilayah & PHBG<br></p>
+                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Pembagian Lagu Wilayah</h4>
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">8 lagu selain pemenang & penutup<br>Audio & Partitur</p>
             </div>
         </a>
         """, unsafe_allow_html=True)
 
-    with col2:
+    with col1:
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/1P12024Z8lKgKw137e5o2zVwPgl787TSC?usp=sharing" target="_blank" style="text-decoration: none;">
             <div style="
@@ -6148,7 +6210,7 @@ def render_google_drive_section():
                 cursor: pointer;
             " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
-                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Theme Song 2025</h4>
+                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Theme Song</h4>
                 <p style="margin: 0; font-size: 0.85rem; opacity: 0.8;">Lagu Pemenang<br>Audio, Partitur & Video</p>
             </div>
         </a>
@@ -6169,8 +6231,8 @@ def render_google_drive_section():
                 cursor: pointer;
             " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎼</div>
-                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Lagu Penutup Bulkel</h4>
-                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">by Bpk Parulian<br>Audio & Partitur</p>
+                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Lagu Penutup</h4>
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">...<br>Audio & Partitur</p>
             </div>
         </a>
         """, unsafe_allow_html=True)
@@ -6279,7 +6341,7 @@ def render_winners_section():
             total_judges = sum(v['unique_judges'] for v in versions)
 
             st.markdown(f"""
-            <div style='background: {gradient}; padding: 20px; border-radius: 15px; margin: 15px 0; border-left: 5px solid {border_color}; box-shadow: 0 4px 15px rgba(0,0,0,0.1);'>
+            <div style='background: {gradient}; padding: 20px; border-radius: 15px; margin: 8px 0; border-left: 5px solid {border_color}; box-shadow: 0 4px 15px rgba(0,0,0,0.1);'>
                 <h3 style='margin: 0 0 10px 0; color: #333; font-size: 1.5rem;'>{rank_emoji} JUARA {i}</h3>
                 <h4 style='margin: 0 0 8px 0; color: #444; font-size: 1.3rem;'>{base_title}{version_info}</h4>
                 <p style='margin: 5px 0; color: #666; font-size: 1.1rem;'>
@@ -6292,13 +6354,47 @@ def render_winners_section():
             </div>
             """, unsafe_allow_html=True)
 
-            # Get all song data for all versions
+            # Get all song data for all versions first
             all_song_data = []
             if not songs_df.empty:
                 for version in versions:
                     matching_songs = songs_df[songs_df['title'] == version['title']]
                     if not matching_songs.empty:
                         all_song_data.append(matching_songs.iloc[0])
+
+            # Show YouTube video first if available
+            if all_song_data:
+                song_data = all_song_data[0]  # Use first version for video
+                if song_data.get('lyric_video_url'):
+                    # Center the video header and content
+                    st.markdown("<div style='text-align: center;'><h5>🎬 Video Lyric</h5></div>", unsafe_allow_html=True)
+                    # Better centering with more balanced columns
+                    col1, col2, col3 = st.columns([1, 3, 1])
+                    with col2:
+                        # Use st.components.v1.iframe for better compatibility with Streamlit Cloud
+                        try:
+                            import streamlit.components.v1 as components
+                            components.iframe(
+                                src=song_data['lyric_video_url'],
+                                width=None,  # Use full width of container
+                                height=400,
+                                scrolling=False
+                            )
+                        except:
+                            # Fallback to HTML iframe if components not available
+                            st.markdown(f"""
+                            <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
+                                <iframe
+                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
+                                    src="{song_data['lyric_video_url']}"
+                                    title="Lyric Video - {song_data['title']}"
+                                    frameborder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    referrerpolicy="strict-origin-when-cross-origin"
+                                    allowfullscreen>
+                                </iframe>
+                            </div>
+                            """, unsafe_allow_html=True)
 
             if all_song_data:
                 # Show multiple audio versions if available
@@ -6337,7 +6433,7 @@ def render_winners_section():
                                     margin-bottom: 1rem;
                                     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                                 ">
-                                    <h4 style="margin: 0 0 10px 0; color: #333;">{version_name}</h4>
+                                    <h4 style="margin: 0 0 10px 0; color: #333;">{full_title}</h4>
                                     <p style="margin: 5px 0; color: #666; font-size: 0.9rem;">
                                         <strong>📊 Skor:</strong> {version_score:.2f}/100
                                     </p>
@@ -6351,11 +6447,29 @@ def render_winners_section():
                                 st.markdown("**🎵 Audio**")
                                 render_audio_player(song_data, f"winner_{i}_{idx}")
 
-                                # Full score directly below audio
+                                # Lyrics with chords directly below audio (same styling as all songs)
                                 st.markdown("---")
-                                st.markdown("**🎼 Full Score**")
 
-                                if song_data.get('full_score'):
+                                # Determine content and header dynamically (same as all songs)
+                                if song_data.get('lyrics_with_chords'):
+                                    content_to_show = song_data['lyrics_with_chords']
+                                    header = "**🎼 Syair + Chord**"
+                                elif song_data.get('lyrics_text'):
+                                    content_to_show = song_data['lyrics_text']
+                                    header = "**🎼 Syair Only** *(Chord tidak tersedia)*"
+                                elif song_data.get('chords_list'):
+                                    content_to_show = song_data['chords_list']
+                                    header = "**🎼 Chord Only** *(Syair tidak tersedia)*"
+                                elif song_data.get('full_score'):
+                                    content_to_show = song_data['full_score']
+                                    header = "**🎼 Full Score**"
+                                else:
+                                    content_to_show = None
+                                    header = "**🎼 Syair + Chord**"
+
+                                st.markdown(header)
+
+                                if content_to_show:
                                     st.markdown(
                                         f"""
                                         <div style="
@@ -6365,18 +6479,18 @@ def render_winners_section():
                                             border-left: 3px solid #ff9800;
                                             font-family: 'Courier New', monospace;
                                             white-space: pre-wrap;
-                                            font-size: 0.75rem;
-                                            line-height: 1.2;
+                                            font-size: 0.7rem;
+                                            line-height: 1.3;
                                             max-height: 400px;
                                             overflow-y: auto;
                                         ">
-                                            {song_data['full_score']}
+                                            {content_to_show}
                                         </div>
                                         """,
                                         unsafe_allow_html=True
                                     )
                                 else:
-                                    st.info("Full score tidak tersedia")
+                                    st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
 
                                 # PDF buttons if enabled
                                 if show_pdf:
@@ -6472,6 +6586,31 @@ def render_winners_section():
                                             {pdf_buttons_html}
                                         </div>
                                         """, unsafe_allow_html=True)
+
+                                        # Embedded PDF viewers
+                                        if lyrics_pdf_url:
+                                            st.markdown("**📝 Syair PDF Preview:**")
+                                            # Use Google Docs Viewer for better compatibility
+                                            google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
+                                            st.markdown(f"""
+                                            <iframe src="{google_viewer_url}"
+                                                    width="100%"
+                                                    height="500"
+                                                    style="border: 1px solid #ddd; border-radius: 8px;">
+                                            </iframe>
+                                            """, unsafe_allow_html=True)
+
+                                        if notation_pdf_url:
+                                            st.markdown("**🎼 Notasi PDF Preview:**")
+                                            # Use Google Docs Viewer for better compatibility
+                                            google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
+                                            st.markdown(f"""
+                                            <iframe src="{google_viewer_url}"
+                                                    width="100%"
+                                                    height="500"
+                                                    style="border: 1px solid #ddd; border-radius: 8px;">
+                                            </iframe>
+                                            """, unsafe_allow_html=True)
                                     else:
                                         st.info("📄 PDF documents tidak tersedia untuk lagu ini")
 
@@ -6497,7 +6636,7 @@ def render_winners_section():
                                     margin-bottom: 1rem;
                                     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                                 ">
-                                    <h4 style="margin: 0 0 10px 0; color: #333;">{version_name}</h4>
+                                    <h4 style="margin: 0 0 10px 0; color: #333;">{full_title}</h4>
                                     <p style="margin: 5px 0; color: #666; font-size: 0.9rem;">
                                         <strong>📊 Skor:</strong> {version_score:.2f}/100
                                     </p>
@@ -6513,21 +6652,21 @@ def render_winners_section():
 
                         # Show comprehensive score comparison for TABS layout
                         st.markdown("---")
-                        st.markdown("### 🎼 Perbandingan Full Score")
+                        st.markdown("### 🎵 Syair & Chord")
 
-                        # Create tabs based on PDF configuration
+                        # Create tabs based on PDF configuration (reorder to prioritize lyrics)
                         if show_pdf:
-                            tab1, tab2, tab3, tab4 = st.tabs(["📝 Full Score", "🎸 Chord Comparison", "🎵 Lyrics + Chords", "📄 PDF Documents"])
+                            tab1, tab2, tab3, tab4 = st.tabs(["🎵 Lyrics + Chords", "🎸 Chord Comparison", "📝 Full Score", "📄 PDF Documents"])
                         else:
-                            tab1, tab2, tab3 = st.tabs(["📝 Full Score", "🎸 Chord Comparison", "🎵 Lyrics + Chords"])
+                            tab1, tab2, tab3 = st.tabs(["🎵 Lyrics + Chords", "🎸 Chord Comparison", "📝 Full Score"])
 
                         with tab1:
-                            st.markdown("##### 📝 Full Score (Sama untuk kedua versi)")
-                            if all_song_data[0].get('full_score'):
+                            st.markdown("##### 🎵 Syair & Chord (Sama untuk kedua versi)")
+                            if all_song_data[0].get('lyrics_with_chords'):
                                 st.markdown(
                                     f"""
                                     <div style="
-                                        background-color: #f8f9fa;
+                                        background-color: #f0f8ff;
                                         padding: 1.5rem;
                                         border-radius: 8px;
                                         border-left: 3px solid {border_color};
@@ -6536,13 +6675,12 @@ def render_winners_section():
                                         white-space: pre-wrap;
                                         font-size: 0.95rem;
                                     ">
-                                        {all_song_data[0]['full_score']}
+                                        {all_song_data[0]['lyrics_with_chords']}
                                     </div>
                                     """,
                                     unsafe_allow_html=True
                                 )
                             elif all_song_data[0].get('lyrics_text'):
-                                st.warning("⚠️ Full Score belum tersedia, menampilkan syair saja:")
                                 st.markdown(
                                     f"""
                                     <div style="
@@ -6561,7 +6699,7 @@ def render_winners_section():
                                     unsafe_allow_html=True
                                 )
                             else:
-                                st.info("📝 Full Score belum tersedia untuk lagu ini.")
+                                st.info("🎵 Syair tidak tersedia untuk lagu ini.")
 
                         with tab2:
                             st.markdown("##### 🎸 Perbandingan Chord")
@@ -6608,49 +6746,46 @@ def render_winners_section():
                                     )
 
                         with tab3:
-                            st.markdown("##### 🎵 Syair + Chord")
-
-                            # Show both versions with lyrics and chords
-                            for idx, song_data in enumerate(all_song_data):
-                                with st.expander(f"🎵 {version_names[idx]} - Syair + Chord (Key {song_data.get('key_signature', 'N/A')})"):
-                                    if song_data.get('lyrics_with_chords'):
-                                        st.markdown(
-                                            f"""
-                                            <div style="
-                                                background-color: #f8f9fa;
-                                                padding: 1.5rem;
-                                                border-radius: 8px;
-                                                font-family: 'Courier New', monospace;
-                                                white-space: pre-wrap;
-                                                font-size: 0.85rem;
-                                                line-height: 1.4;
-                                            ">
-                                                {song_data['lyrics_with_chords']}
-                                            </div>
-                                            """,
-                                            unsafe_allow_html=True
-                                        )
-
-                                    # Show full score if available
-                                    if song_data.get('full_score'):
-                                        st.markdown("**🎼 Full Score dengan Notasi Angka:**")
-                                        st.markdown(
-                                            f"""
-                                            <div style="
-                                                background-color: #fff8e1;
-                                                padding: 1.5rem;
-                                                border-radius: 8px;
-                                                border-left: 3px solid #ff9800;
-                                                font-family: 'Courier New', monospace;
-                                                white-space: pre-wrap;
-                                                font-size: 0.8rem;
-                                                line-height: 1.3;
-                                            ">
-                                                {song_data['full_score']}
-                                            </div>
-                                            """,
-                                            unsafe_allow_html=True
-                                        )
+                            st.markdown("##### 📝 Full Score (Sama untuk kedua versi)")
+                            if all_song_data[0].get('full_score'):
+                                st.markdown(
+                                    f"""
+                                    <div style="
+                                        background-color: #f8f9fa;
+                                        padding: 1.5rem;
+                                        border-radius: 8px;
+                                        border-left: 3px solid {border_color};
+                                        font-family: 'Georgia', serif;
+                                        line-height: 1.6;
+                                        white-space: pre-wrap;
+                                        font-size: 0.95rem;
+                                    ">
+                                        {all_song_data[0]['full_score']}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                            elif all_song_data[0].get('lyrics_text'):
+                                st.warning("⚠️ Full Score belum tersedia, menampilkan syair saja:")
+                                st.markdown(
+                                    f"""
+                                    <div style="
+                                        background-color: #fff3cd;
+                                        padding: 1.5rem;
+                                        border-radius: 8px;
+                                        border-left: 3px solid #ffc107;
+                                        font-family: 'Georgia', serif;
+                                        line-height: 1.6;
+                                        white-space: pre-wrap;
+                                        font-size: 0.95rem;
+                                    ">
+                                        {all_song_data[0]['lyrics_text']}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                            else:
+                                st.info("📝 Full Score belum tersedia untuk lagu ini.")
 
                         # PDF tab only if enabled
                         if show_pdf:
@@ -6708,50 +6843,172 @@ def render_winners_section():
                         render_audio_player(song_data)
 
                     with col2:
-                        st.markdown("##### 📝 Full Score")
-                        if song_data.get('full_score'):
-                            st.markdown(
-                                f"""
-                                <div style="
-                                    background-color: #f8f9fa;
-                                    padding: 1.5rem;
-                                    border-radius: 8px;
-                                    border-left: 3px solid {border_color};
-                                    font-family: 'Georgia', serif;
-                                    line-height: 1.6;
-                                    white-space: pre-wrap;
-                                    max-height: 300px;
-                                    overflow-y: auto;
-                                    font-size: 0.95rem;
-                                ">
-                                    {song_data['full_score']}
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
+                        # Determine content and header dynamically (same as all songs)
+                        if song_data.get('lyrics_with_chords'):
+                            content_to_show = song_data['lyrics_with_chords']
+                            header = "**🎼 Syair + Chord**"
                         elif song_data.get('lyrics_text'):
-                            st.warning("⚠️ Full Score belum tersedia, menampilkan syair saja:")
+                            content_to_show = song_data['lyrics_text']
+                            header = "**🎼 Syair Only** *(Chord tidak tersedia)*"
+                        elif song_data.get('chords_list'):
+                            content_to_show = song_data['chords_list']
+                            header = "**🎼 Chord Only** *(Syair tidak tersedia)*"
+                        elif song_data.get('full_score'):
+                            content_to_show = song_data['full_score']
+                            header = "**🎼 Full Score**"
+                        else:
+                            content_to_show = None
+                            header = "**🎼 Syair + Chord**"
+
+                        st.markdown(header)
+
+                        if content_to_show:
                             st.markdown(
                                 f"""
                                 <div style="
-                                    background-color: #fff3cd;
-                                    padding: 1.5rem;
+                                    background-color: #fff8e1;
+                                    padding: 1rem;
                                     border-radius: 8px;
-                                    border-left: 3px solid #ffc107;
-                                    font-family: 'Georgia', serif;
-                                    line-height: 1.6;
+                                    border-left: 3px solid #ff9800;
+                                    font-family: 'Courier New', monospace;
                                     white-space: pre-wrap;
-                                    max-height: 300px;
+                                    font-size: 0.7rem;
+                                    line-height: 1.3;
+                                    max-height: 400px;
                                     overflow-y: auto;
-                                    font-size: 0.95rem;
                                 ">
-                                    {song_data['lyrics_text']}
+                                    {content_to_show}
                                 </div>
                                 """,
                                 unsafe_allow_html=True
                             )
                         else:
-                            st.info("Syair tidak tersedia")
+                            st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
+
+                    # Show PDF documents below
+                    if show_pdf:
+                        st.markdown("---")
+                        st.markdown("##### 📄 PDF Documents")
+
+                        # Get PDF URLs using file service
+                        lyrics_pdf_url = None
+                        notation_pdf_url = None
+
+                        # Try to get lyrics PDF URL
+                        if song_data.get('lyrics_file_id'):
+                            lyrics_pdf_url = file_service.get_file_url(song_data['lyrics_file_id'])
+                        elif song_data.get('lyrics_file_path'):
+                            lyrics_path = song_data['lyrics_file_path']
+                            if lyrics_path:
+                                try:
+                                    if lyrics_path.startswith('files/'):
+                                        clean_path = lyrics_path
+                                    else:
+                                        clean_path = f"files/{lyrics_path}"
+                                    lyrics_pdf_url = file_service.get_public_url(clean_path)
+                                    if not lyrics_pdf_url:
+                                        import urllib.parse
+                                        supabase_project_url = st.secrets["supabase_url"]
+                                        bucket_name = "song-contest-files"
+                                        encoded_path = urllib.parse.quote(clean_path)
+                                        lyrics_pdf_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
+                                except:
+                                    pass
+
+                        # Try to get notation PDF URL
+                        if song_data.get('notation_file_id'):
+                            notation_pdf_url = file_service.get_file_url(song_data['notation_file_id'])
+                        elif song_data.get('notation_file_path'):
+                            notation_path = song_data['notation_file_path']
+                            if notation_path:
+                                try:
+                                    if notation_path.startswith('files/'):
+                                        clean_path = notation_path
+                                    else:
+                                        clean_path = f"files/{notation_path}"
+                                    notation_pdf_url = file_service.get_public_url(clean_path)
+                                    if not notation_pdf_url:
+                                        import urllib.parse
+                                        supabase_project_url = st.secrets["supabase_url"]
+                                        bucket_name = "song-contest-files"
+                                        encoded_path = urllib.parse.quote(clean_path)
+                                        notation_pdf_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
+                                except:
+                                    pass
+
+                        # Display PDF buttons and embedded viewers
+                        if lyrics_pdf_url or notation_pdf_url:
+                            # PDF buttons
+                            pdf_buttons_html = ""
+                            if lyrics_pdf_url:
+                                pdf_buttons_html += f"""
+                                <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
+                                    <button style="
+                                        background-color: #2196F3;
+                                        color: white;
+                                        padding: 8px 12px;
+                                        border: none;
+                                        border-radius: 6px;
+                                        cursor: pointer;
+                                        font-size: 0.85rem;
+                                        margin: 3px;
+                                        width: 48%;
+                                        font-weight: bold;
+                                    ">📝 Syair PDF</button>
+                                </a>
+                                """
+
+                            if notation_pdf_url:
+                                pdf_buttons_html += f"""
+                                <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
+                                    <button style="
+                                        background-color: #4CAF50;
+                                        color: white;
+                                        padding: 8px 12px;
+                                        border: none;
+                                        border-radius: 6px;
+                                        cursor: pointer;
+                                        font-size: 0.85rem;
+                                        margin: 3px;
+                                        width: 48%;
+                                        font-weight: bold;
+                                    ">🎼 Notasi PDF</button>
+                                </a>
+                                """
+
+                            if pdf_buttons_html:
+                                st.markdown(f"""
+                                <div style="text-align: center; margin: 10px 0;">
+                                    {pdf_buttons_html}
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                            # Embedded PDF viewers
+                            if lyrics_pdf_url:
+                                st.markdown("**📝 Syair PDF Preview:**")
+                                # Use Google Docs Viewer for better compatibility
+                                google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
+                                st.markdown(f"""
+                                <iframe src="{google_viewer_url}"
+                                        width="100%"
+                                        height="600"
+                                        style="border: 1px solid #ddd; border-radius: 8px;">
+                                </iframe>
+                                """, unsafe_allow_html=True)
+
+                            if notation_pdf_url:
+                                st.markdown("**🎼 Notasi PDF Preview:**")
+                                # Use Google Docs Viewer for better compatibility
+                                google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
+                                st.markdown(f"""
+                                <iframe src="{google_viewer_url}"
+                                        width="100%"
+                                        height="600"
+                                        style="border: 1px solid #ddd; border-radius: 8px;">
+                                </iframe>
+                                """, unsafe_allow_html=True)
+                        else:
+                            st.info("📄 PDF documents tidak tersedia")
 
                 st.markdown("---")  # Separator between winners
             else:
@@ -6775,14 +7032,14 @@ def render_winners_section():
 def render_all_songs_section(view_mode="📋 Semua Lagu"):
     """Render section for all songs with winner emoji and improved audio player"""
     st.markdown("---")
-    st.markdown("""
-    <div class="winners-card">
-        <h2>🎵 Semua Lagu Peserta</h2>
-        <p style="font-size: 1.1rem; margin: 1rem 0;">
-            Dengarkan semua karya peserta lomba
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    # st.markdown("""
+    # <div class="winners-card">
+    #     <h2>🎵 Semua Lagu Peserta</h2>
+    #     <p style="font-size: 1.1rem; margin: 1rem 0;">
+    #         Dengarkan semua karya peserta lomba
+    #     </p>
+    # </div>
+    # """, unsafe_allow_html=True)
 
     try:
         # Get all songs data (sorted by score)
@@ -6816,17 +7073,17 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
         if view_mode == "🏆 Hanya Pemenang":
             # Show only winners
             filtered_df = filtered_df.head(winners_count)
-            expander_title = f"🏆 **Top {winners_count} Pemenang**"
+            expander_title = f"🏆 **Dengarkan langsung Top {winners_count} Winner**"
             subtitle = f"*Menampilkan {winners_count} lagu terbaik*"
         elif view_mode == "🎵 Lagu Lainnya":
             # Show non-winners (exclude top winners)
             filtered_df = filtered_df.iloc[winners_count:]
-            expander_title = "🎵 **Lagu Peserta Lainnya**"
+            expander_title = "🎵 **Dengarkan langsung lagu peserta lainnya**"
             subtitle = f"*Menampilkan {len(filtered_df)} lagu peserta (selain pemenang)*"
         else:
             # Show all songs (default)
-            expander_title = "🎵 **Semua Lagu Peserta**"
-            subtitle = f"*Menampilkan semua {len(filtered_df)} lagu peserta*"
+            expander_title = "🎵 **Dengarkan langsung semua lagu peserta**"
+            subtitle = f"*Menampilkan {len(filtered_df)} lagu peserta*"
 
         # Song selection with expander - cleaner UI
         with st.expander(expander_title, expanded=True):
@@ -6924,29 +7181,31 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                 render_audio_player(song_data, f"landing_{selected_song['song_id']}")
 
             with col_score:
-                st.markdown("**🎼 Full Score**")
-
-                # Priority: full_score > lyrics_with_chords > chords_list > lyrics_text
-                content_to_show = None
-                content_type = ""
-
-                if song_data.get('full_score'):
-                    content_to_show = song_data['full_score']
-                    content_type = "Full Score"
-                elif song_data.get('lyrics_with_chords'):
+                # Determine content and header dynamically
+                if song_data.get('lyrics_with_chords'):
                     content_to_show = song_data['lyrics_with_chords']
                     content_type = "Syair + Chord"
+                    header = "**🎼 Syair + Chord**"
+                elif song_data.get('lyrics_text'):
+                    content_to_show = song_data['lyrics_text']
+                    content_type = "Syair Only"
+                    header = "**🎼 Syair Only** *(Chord tidak tersedia)*"
                 elif song_data.get('chords_list'):
                     content_to_show = song_data['chords_list']
                     content_type = "Chord"
-                elif song_data.get('lyrics_text'):
-                    content_to_show = song_data['lyrics_text']
-                    content_type = "Syair"
+                    header = "**🎼 Chord Only** *(Syair tidak tersedia)*"
+                elif song_data.get('full_score'):
+                    content_to_show = song_data['full_score']
+                    content_type = "Full Score"
+                    header = "**🎼 Full Score**"
+                else:
+                    content_to_show = None
+                    content_type = ""
+                    header = "**🎼 Syair + Chord**"
+
+                st.markdown(header)
 
                 if content_to_show:
-                    if content_type != "Full Score":
-                        st.markdown(f"**🎼 {content_type}** *(Full Score tidak tersedia)*")
-
                     st.markdown(
                         f"""
                         <div style="
@@ -6957,7 +7216,7 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                             font-family: 'Courier New', monospace;
                             white-space: pre-wrap;
                             font-size: 0.7rem;
-                            line-height: 1.1;
+                            line-height: 1.3;
                             max-height: 400px;
                             overflow-y: auto;
                         ">
@@ -6967,7 +7226,7 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                         unsafe_allow_html=True
                     )
                 else:
-                    st.info("Tidak ada konten yang tersedia")
+                    st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
 
             # PDF Documents section
             st.markdown("---")
@@ -7019,7 +7278,7 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                     except:
                         pass
 
-            # Display PDF buttons in two columns
+            # Display PDF buttons in two columns (simple approach)
             col_pdf1, col_pdf2 = st.columns(2)
 
             with col_pdf1:
@@ -7117,35 +7376,32 @@ def render_landing_sidebar():
 
         # Google Drive Links Section
         st.markdown("---")
-        st.markdown("### 📁 Kompilasi Lagu & PDF")
+        st.markdown("### 📁 Google Drive Kompilasi Lagu & Partitur")
+        
+        # Winner Theme Song
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/1P12024Z8lKgKw137e5o2zVwPgl787TSC?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
+                🏆 Theme Song<br>
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
 
         # All Songs (without winner, original order)
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/1_GltfIbmh1SDMCK7MhGrVcrq_pcby1q1?usp=sharing" target="_blank" style="text-decoration: none;">
             <div style="background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
-                🎵 Semua Lagu Peserta<br>
-                <small style="opacity: 0.9;">8 lagu untuk wilayah & PHBG</small>
+                🎵 Pembagian Lagu Wilayah<br>
             </div>
         </a>
         """, unsafe_allow_html=True)
         
 
-        # Winner Theme Song
-        st.markdown("""
-        <a href="https://drive.google.com/drive/folders/1P12024Z8lKgKw137e5o2zVwPgl787TSC?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
-                🏆 Theme Song 2025<br>
-                <small style="opacity: 0.8;">Lagu, Partitur & Video</small>
-            </div>
-        </a>
-        """, unsafe_allow_html=True)
-
         # Closing Song
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/16DuWouMrek3tmZbbof9PtoEM749aVLu6?usp=sharing" target="_blank" style="text-decoration: none;">
             <div style="background: linear-gradient(135deg, #9C27B0, #7B1FA2); color: white; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
-                🎼 Lagu Penutup Bulkel<br>
-                <small style="opacity: 0.9;">by Bpk Parulian</small>
+                🎼 Lagu Penutup<br>
             </div>
         </a>
         """, unsafe_allow_html=True)
@@ -7263,7 +7519,7 @@ def render_landing_page():
         return
 
     # Main landing page - no header needed (already in sidebar)
-    # st.markdown("# 🎵 Lomba Cipta Lagu Bulkel 2025")  # Removed double title
+    # st.markdown("# 🎵 Lomba Cipta Lagu Bulan Keluarga 2025")  # Removed double title
 
     # Get contest status
     config = cache_service.get_cached_config()
@@ -7334,7 +7590,7 @@ def render_landing_page():
 
     # Title
     # st.markdown("""
-    # <h1 style="color: #2c3e50; margin-bottom: 0.5rem;">🎵 Lomba Cipta Lagu Bulkel 2025</h1>
+    # <h1 style="color: #2c3e50; margin-bottom: 0.5rem;">🎵 Lomba Cipta Lagu Bulan Keluarga 2025</h1>
     # <h3 style="color: #7f8c8d; margin-bottom: 2rem;">WAKTU BERSAMA HARTA BERHARGA</h3>
     # """, unsafe_allow_html=True)
 
@@ -7344,7 +7600,7 @@ def render_landing_page():
         # Center the image using columns
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.image("assets/FLYER_01.png", caption="Poster Lomba Cipta Lagu Bulkel 2025", width='stretch')
+            st.image("assets/FLYER_01.png", caption="Poster Lomba Cipta Lagu Bulan Keluarga 2025", width='stretch')
         st.markdown('</div>', unsafe_allow_html=True)
     except:
         st.warning("⚠️ Poster tidak dapat dimuat")
@@ -7354,10 +7610,7 @@ def render_landing_page():
     st.markdown("""
     <div style="text-align: center; margin: 2rem 0;">
         <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">🏆 Pengumuman Pemenang</h3>
-        <div style="background: linear-gradient(135deg, #FFD700, #FFA500);
-                    padding: 10px 20px; border-radius: 20px; display: inline-block; margin-bottom: 1rem;">
-            <span style="color: #8B4513; font-weight: bold; font-size: 1rem;">
-                🥇 "Harta Yang S'jati" - Sigit Hascarya (Versi 1)
+        <div style="background: linear-gradient(135deg, #FFD700, #FFA500);  
             </span>
         </div>
     </div>
@@ -7382,19 +7635,19 @@ def render_landing_page():
                         lyric_video_url = winner_song['lyric_video_url']
                         song_title = winner_song['title']
 
-                        st.markdown(f"""
-                        <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
-                            <iframe
-                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
-                                src="{lyric_video_url}"
-                                title="Lyric Video - {song_title}"
-                                frameborder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                referrerpolicy="strict-origin-when-cross-origin"
-                                allowfullscreen>
-                            </iframe>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        # st.markdown(f"""
+                        # <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
+                        #     <iframe
+                        #         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
+                        #         src="{lyric_video_url}"
+                        #         title="Lyric Video - {song_title}"
+                        #         frameborder="0"
+                        #         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        #         referrerpolicy="strict-origin-when-cross-origin"
+                        #         allowfullscreen>
+                        #     </iframe>
+                        # </div>
+                        # """, unsafe_allow_html=True)
                     else:
                         st.info("🎵 Lyric video akan segera tersedia")
                 else:
@@ -7407,14 +7660,14 @@ def render_landing_page():
             st.info("🎵 Lyric video akan segera tersedia")
 
         # Video description
-        st.markdown("""
-        <div style="text-align: center; margin-top: 1rem; padding: 15px;
-                    background: #f8f9fa; border-radius: 10px; border-left: 4px solid #FFD700;">
-            <p style="margin: 0; color: #666; font-size: 0.9rem;">
-                📝 Meskipun Versi 2 memiliki skor tertinggi, Versi 1 dipilih karena lebih cocok dengan jemaat
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        # st.markdown("""
+        # <div style="text-align: center; margin-top: 1rem; padding: 15px;
+        #             background: #f8f9fa; border-radius: 10px; border-left: 4px solid #FFD700;">
+        #     <p style="margin: 0; color: #666; font-size: 0.9rem;">
+        #         📝 Meskipun Versi 2 memiliki skor tertinggi, Versi 1 dipilih karena lebih cocok dengan jemaat
+        #     </p>
+        # </div>
+        # """, unsafe_allow_html=True)
         
 
     # Contest status section
@@ -7440,12 +7693,12 @@ def render_landing_page():
             </p>
         </div>
         """, unsafe_allow_html=True)
-
-        # Google Drive Links Section - After Winners
-        render_google_drive_section()
         
         # Show all songs section
         render_all_songs_section(view_mode)
+        
+        # Google Drive Links Section - After Winners
+        render_google_drive_section()
     else:
         # Always show the beautiful theme and contest info
         render_theme_timeline()
@@ -7795,7 +8048,7 @@ def render_certificate_section():
 
 def render_info_section():
     """Render contest information section"""
-    st.markdown("### 📋 Informasi Lomba Cipta Lagu Bulkel 2025")
+    st.markdown("### 📋 Informasi Lomba Cipta Lagu Bulan Keluarga 2025")
 
     # Back button
     if st.button("← Kembali ke Beranda", type="secondary"):
