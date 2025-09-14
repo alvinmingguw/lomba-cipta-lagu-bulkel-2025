@@ -7239,18 +7239,18 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
 
                     # Find the rank for celebration message
                     original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
-                    try:
-                        original_rank = original_df_sorted[original_df_sorted['title'] == selected_song['title']].index[0] + 1
-                        if original_rank == 1:
-                            st.success("🥇 Selamat! Anda memilih lagu JUARA 1!")
-                        elif original_rank == 2:
-                            st.success("🥈 Selamat! Anda memilih lagu JUARA 2!")
-                        elif original_rank == 3:
-                            st.success("🥉 Selamat! Anda memilih lagu JUARA 3!")
-                        else:
-                            st.success(f"🏆 Selamat! Anda memilih lagu pemenang!")
-                    except:
-                        st.success("🏆 Selamat! Anda memilih lagu pemenang!")
+                    # try:
+                    #     original_rank = original_df_sorted[original_df_sorted['title'] == selected_song['title']].index[0] + 1
+                    #     if original_rank == 1:
+                    #         st.success("🥇 Selamat! Anda memilih lagu JUARA 1!")
+                    #     elif original_rank == 2:
+                    #         st.success("🥈 Selamat! Anda memilih lagu JUARA 2!")
+                    #     elif original_rank == 3:
+                    #         st.success("🥉 Selamat! Anda memilih lagu JUARA 3!")
+                    #     else:
+                    #         st.success(f"🏆 Selamat! Anda memilih lagu pemenang!")
+                    # except:
+                    #     st.success("🏆 Selamat! Anda memilih lagu pemenang!")
 
                     # Add sound effect
                     st.markdown("""
