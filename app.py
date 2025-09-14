@@ -6118,13 +6118,26 @@ def render_winners_section():
 
         # Get configuration for winners count
         config = cache_service.get_cached_config()
-        winners_count = int(config.get('WINNERS_TOP_N', 3))
-
-        # Get top winners
-        winners_df = leaderboard_df.head(winners_count)
+        winners_count = int(config.get('WINNERS_TOP_N', 1))  # Default to 1 now
 
         # Get songs data for audio and lyrics
         songs_df = db_service.get_songs()
+
+        # Filter leaderboard to only include songs with lyric_video_url
+        if not songs_df.empty:
+            # Get songs that have lyric_video_url
+            songs_with_video = songs_df[songs_df['lyric_video_url'].notna() & (songs_df['lyric_video_url'] != '')]
+            if not songs_with_video.empty:
+                # Filter leaderboard to only include these songs
+                video_song_titles = songs_with_video['title'].tolist()
+                leaderboard_df = leaderboard_df[leaderboard_df['title'].isin(video_song_titles)]
+
+        if leaderboard_df.empty:
+            st.info("🎵 Pemenang dengan lyric video akan segera diumumkan")
+            return
+
+        # Get top winners (filtered by lyric video availability)
+        winners_df = leaderboard_df.head(winners_count)
 
         # Group winners by composer and base title to handle multiple versions
         grouped_winners = {}
@@ -7004,32 +7017,6 @@ def render_landing_sidebar():
         </a>
         """, unsafe_allow_html=True)
 
-        # Check if user is logged in for dynamic login/dashboard button
-        current_user = auth_service.get_current_user()
-        if current_user:
-            # User is logged in - show Dashboard button
-            if st.button("📊 Dashboard", type="primary", width='stretch', key="nav_dashboard"):
-                # Set flag to show main app instead of landing page
-                st.session_state.show_dashboard = True
-                st.rerun()
-        else:
-            # User not logged in - show Login button
-            if st.button("🔐 Login dengan Google", type="secondary", width='stretch', key="nav_login"):
-                with st.spinner("🔄 Preparing Google login..."):
-                    try:
-                        # Generate Google OAuth URL
-                        success = auth_service.login_with_google()
-                        if success and 'google_oauth_url' in st.session_state:
-                            # Redirect to auth page with OAuth URL ready
-                            st.success("✅ Redirecting to login page...")
-                            st.switch_page("pages/auth.py")
-                        else:
-                            st.error("❌ Failed to prepare Google login. Please try again.")
-                    except Exception as e:
-                        st.error(f"❌ Login error: {str(e)}")
-                        # Fallback: go to auth page anyway
-                        st.switch_page("pages/auth.py")
-
         st.markdown("---")
 
         # Song Display Section - Only show if winners are announced
@@ -7090,6 +7077,40 @@ def render_landing_sidebar():
             if st.button("📋 Semua Lagu", type="primary", width='stretch', key="view_all_fallback"):
                 st.session_state.song_view_mode = "📋 Semua Lagu"
                 st.rerun()
+
+        # Login/Dashboard Section - Moved to bottom
+        st.markdown("---")
+        st.markdown("""
+        <div class="nav-section">
+            <div class="nav-header">👤 Akses Juri</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Check if user is logged in for dynamic login/dashboard button
+        current_user = auth_service.get_current_user()
+        if current_user:
+            # User is logged in - show Dashboard button
+            if st.button("📊 Dashboard", type="primary", width='stretch', key="nav_dashboard"):
+                # Set flag to show main app instead of landing page
+                st.session_state.show_dashboard = True
+                st.rerun()
+        else:
+            # User not logged in - show Login button
+            if st.button("🔐 Login dengan Google", type="secondary", width='stretch', key="nav_login"):
+                with st.spinner("🔄 Preparing Google login..."):
+                    try:
+                        # Generate Google OAuth URL
+                        success = auth_service.login_with_google()
+                        if success and 'google_oauth_url' in st.session_state:
+                            # Redirect to auth page with OAuth URL ready
+                            st.success("✅ Redirecting to login page...")
+                            st.switch_page("pages/auth.py")
+                        else:
+                            st.error("❌ Failed to prepare Google login. Please try again.")
+                    except Exception as e:
+                        st.error(f"❌ Login error: {str(e)}")
+                        # Fallback: go to auth page anyway
+                        st.switch_page("pages/auth.py")
 
         return st.session_state.get('song_view_mode', '📋 Semua Lagu')
 
@@ -7215,19 +7236,52 @@ def render_landing_page():
     # Center the YouTube video
     col1, col2, col3 = st.columns([1, 3, 1])
     with col2:
-        st.markdown("""
-        <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
-            <iframe
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
-                src="https://www.youtube.com/embed/K3MOLcvMoD4?si=3wYON16GK3vo7kgY"
-                title="Lyric Video - Harta Yang S'jati"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen>
-            </iframe>
-        </div>
-        """, unsafe_allow_html=True)
+        # Get winner song with lyric video from database
+        try:
+            songs_df = db_service.get_songs()
+            if not songs_df.empty:
+                # Filter songs that have lyric_video_url
+                winner_songs = songs_df[songs_df['lyric_video_url'].notna() & (songs_df['lyric_video_url'] != '')]
+                if not winner_songs.empty:
+                    # Get the first winner song with lyric video
+                    winner_song = winner_songs.iloc[0]
+                    lyric_video_url = winner_song['lyric_video_url']
+                    song_title = winner_song['title']
+                    composer = winner_song['composer']
+
+                    st.markdown(f"""
+                    <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
+                        <iframe
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
+                            src="{lyric_video_url}"
+                            title="Lyric Video - {song_title}"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.info("🎵 Lyric video akan segera tersedia")
+            else:
+                st.info("🎵 Lyric video akan segera tersedia")
+        except Exception as e:
+            st.error(f"Error loading lyric video: {e}")
+            # Fallback to hardcoded video
+            st.markdown("""
+            <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 1rem 0;">
+                <iframe
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
+                    src="https://www.youtube.com/embed/K3MOLcvMoD4?si=3wYON16GK3vo7kgY"
+                    title="Lyric Video - Harta Yang S'jati"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen>
+                </iframe>
+            </div>
+            """, unsafe_allow_html=True)
 
         # Video description
         st.markdown("""
@@ -7237,6 +7291,81 @@ def render_landing_page():
                 📝 Meskipun Versi 2 memiliki skor tertinggi, Versi 1 dipilih karena lebih easy listening
             </p>
         </div>
+        """, unsafe_allow_html=True)
+
+    # Google Drive Links Section - Beautiful Cards
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; margin: 2rem 0 1rem 0;">
+        <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">📁 Kompilasi Lagu & PDF</h3>
+        <p style="color: #666; margin: 0;">Akses lengkap semua materi lomba</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Create 3 columns for the cards
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/1_GltfIbmh1SDMCK7MhGrVcrq_pcby1q1?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="
+                background: linear-gradient(135deg, #4CAF50, #45a049);
+                color: white;
+                padding: 1.5rem;
+                border-radius: 15px;
+                text-align: center;
+                margin: 0.5rem 0;
+                box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+                transition: transform 0.3s ease;
+                cursor: pointer;
+            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎵</div>
+                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Semua Lagu Peserta</h4>
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">8 lagu untuk wilayah & PHBG<br>Urutan nomor asli</p>
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/1P12024Z8lKgKw137e5o2zVwPgl787TSC?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="
+                background: linear-gradient(135deg, #FFD700, #FFA500);
+                color: #333;
+                padding: 1.5rem;
+                border-radius: 15px;
+                text-align: center;
+                margin: 0.5rem 0;
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+                transition: transform 0.3s ease;
+                cursor: pointer;
+            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
+                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Theme Song 2025</h4>
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.8;">Lagu Pemenang<br>Audio, Partitur & Video</p>
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/16DuWouMrek3tmZbbof9PtoEM749aVLu6?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="
+                background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+                color: white;
+                padding: 1.5rem;
+                border-radius: 15px;
+                text-align: center;
+                margin: 0.5rem 0;
+                box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
+                transition: transform 0.3s ease;
+                cursor: pointer;
+            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎼</div>
+                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Lagu Penutup Bulkel</h4>
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">by Bpk Parulian<br>Audio & Partitur</p>
+            </div>
+        </a>
         """, unsafe_allow_html=True)
 
     # Contest status section
@@ -7637,18 +7766,44 @@ def render_info_section():
     - **Penilaian**: {judging_start} - {judging_end}
     - **Pengumuman**: {winner_announce}
 
-    #### 🏆 Kategori Penilaian
-    1. **Tema (25%)** - Kesesuaian dengan tema lomba
-    2. **Lirik (25%)** - Kualitas dan makna lirik
-    3. **Musik (25%)** - Melodi, harmoni, dan aransemen
-    4. **Kreativitas (15%)** - Orisinalitas dan inovasi
-    5. **Jemaat (10%)** - Kemudahan untuk dinyanyikan jemaat
+    #### 🏆 Kategori Penilaian""")
 
-    #### 👥 Tim Juri
-    - Juri ahli musik gereja
-    - Praktisi musik rohani
-    - Tokoh gereja berpengalaman
+    # Get rubrics from database
+    try:
+        rubrics_df = db_service.get_rubrics()
+        if not rubrics_df.empty:
+            for i, (_, rubric) in enumerate(rubrics_df.iterrows(), 1):
+                weight = rubric.get('weight', 20)
+                aspect_name = rubric.get('aspect_name', 'Unknown')
+                description = rubric.get('description', '')
+                st.markdown(f"    {i}. **{aspect_name} ({weight}%)** - {description}")
+        else:
+            st.markdown("    Data kategori penilaian tidak tersedia")
+    except Exception as e:
+        st.error(f"Error loading rubrics: {e}")
+        st.markdown("    Data kategori penilaian tidak tersedia")
 
+    st.markdown("""
+    #### 👥 Tim Juri""")
+
+    # Get judges from database
+    try:
+        judges_df = db_service.get_judges()
+        if not judges_df.empty:
+            for _, judge in judges_df.iterrows():
+                name = judge.get('name', 'Unknown')
+                expertise = judge.get('expertise', '')
+                if expertise:
+                    st.markdown(f"    - **{name}** - {expertise}")
+                else:
+                    st.markdown(f"    - **{name}**")
+        else:
+            st.markdown("    Data juri tidak tersedia")
+    except Exception as e:
+        st.error(f"Error loading judges: {e}")
+        st.markdown("    Data juri tidak tersedia")
+
+    st.markdown("""
     #### 📞 Kontak
     Untuk pertanyaan lebih lanjut, silakan hubungi panitia lomba.
     """)
