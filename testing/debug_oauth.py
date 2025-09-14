@@ -64,8 +64,8 @@ def main():
     st.header("🧪 Manual OAuth Test")
     
     test_url = st.text_input(
-        "Test URL:", 
-        value="https://lomba-cipta-lagu-bulkel-2025.streamlit.app",
+        "Test URL:",
+        value="https://themesong-gki-perumnas.streamlit.app",
         help="Enter the URL to test OAuth with"
     )
     

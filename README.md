@@ -1,4 +1,4 @@
-# 🎵 Lomba Cipta Lagu Bulkel 2025
+# 🎵 Theme Song GKI Perumnas
 
 > **Advanced Digital Judging System** for GKI Perumnas Song Contest
 > Theme: **"Waktu Bersama Harta Berharga"** (Time Together, Precious Treasure)
@@ -12,8 +12,8 @@
 
 ```bash
 # 1. Clone Repository
-git clone https://github.com/alvinmingguw/lomba-cipta-lagu-bulkel-2025.git
-cd lomba-cipta-lagu-bulkel-2025
+git clone https://github.com/alvinmingguw/themesong-gki-perumnas.git
+cd themesong-gki-perumnas
 
 # 2. Install Dependencies
 pip install -r requirements.txt
@@ -44,7 +44,7 @@ streamlit run app.py
 ## 📁 Project Architecture
 
 ```
-lomba-cipta-lagu-bulkel-2025/
+themesong-gki-perumnas/
 ├── 🎯 app.py                       # Main Streamlit application
 ├── 📋 requirements.txt             # Python dependencies
 ├── 📖 README.md                    # Project documentation
@@ -364,8 +364,8 @@ git push origin main
 ### **🐳 Docker Deployment**
 ```dockerfile
 # Dockerfile included for containerized deployment
-docker build -t lomba-lagu .
-docker run -p 8501:8501 lomba-lagu
+docker build -t themesong-gki-perumnas .
+docker run -p 8501:8501 themesong-gki-perumnas
 ```
 
 ### **🔧 Environment Variables**

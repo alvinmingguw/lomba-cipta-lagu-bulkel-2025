@@ -759,7 +759,7 @@ class AuthService:
                 supabase_url = st_check.secrets.get('supabase_url', '')
                 if 'supabase.co' in supabase_url:  # Cloud Supabase = Cloud Streamlit
                     logger.info("🌐 Detected Streamlit Cloud deployment via Supabase URL")
-                    return 'https://lomba-cipta-lagu-bulkel-2025.streamlit.app'
+                    return 'https://themesong-gki-perumnas.streamlit.app'
         except Exception as e:
             logger.warning(f"Error checking Streamlit secrets: {e}")
 
@@ -776,7 +776,7 @@ class AuthService:
 
             if any(streamlit_cloud_indicators):
                 logger.info("🌐 Detected Streamlit Cloud deployment via environment")
-                return 'https://lomba-cipta-lagu-bulkel-2025.streamlit.app'
+                return 'https://themesong-gki-perumnas.streamlit.app'
         except Exception as e:
             logger.warning(f"Error detecting Streamlit Cloud: {e}")
 
@@ -844,7 +844,7 @@ class AuthService:
                     return f"https://{hostname}"
 
                 # Fallback: construct from app name
-                app_name = os.environ.get('STREAMLIT_APP_NAME', 'lomba-cipta-lagu-bulkel-2025')
+                app_name = os.environ.get('STREAMLIT_APP_NAME', 'themesong-gki-perumnas')
                 return f"https://{app_name}.streamlit.app"
         except:
             pass
@@ -857,7 +857,7 @@ class AuthService:
                 supabase_url = st.secrets.get('supabase_url', '')
                 if 'localhost' not in supabase_url and supabase_url:
                     # We're deployed, use the known Streamlit Cloud URL
-                    return 'https://lomba-cipta-lagu-bulkel-2025.streamlit.app'
+                    return 'https://themesong-gki-perumnas.streamlit.app'
         except:
             pass
 

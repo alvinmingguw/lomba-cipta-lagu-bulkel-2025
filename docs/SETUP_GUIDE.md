@@ -1,4 +1,4 @@
-# 🚀 Complete Setup Guide - Lomba Cipta Lagu Bulkel 2025
+# 🚀 Complete Setup Guide - Theme Song GKI Perumnas
 
 ## 📋 Prerequisites
 
@@ -12,8 +12,8 @@
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/alvinmingguw/lomba-cipta-lagu-bulkel-2025.git
-cd lomba-cipta-lagu-bulkel-2025
+git clone https://github.com/alvinmingguw/themesong-gki-perumnas.git
+cd themesong-gki-perumnas
 ```
 
 ### 2. Install Dependencies
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 1. **Go to [supabase.com](https://supabase.com)**
 2. **Click "New Project"**
 3. **Fill in:**
-   - **Name**: `lomba-cipta-lagu-gki-perumnas-2025`
+   - **Name**: `themesong-gki-perumnas`
    - **Database Password**: Create a strong password
    - **Region**: `Southeast Asia (Singapore)` (recommended)
 4. **Click "Create new project"**

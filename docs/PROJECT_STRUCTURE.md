@@ -3,7 +3,7 @@
 ## 🎯 **Clean & Organized Structure**
 
 ```
-lomba-cipta-lagu-bulkel-2025/
+themesong-gki-perumnas/
 ├── 🎵 app.py                  # Main Streamlit application
 ├── 📦 requirements.txt        # Python dependencies
 ├── 📖 README.md               # Main documentation
