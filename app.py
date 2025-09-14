@@ -3148,7 +3148,11 @@ def render_penilaian_tab(judge_id, judge_name, effective_user, can_evaluate=True
         if hasattr(st.session_state, 'audio_cache'):
             del st.session_state.audio_cache
 
-    # Update session state
+        # Update session state and trigger rerun
+        st.session_state.selected_song = selected_song
+        st.rerun()
+
+    # Update session state (for first time selection)
     st.session_state.selected_song = selected_song
     
     # Get song details
@@ -6303,8 +6307,46 @@ def render_winners_section():
 
     # Show celebration effects on first view
     if should_show_winner_celebration():
-        # Show confetti/balloons for winner announcement
+        # Use Streamlit's built-in balloons
         st.balloons()
+
+        # Add sound effect
+        st.markdown("""
+        <script>
+        function playWinnerSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Play a celebratory chord
+                const frequencies = [523.25, 659.25, 783.99]; // C, E, G
+
+                frequencies.forEach((freq, index) => {
+                    setTimeout(() => {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+
+                        oscillator.frequency.value = freq;
+                        oscillator.type = 'sine';
+
+                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 1);
+                    }, index * 100);
+                });
+
+            } catch (e) {
+                console.log('Audio not supported:', e);
+            }
+        }
+
+        setTimeout(playWinnerSound, 500);
+        </script>
+        """, unsafe_allow_html=True)
 
         # Add celebration header with animation
         # st.markdown("""
@@ -7192,7 +7234,53 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
             # Check if this is a winner song and show celebration
             if selected_song['title'] in winner_titles:
                 if should_show_winner_song_celebration(selected_song['title']):
+                    # Use Streamlit balloons for winner song selection
                     st.balloons()
+
+                    # Find the rank for celebration message
+                    original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
+                    try:
+                        original_rank = original_df_sorted[original_df_sorted['title'] == selected_song['title']].index[0] + 1
+                        if original_rank == 1:
+                            st.success("🥇 Selamat! Anda memilih lagu JUARA 1!")
+                        elif original_rank == 2:
+                            st.success("🥈 Selamat! Anda memilih lagu JUARA 2!")
+                        elif original_rank == 3:
+                            st.success("🥉 Selamat! Anda memilih lagu JUARA 3!")
+                        else:
+                            st.success(f"🏆 Selamat! Anda memilih lagu pemenang!")
+                    except:
+                        st.success("🏆 Selamat! Anda memilih lagu pemenang!")
+
+                    # Add sound effect
+                    st.markdown("""
+                    <script>
+                    function playWinnerSelectionSound() {
+                        try {
+                            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            const oscillator = audioContext.createOscillator();
+                            const gainNode = audioContext.createGain();
+
+                            oscillator.connect(gainNode);
+                            gainNode.connect(audioContext.destination);
+
+                            oscillator.frequency.value = 880; // A note
+                            oscillator.type = 'sine';
+
+                            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+
+                            oscillator.start(audioContext.currentTime);
+                            oscillator.stop(audioContext.currentTime + 0.8);
+
+                        } catch (e) {
+                            console.log('Audio not supported:', e);
+                        }
+                    }
+
+                    setTimeout(playWinnerSelectionSound, 200);
+                    </script>
+                    """, unsafe_allow_html=True)
                     # Find the rank for celebration message
                     original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
                     # try:
@@ -7771,10 +7859,57 @@ def render_landing_page():
             </div>
             """, unsafe_allow_html=True)
 
-            # Celebration button
+            # Celebration button with sound effects
             if st.button("🎊 Lets Celebrate! 🎊", type="primary", use_container_width=True):
-                st.balloons()
+                # Hybrid approach: Use both st.balloons() and JavaScript effects
+                st.balloons()  # Streamlit's built-in balloons
                 # st.success("🎉 Selamat merayakan para pemenang! 🎉")
+
+                # Add JavaScript sound effect
+                st.markdown("""
+                <script>
+                // Simple celebration sound using Web Audio API
+                function playBeep() {
+                    try {
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+
+                        oscillator.frequency.value = 800;
+                        oscillator.type = 'sine';
+
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.5);
+
+                        // Second beep
+                        setTimeout(() => {
+                            const osc2 = audioContext.createOscillator();
+                            const gain2 = audioContext.createGain();
+                            osc2.connect(gain2);
+                            gain2.connect(audioContext.destination);
+                            osc2.frequency.value = 1000;
+                            osc2.type = 'sine';
+                            gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                            osc2.start();
+                            osc2.stop(audioContext.currentTime + 0.3);
+                        }, 200);
+
+                    } catch (e) {
+                        console.log('Audio not supported:', e);
+                    }
+                }
+
+                // Play sound after a short delay
+                setTimeout(playBeep, 100);
+                </script>
+                """, unsafe_allow_html=True)
         
         # Show all songs section
         render_all_songs_section(view_mode)
