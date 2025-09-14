@@ -290,6 +290,90 @@ def should_show_balloons() -> bool:
 
     return False
 
+def should_show_winner_celebration() -> bool:
+    """Control winner celebration effects - show only once per session"""
+    # Check if we've already shown winner celebration in this session
+    if st.session_state.get('winner_celebration_shown', False):
+        return False
+
+    # Mark as shown and return True for first time
+    st.session_state['winner_celebration_shown'] = True
+    return True
+
+def should_show_winner_song_celebration(song_title: str) -> bool:
+    """Control celebration when selecting winner songs - once per song per session"""
+    celebration_key = f'winner_song_celebration_{song_title}'
+
+    # Check if we've already celebrated this winner song
+    if st.session_state.get(celebration_key, False):
+        return False
+
+    # Mark as celebrated and return True for first time
+    st.session_state[celebration_key] = True
+    return True
+
+def add_winner_animations_css():
+    """Add CSS animations for winner section"""
+    st.markdown("""
+    <style>
+    @keyframes pulse-trophy {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes gradient-shift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    @keyframes glow {
+        0% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+        50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.6); }
+        100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+    }
+
+    @keyframes slide-in {
+        0% { transform: translateY(20px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+
+    .winner-card {
+        animation: slide-in 0.6s ease-out, glow 2s ease-in-out infinite;
+        background-size: 200% 200%;
+        animation: gradient-shift 3s ease infinite, slide-in 0.6s ease-out, glow 2s ease-in-out infinite;
+    }
+
+    .winner-card.rank-1 {
+        background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700, #FFED4E);
+    }
+
+    .winner-card.rank-2 {
+        background: linear-gradient(135deg, #C0C0C0, #E8E8E8, #C0C0C0, #F5F5F5);
+    }
+
+    .winner-card.rank-3 {
+        background: linear-gradient(135deg, #CD7F32, #DEB887, #CD7F32, #D2691E);
+    }
+
+    .trophy-emoji {
+        display: inline-block;
+        animation: pulse-trophy 1.5s ease-in-out infinite;
+    }
+
+    .winner-title {
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .celebration-header {
+        animation: slide-in 0.8s ease-out;
+        text-align: center;
+        margin: 2rem 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 def get_config_value(key: str, default: Any = None) -> Any:
     """Get configuration value with caching"""
     config = cache_service.get_cached_config()
@@ -6197,7 +6281,25 @@ def render_google_drive_section():
 
 def render_winners_section():
     """Render winners section with actual winners data"""
-    # Removed ambiguous winner card that looks clickable
+    # Add CSS animations for winner effects
+    add_winner_animations_css()
+
+    # Show celebration effects on first view
+    if should_show_winner_celebration():
+        # Show confetti/balloons for winner announcement
+        st.balloons()
+
+        # Add celebration header with animation
+        # st.markdown("""
+        # <div class="celebration-header">
+        #     <h1 style="color: #FFD700; font-size: 2.5rem; margin: 0;">
+        #         🎉 PENGUMUMAN PEMENANG! 🎉
+        #     </h1>
+        #     <p style="color: #666; font-size: 1.2rem; margin: 0.5rem 0;">
+        #         Selamat kepada para pemenang lomba cipta lagu!
+        #     </p>
+        # </div>
+        # """, unsafe_allow_html=True)
 
     # Get configuration for winner display layout
     try:
@@ -6279,19 +6381,23 @@ def render_winners_section():
 
             rank_emoji = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"🏆"
 
-            # Create gradient background based on rank
+            # Create gradient background and CSS class based on rank
             if i == 1:
                 gradient = "linear-gradient(135deg, #ffd700, #ffed4e)"
                 border_color = "#ffd700"
+                css_class = "winner-card rank-1"
             elif i == 2:
                 gradient = "linear-gradient(135deg, #c0c0c0, #e8e8e8)"
                 border_color = "#c0c0c0"
+                css_class = "winner-card rank-2"
             elif i == 3:
                 gradient = "linear-gradient(135deg, #cd7f32, #daa520)"
                 border_color = "#cd7f32"
+                css_class = "winner-card rank-3"
             else:
                 gradient = "linear-gradient(135deg, #667eea, #764ba2)"
                 border_color = "#667eea"
+                css_class = "winner-card"
 
             # Winner header with version info
             version_info = f" ({len(versions)} versi)" if len(versions) > 1 else ""
@@ -6299,8 +6405,10 @@ def render_winners_section():
             total_judges = sum(v['unique_judges'] for v in versions)
 
             st.markdown(f"""
-            <div style='background: {gradient}; padding: 20px; border-radius: 15px; margin: 8px 0; border-left: 5px solid {border_color}; box-shadow: 0 4px 15px rgba(0,0,0,0.1);'>
-                <h3 style='margin: 0 0 10px 0; color: #333; font-size: 1.5rem;'>{rank_emoji} JUARA {i}</h3>
+            <div class='{css_class}' style='background: {gradient}; padding: 20px; border-radius: 15px; margin: 8px 0; border-left: 5px solid {border_color}; box-shadow: 0 4px 15px rgba(0,0,0,0.1);'>
+                <h3 class='winner-title' style='margin: 0 0 10px 0; color: #333; font-size: 1.5rem;'>
+                    <span class='trophy-emoji'>{rank_emoji}</span> JUARA {i}
+                </h3>
                 <h4 style='margin: 0 0 8px 0; color: #444; font-size: 1.3rem;'>{base_title}{version_info}</h4>
                 <p style='margin: 5px 0; color: #666; font-size: 1.1rem;'>
                     <strong>Skor Rata-rata:</strong> {avg_score:.2f}/100
@@ -7063,6 +7171,25 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
             # Get selected song
             selected_song = filtered_df.iloc[selected_idx - 1]
 
+            # Check if this is a winner song and show celebration
+            if selected_song['title'] in winner_titles:
+                if should_show_winner_song_celebration(selected_song['title']):
+                    st.balloons()
+                    # Find the rank for celebration message
+                    original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
+                    # try:
+                    #     original_rank = original_df_sorted[original_df_sorted['title'] == selected_song['title']].index[0] + 1
+                    #     if original_rank == 1:
+                    #         st.success("🥇 Selamat! Anda memilih lagu JUARA 1!")
+                    #     elif original_rank == 2:
+                    #         st.success("🥈 Selamat! Anda memilih lagu JUARA 2!")
+                    #     elif original_rank == 3:
+                    #         st.success("🥉 Selamat! Anda memilih lagu JUARA 3!")
+                    #     else:
+                    #         st.success("🏆 Selamat! Anda memilih lagu pemenang!")
+                    # except:
+                    #     st.success("🏆 Selamat! Anda memilih lagu pemenang!")
+
             # Get song data from songs table (same as Winners section)
             songs_df = db_service.get_songs()
             matching_songs = songs_df[songs_df['title'] == selected_song['title']]
@@ -7606,23 +7733,30 @@ def render_landing_page():
         render_winners_section()
         
             
-        # Congratulations message
-        st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 15px;
-            text-align: center;
-            margin: 2rem 0;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-        ">
-            <h2 style="margin: 0 0 1rem 0;">🎉 Selamat kepada pemenang! 🎉</h2>
-            <p style="margin: 0; font-size: 1.1rem; opacity: 0.95;">
-                Terima kasih kepada semua peserta yang telah berpartisipasi dalam lomba ini.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        # Congratulations message with celebration button
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("""
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 2rem;
+                border-radius: 15px;
+                text-align: center;
+                margin: 2rem 0;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            ">
+                <h2 style="margin: 0 0 1rem 0;">🎉Selamat kepada pemenang!🎉</h2>
+                <p style="margin: 0; font-size: 1.1rem; opacity: 0.95;">
+                    Terima kasih kepada semua peserta yang telah berpartisipasi dalam lomba ini.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Celebration button
+            if st.button("🎊 Lets Celebrate! 🎊", type="primary", use_container_width=True):
+                st.balloons()
+                # st.success("🎉 Selamat merayakan para pemenang! 🎉")
         
         # Show all songs section
         render_all_songs_section(view_mode)
