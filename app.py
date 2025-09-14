@@ -7123,11 +7123,20 @@ def render_landing_page():
     except:
         st.warning("⚠️ Poster tidak dapat dimuat")
 
-    # YouTube video section
+    # Winner announcement video section
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; margin: 2rem 0;">
-        <h3 style="color: #2c3e50; margin-bottom: 1rem;">🎥 Video Promosi Lomba</h3>
+        <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">🏆 Pengumuman Pemenang</h3>
+        <p style="color: #7f8c8d; margin-bottom: 1rem; font-size: 1.1rem;">
+            Lyric Video - Lagu Pemenang Juara 1
+        </p>
+        <div style="background: linear-gradient(135deg, #FFD700, #FFA500);
+                    padding: 10px 20px; border-radius: 20px; display: inline-block; margin-bottom: 1rem;">
+            <span style="color: #8B4513; font-weight: bold; font-size: 1rem;">
+                🥇 "Harta Yang S'jati" - Sigit Hakatya (Versi 1)
+            </span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -7139,12 +7148,23 @@ def render_landing_page():
             <iframe
                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px;"
                 src="https://www.youtube.com/embed/K3MOLcvMoD4?si=3wYON16GK3vo7kgY"
-                title="YouTube video player"
+                title="Lyric Video - Harta Yang S'jati"
                 frameborder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerpolicy="strict-origin-when-cross-origin"
                 allowfullscreen>
             </iframe>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Video description
+        st.markdown("""
+        <div style="text-align: center; margin-top: 1rem; padding: 15px;
+                    background: #f8f9fa; border-radius: 10px; border-left: 4px solid #FFD700;">
+            <p style="margin: 0; color: #666; font-size: 0.9rem;">
+                🎵 <strong>Lyric Video dengan Running Lyrics</strong> - Cocok untuk sing along!<br>
+                📝 Meskipun Versi 2 memiliki skor tertinggi, Versi 1 dipilih karena lebih easy listening
+            </p>
         </div>
         """, unsafe_allow_html=True)
 
