@@ -1485,26 +1485,34 @@ def render_notation_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 🎼 **Notasi Musik (PDF Original)**")
 
-        # PDF display options
-        st.markdown("### 🎼 **Notasi Musik (PDF Original)**")
+        with st.expander("🎼 Notasi PDF Preview", expanded=False):
+            # Download button
+            st.markdown(f"""
+            <div style="text-align: center; margin-bottom: 10px;">
+                <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
+                    <button style="
+                        background-color: #4CAF50;
+                        color: white;
+                        padding: 8px 16px;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                        font-weight: bold;
+                    ">📥 Download / Open in New Tab</button>
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # Create tabs for different viewing options
-        tab_view, tab_download = st.tabs(["👁️ Lihat PDF", "📥 Download"])
-
-        with tab_view:
-            with st.expander("🎼 Notasi PDF Preview", expanded=False):
-                # Use Google Docs Viewer for better compatibility
-                google_viewer_url = f"https://docs.google.com/viewer?url={pdf_url}&embedded=true"
-                st.markdown(f"""
-                <iframe src="{google_viewer_url}"
-                        width="100%"
-                        height="600"
-                        style="border: 1px solid #ddd; border-radius: 8px;">
-                </iframe>
-                """, unsafe_allow_html=True)
-
-        with tab_download:
-            st.info("📄 PDF Preview tersedia di tab View di atas")
+            # Use Google Docs Viewer for better compatibility
+            google_viewer_url = f"https://docs.google.com/viewer?url={pdf_url}&embedded=true"
+            st.markdown(f"""
+            <iframe src="{google_viewer_url}"
+                    width="100%"
+                    height="600"
+                    style="border: 1px solid #ddd; border-radius: 8px;">
+            </iframe>
+            """, unsafe_allow_html=True)
 
         return
 
@@ -1546,26 +1554,34 @@ def render_lyrics_viewer(song_data):
         # Prominent PDF display section
         st.markdown("### 📄 **Syair Lagu (PDF Original)**")
 
-        # PDF display options
-        st.markdown("### 📄 **Syair Lagu (PDF Original)**")
+        with st.expander("📝 Syair PDF Preview", expanded=False):
+            # Download button
+            st.markdown(f"""
+            <div style="text-align: center; margin-bottom: 10px;">
+                <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
+                    <button style="
+                        background-color: #2196F3;
+                        color: white;
+                        padding: 8px 16px;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                        font-weight: bold;
+                    ">📥 Download / Open in New Tab</button>
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # Create tabs for different viewing options
-        tab_view, tab_download = st.tabs(["👁️ Lihat PDF", "📥 Download"])
-
-        with tab_view:
-            with st.expander("📝 Syair PDF Preview", expanded=False):
-                # Use Google Docs Viewer for better compatibility
-                google_viewer_url = f"https://docs.google.com/viewer?url={pdf_url}&embedded=true"
-                st.markdown(f"""
-                <iframe src="{google_viewer_url}"
-                        width="100%"
-                        height="600"
-                        style="border: 1px solid #ddd; border-radius: 8px;">
-                </iframe>
-                """, unsafe_allow_html=True)
-
-        with tab_download:
-            st.info("📝 PDF Preview tersedia di tab View di atas")
+            # Use Google Docs Viewer for better compatibility
+            google_viewer_url = f"https://docs.google.com/viewer?url={pdf_url}&embedded=true"
+            st.markdown(f"""
+            <iframe src="{google_viewer_url}"
+                    width="100%"
+                    height="600"
+                    style="border: 1px solid #ddd; border-radius: 8px;">
+            </iframe>
+            """, unsafe_allow_html=True)
 
     # Show text content if available (fallback or additional)
     if song_data.get('lyrics_text'):
@@ -6389,50 +6405,46 @@ def render_winners_section():
                                 st.markdown("**🎵 Audio**")
                                 render_audio_player(song_data, f"winner_{i}_{idx}")
 
-                                # Lyrics with chords directly below audio (same styling as all songs)
-                                st.markdown("---")
-
-                                # Determine content and header dynamically (same as all songs)
+                                # Syair + Chord in expander (collapsed by default)
+                                # Determine content and header dynamically
                                 if song_data.get('lyrics_with_chords'):
                                     content_to_show = song_data['lyrics_with_chords']
-                                    header = "**🎼 Syair + Chord**"
+                                    expander_title = "🎼 Syair + Chord"
                                 elif song_data.get('lyrics_text'):
                                     content_to_show = song_data['lyrics_text']
-                                    header = "**🎼 Syair Only** *(Chord tidak tersedia)*"
+                                    expander_title = "🎼 Syair Only (Chord tidak tersedia)"
                                 elif song_data.get('chords_list'):
                                     content_to_show = song_data['chords_list']
-                                    header = "**🎼 Chord Only** *(Syair tidak tersedia)*"
+                                    expander_title = "🎼 Chord Only (Syair tidak tersedia)"
                                 elif song_data.get('full_score'):
                                     content_to_show = song_data['full_score']
-                                    header = "**🎼 Full Score**"
+                                    expander_title = "🎼 Full Score"
                                 else:
                                     content_to_show = None
-                                    header = "**🎼 Syair + Chord**"
-
-                                st.markdown(header)
+                                    expander_title = "🎼 Syair + Chord"
 
                                 if content_to_show:
-                                    st.markdown(
-                                        f"""
-                                        <div style="
-                                            background-color: #fff8e1;
-                                            padding: 1rem;
-                                            border-radius: 8px;
-                                            border-left: 3px solid #ff9800;
-                                            font-family: 'Courier New', monospace;
-                                            white-space: pre-wrap;
-                                            font-size: 0.7rem;
-                                            line-height: 1.3;
-                                            max-height: 400px;
-                                            overflow-y: auto;
-                                        ">
-                                            {content_to_show}
-                                        </div>
-                                        """,
-                                        unsafe_allow_html=True
-                                    )
+                                    with st.expander(expander_title, expanded=False):
+                                        st.markdown(
+                                            f"""
+                                            <div style="
+                                                background-color: #fff8e1;
+                                                padding: 1rem;
+                                                border-radius: 8px;
+                                                border-left: 3px solid #ff9800;
+                                                font-family: 'Courier New', monospace;
+                                                white-space: pre-wrap;
+                                                font-size: 0.8rem;
+                                                line-height: 1.4;
+                                            ">
+                                                {content_to_show}
+                                            </div>
+                                            """,
+                                            unsafe_allow_html=True
+                                        )
                                 else:
-                                    st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
+                                    with st.expander(expander_title, expanded=False):
+                                        st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
 
                                 # PDF buttons if enabled
                                 if show_pdf:
@@ -6488,6 +6500,24 @@ def render_winners_section():
                                     if lyrics_pdf_url or notation_pdf_url:
                                         if notation_pdf_url:
                                             with st.expander("🎼 Notasi PDF Preview", expanded=False):
+                                                # Download button
+                                                st.markdown(f"""
+                                                <div style="text-align: center; margin-bottom: 10px;">
+                                                    <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
+                                                        <button style="
+                                                            background-color: #4CAF50;
+                                                            color: white;
+                                                            padding: 8px 16px;
+                                                            border: none;
+                                                            border-radius: 6px;
+                                                            cursor: pointer;
+                                                            font-size: 0.9rem;
+                                                            font-weight: bold;
+                                                        ">📥 Download / Open in New Tab</button>
+                                                    </a>
+                                                </div>
+                                                """, unsafe_allow_html=True)
+
                                                 # Use Google Docs Viewer for better compatibility
                                                 google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
                                                 st.markdown(f"""
@@ -6499,6 +6529,24 @@ def render_winners_section():
                                                 """, unsafe_allow_html=True)
                                         if lyrics_pdf_url:
                                             with st.expander("📝 Syair PDF Preview", expanded=False):
+                                                # Download button
+                                                st.markdown(f"""
+                                                <div style="text-align: center; margin-bottom: 10px;">
+                                                    <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
+                                                        <button style="
+                                                            background-color: #2196F3;
+                                                            color: white;
+                                                            padding: 8px 16px;
+                                                            border: none;
+                                                            border-radius: 6px;
+                                                            cursor: pointer;
+                                                            font-size: 0.9rem;
+                                                            font-weight: bold;
+                                                        ">📥 Download / Open in New Tab</button>
+                                                    </a>
+                                                </div>
+                                                """, unsafe_allow_html=True)
+
                                                 # Use Google Docs Viewer for better compatibility
                                                 google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
                                                 st.markdown(f"""
@@ -6724,35 +6772,33 @@ def render_winners_section():
 
                                         
                 else:
-                    # Single version display
+                    # Single version display - 1 column layout
                     song_data = all_song_data[0]
-                    col1, col2 = st.columns([1, 1])
 
-                    with col1:
-                        st.markdown("##### 🎵 Audio")
-                        render_audio_player(song_data)
+                    # Audio player
+                    st.markdown("**🎵 Audio**")
+                    render_audio_player(song_data)
 
-                    with col2:
-                        # Determine content and header dynamically (same as all songs)
-                        if song_data.get('lyrics_with_chords'):
-                            content_to_show = song_data['lyrics_with_chords']
-                            header = "**🎼 Syair + Chord**"
-                        elif song_data.get('lyrics_text'):
-                            content_to_show = song_data['lyrics_text']
-                            header = "**🎼 Syair Only** *(Chord tidak tersedia)*"
-                        elif song_data.get('chords_list'):
-                            content_to_show = song_data['chords_list']
-                            header = "**🎼 Chord Only** *(Syair tidak tersedia)*"
-                        elif song_data.get('full_score'):
-                            content_to_show = song_data['full_score']
-                            header = "**🎼 Full Score**"
-                        else:
-                            content_to_show = None
-                            header = "**🎼 Syair + Chord**"
+                    # Syair + Chord in expander (collapsed by default)
+                    # Determine content and header dynamically
+                    if song_data.get('lyrics_with_chords'):
+                        content_to_show = song_data['lyrics_with_chords']
+                        expander_title = "🎼 Syair + Chord"
+                    elif song_data.get('lyrics_text'):
+                        content_to_show = song_data['lyrics_text']
+                        expander_title = "🎼 Syair Only (Chord tidak tersedia)"
+                    elif song_data.get('chords_list'):
+                        content_to_show = song_data['chords_list']
+                        expander_title = "🎼 Chord Only (Syair tidak tersedia)"
+                    elif song_data.get('full_score'):
+                        content_to_show = song_data['full_score']
+                        expander_title = "🎼 Full Score"
+                    else:
+                        content_to_show = None
+                        expander_title = "🎼 Syair + Chord"
 
-                        st.markdown(header)
-
-                        if content_to_show:
+                    if content_to_show:
+                        with st.expander(expander_title, expanded=False):
                             st.markdown(
                                 f"""
                                 <div style="
@@ -6762,17 +6808,16 @@ def render_winners_section():
                                     border-left: 3px solid #ff9800;
                                     font-family: 'Courier New', monospace;
                                     white-space: pre-wrap;
-                                    font-size: 0.7rem;
-                                    line-height: 1.3;
-                                    max-height: 400px;
-                                    overflow-y: auto;
+                                    font-size: 0.8rem;
+                                    line-height: 1.4;
                                 ">
                                     {content_to_show}
                                 </div>
                                 """,
                                 unsafe_allow_html=True
                             )
-                        else:
+                    else:
+                        with st.expander(expander_title, expanded=False):
                             st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
 
                     # Show PDF documents below
@@ -6826,33 +6871,68 @@ def render_winners_section():
                                 except:
                                     pass
 
-                        # Display PDF embedded viewers in expanders
-                        if lyrics_pdf_url or notation_pdf_url:
-                            if notation_pdf_url:
-                                with st.expander("🎼 Notasi PDF Preview", expanded=False):
-                                    # Use Google Docs Viewer for better compatibility
-                                    google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
-                                    st.markdown(f"""
-                                    <iframe src="{google_viewer_url}"
-                                            width="100%"
-                                            height="600"
-                                            style="border: 1px solid #ddd; border-radius: 8px;">
-                                    </iframe>
-                                    """, unsafe_allow_html=True)
-                            if lyrics_pdf_url:
-                                with st.expander("📝 Syair PDF Preview", expanded=False):
-                                    # Use Google Docs Viewer for better compatibility
-                                    google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
-                                    st.markdown(f"""
-                                    <iframe src="{google_viewer_url}"
-                                            width="100%"
-                                            height="600"
-                                            style="border: 1px solid #ddd; border-radius: 8px;">
-                                    </iframe>
-                                    """, unsafe_allow_html=True)
+                        # Display PDF embedded viewers in expanders with download buttons
+                        if notation_pdf_url:
+                            with st.expander("🎼 Notasi PDF Preview", expanded=False):
+                                # Download button
+                                st.markdown(f"""
+                                <div style="text-align: center; margin-bottom: 10px;">
+                                    <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
+                                        <button style="
+                                            background-color: #4CAF50;
+                                            color: white;
+                                            padding: 8px 16px;
+                                            border: none;
+                                            border-radius: 6px;
+                                            cursor: pointer;
+                                            font-size: 0.9rem;
+                                            font-weight: bold;
+                                        ">📥 Download / Open in New Tab</button>
+                                    </a>
+                                </div>
+                                """, unsafe_allow_html=True)
 
+                                # Use Google Docs Viewer for better compatibility
+                                google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
+                                st.markdown(f"""
+                                <iframe src="{google_viewer_url}"
+                                        width="100%"
+                                        height="600"
+                                        style="border: 1px solid #ddd; border-radius: 8px;">
+                                </iframe>
+                                """, unsafe_allow_html=True)
 
-                        else:
+                        if lyrics_pdf_url:
+                            with st.expander("📝 Syair PDF Preview", expanded=False):
+                                # Download button
+                                st.markdown(f"""
+                                <div style="text-align: center; margin-bottom: 10px;">
+                                    <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
+                                        <button style="
+                                            background-color: #2196F3;
+                                            color: white;
+                                            padding: 8px 16px;
+                                            border: none;
+                                            border-radius: 6px;
+                                            cursor: pointer;
+                                            font-size: 0.9rem;
+                                            font-weight: bold;
+                                        ">📥 Download / Open in New Tab</button>
+                                    </a>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                                # Use Google Docs Viewer for better compatibility
+                                google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
+                                st.markdown(f"""
+                                <iframe src="{google_viewer_url}"
+                                        width="100%"
+                                        height="600"
+                                        style="border: 1px solid #ddd; border-radius: 8px;">
+                                </iframe>
+                                """, unsafe_allow_html=True)
+
+                        if not lyrics_pdf_url and not notation_pdf_url:
                             st.info("📄 PDF documents tidak tersedia")
 
                 st.markdown("---")  # Separator between winners
@@ -7014,43 +7094,30 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
             if show_scores:
                 st.metric("📊 Skor Rata-rata", f"{selected_song['avg_score']:.1f}/100")
 
-            # Two columns layout
-            col_audio, col_score = st.columns([1, 1])
+            # Audio player
+            st.markdown("**🎵 Audio**")
+            render_audio_player(song_data, f"landing_{selected_song['song_id']}")
 
-            with col_audio:
-                st.markdown("**🎵 Audio**")
+            # Syair + Chord in expander (collapsed by default)
+            # Determine content and header dynamically
+            if song_data.get('lyrics_with_chords'):
+                content_to_show = song_data['lyrics_with_chords']
+                expander_title = "🎼 Syair + Chord"
+            elif song_data.get('lyrics_text'):
+                content_to_show = song_data['lyrics_text']
+                expander_title = "🎼 Syair Only (Chord tidak tersedia)"
+            elif song_data.get('chords_list'):
+                content_to_show = song_data['chords_list']
+                expander_title = "🎼 Chord Only (Syair tidak tersedia)"
+            elif song_data.get('full_score'):
+                content_to_show = song_data['full_score']
+                expander_title = "🎼 Full Score"
+            else:
+                content_to_show = None
+                expander_title = "🎼 Syair + Chord"
 
-
-
-                # Use updated render_audio_player with force refresh
-                render_audio_player(song_data, f"landing_{selected_song['song_id']}")
-
-            with col_score:
-                # Determine content and header dynamically
-                if song_data.get('lyrics_with_chords'):
-                    content_to_show = song_data['lyrics_with_chords']
-                    content_type = "Syair + Chord"
-                    header = "**🎼 Syair + Chord**"
-                elif song_data.get('lyrics_text'):
-                    content_to_show = song_data['lyrics_text']
-                    content_type = "Syair Only"
-                    header = "**🎼 Syair Only** *(Chord tidak tersedia)*"
-                elif song_data.get('chords_list'):
-                    content_to_show = song_data['chords_list']
-                    content_type = "Chord"
-                    header = "**🎼 Chord Only** *(Syair tidak tersedia)*"
-                elif song_data.get('full_score'):
-                    content_to_show = song_data['full_score']
-                    content_type = "Full Score"
-                    header = "**🎼 Full Score**"
-                else:
-                    content_to_show = None
-                    content_type = ""
-                    header = "**🎼 Syair + Chord**"
-
-                st.markdown(header)
-
-                if content_to_show:
+            if content_to_show:
+                with st.expander(expander_title, expanded=False):
                     st.markdown(
                         f"""
                         <div style="
@@ -7060,17 +7127,16 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                             border-left: 3px solid #ff9800;
                             font-family: 'Courier New', monospace;
                             white-space: pre-wrap;
-                            font-size: 0.7rem;
-                            line-height: 1.3;
-                            max-height: 400px;
-                            overflow-y: auto;
+                            font-size: 0.8rem;
+                            line-height: 1.4;
                         ">
                             {content_to_show}
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
-                else:
+            else:
+                with st.expander(expander_title, expanded=False):
                     st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
 
             # PDF Documents section
@@ -7123,34 +7189,68 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                     except:
                         pass
 
-            # Display PDF embedded viewers in expanders
-            if lyrics_pdf_url or notation_pdf_url:
+            # Display PDF embedded viewers in expanders with download buttons
+            if notation_pdf_url:
+                with st.expander("🎼 Notasi PDF Preview", expanded=False):
+                    # Download button
+                    st.markdown(f"""
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
+                            <button style="
+                                background-color: #4CAF50;
+                                color: white;
+                                padding: 8px 16px;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                                font-weight: bold;
+                            ">📥 Download / Open in New Tab</button>
+                        </a>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                if notation_pdf_url:
-                    with st.expander("🎼 Notasi PDF Preview", expanded=False):
-                        # Use Google Docs Viewer for better compatibility
-                        google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
-                        st.markdown(f"""
-                        <iframe src="{google_viewer_url}"
-                                width="100%"
-                                height="600"
-                                style="border: 1px solid #ddd; border-radius: 8px;">
-                        </iframe>
-                        """, unsafe_allow_html=True)
-                        
-                if lyrics_pdf_url:
-                    with st.expander("📝 Syair PDF Preview", expanded=False):
-                        # Use Google Docs Viewer for better compatibility
-                        google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
-                        st.markdown(f"""
-                        <iframe src="{google_viewer_url}"
-                                width="100%"
-                                height="600"
-                                style="border: 1px solid #ddd; border-radius: 8px;">
-                        </iframe>
-                        """, unsafe_allow_html=True)
+                    # Use Google Docs Viewer for better compatibility
+                    google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
+                    st.markdown(f"""
+                    <iframe src="{google_viewer_url}"
+                            width="100%"
+                            height="600"
+                            style="border: 1px solid #ddd; border-radius: 8px;">
+                    </iframe>
+                    """, unsafe_allow_html=True)
 
-            else:
+            if lyrics_pdf_url:
+                with st.expander("📝 Syair PDF Preview", expanded=False):
+                    # Download button
+                    st.markdown(f"""
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
+                            <button style="
+                                background-color: #2196F3;
+                                color: white;
+                                padding: 8px 16px;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                                font-weight: bold;
+                            ">📥 Download / Open in New Tab</button>
+                        </a>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # Use Google Docs Viewer for better compatibility
+                    google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
+                    st.markdown(f"""
+                    <iframe src="{google_viewer_url}"
+                            width="100%"
+                            height="600"
+                            style="border: 1px solid #ddd; border-radius: 8px;">
+                    </iframe>
+                    """, unsafe_allow_html=True)
+
+            if not lyrics_pdf_url and not notation_pdf_url:
                 st.info("📄 PDF documents tidak tersedia")
 
     except Exception as e:
