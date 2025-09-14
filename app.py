@@ -6042,6 +6042,12 @@ def get_contest_status(config):
             logging.error(f"Error parsing form_open_date: {e}")
             status['form_open_date'] = form_open
 
+    # Override for development/testing - force show winners if config says so
+    force_show = config_dict.get('FORCE_SHOW_WINNERS', 'FALSE').upper() == 'TRUE'
+    if force_show:
+        status['show_winners'] = True
+        status['is_closed'] = True
+
     return status
 
 def render_winners_section():
@@ -7556,15 +7562,31 @@ def render_info_section():
 
     st.markdown("---")
 
-    # Contest information
-    st.markdown("""
+    # Contest information with dynamic dates
+    try:
+        config = db_service.get_config()
+        submission_start = config.get('SUBMISSION_START_DATE', '1 Agustus 2025')
+        submission_end = config.get('SUBMISSION_END_DATE', '31 Agustus 2025')
+        judging_end = config.get('JUDGING_END_DATE', '3 September 2025')
+        winner_announce = config.get('WINNER_ANNOUNCEMENT_DATE', '14 September 2025')
+    except:
+        # Fallback dates
+        submission_start = '1 Agustus 2025'
+        submission_end = '31 Agustus 2025'
+        judging_end = '3 September 2025'
+        winner_announce = '14 September 2025'
+
+    st.markdown(f"""
     #### 🎯 Tema Lomba
     **"Waktu Bersama Harta Berharga"**
 
+    📖 **Berdasarkan Efesus 5:15-16**
+    *"Karena itu, perhatikanlah dengan saksama, bagaimana kamu hidup, janganlah seperti orang bebal, tetapi seperti orang arif, dan pergunakanlah waktu yang ada, karena hari-hari ini adalah jahat."*
+
     #### 📅 Timeline
-    - **Pendaftaran**: Sudah ditutup
-    - **Penilaian**: Sudah selesai
-    - **Pengumuman**: Akan diumumkan segera
+    - **Pendaftaran**: {submission_start} - {submission_end}
+    - **Penilaian**: {submission_end} - {judging_end}
+    - **Pengumuman**: {winner_announce}
 
     #### 🏆 Kategori Penilaian
     1. **Tema (25%)** - Kesesuaian dengan tema lomba
