@@ -2396,7 +2396,7 @@ def check_form_schedule():
         # Get schedule configuration
         form_open_str = config.get('FORM_OPEN_DATETIME', '2024-01-01 00:00:00')
         form_close_str = config.get('FORM_CLOSE_DATETIME', '2024-12-31 23:59:59')
-        winner_announce_str = config.get('WINNER_ANNOUNCE_DATETIME', '2024-09-14 11:00:00')
+        winner_announce_str = config.get('WINNER_ANNOUNCE_DATETIME', '2025-09-14 11:00:00')
 
         # Parse datetime strings
         form_open = tz.localize(datetime.strptime(form_open_str, '%Y-%m-%d %H:%M:%S'))
@@ -6082,6 +6082,81 @@ def get_contest_status(config):
 
     return status
 
+def render_google_drive_section():
+    """Render Google Drive links section with beautiful cards"""
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; margin: 2rem 0 1rem 0;">
+        <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">📁 Kompilasi Lagu & PDF</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Create 3 columns for the cards
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/1_GltfIbmh1SDMCK7MhGrVcrq_pcby1q1?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="
+                background: linear-gradient(135deg, #4CAF50, #45a049);
+                color: white;
+                padding: 1.5rem;
+                border-radius: 15px;
+                text-align: center;
+                margin: 0.5rem 0;
+                box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+                transition: transform 0.3s ease;
+                cursor: pointer;
+            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎵</div>
+                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Semua Lagu Peserta</h4>
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">8 lagu untuk wilayah & PHBG<br></p>
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/1P12024Z8lKgKw137e5o2zVwPgl787TSC?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="
+                background: linear-gradient(135deg, #FFD700, #FFA500);
+                color: #333;
+                padding: 1.5rem;
+                border-radius: 15px;
+                text-align: center;
+                margin: 0.5rem 0;
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+                transition: transform 0.3s ease;
+                cursor: pointer;
+            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
+                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Theme Song 2025</h4>
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.8;">Lagu Pemenang<br>Audio, Partitur & Video</p>
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown("""
+        <a href="https://drive.google.com/drive/folders/16DuWouMrek3tmZbbof9PtoEM749aVLu6?usp=sharing" target="_blank" style="text-decoration: none;">
+            <div style="
+                background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+                color: white;
+                padding: 1.5rem;
+                border-radius: 15px;
+                text-align: center;
+                margin: 0.5rem 0;
+                box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
+                transition: transform 0.3s ease;
+                cursor: pointer;
+            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎼</div>
+                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Lagu Penutup Bulkel</h4>
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">by Bpk Parulian<br>Audio & Partitur</p>
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
 def render_winners_section():
     """Render winners section with actual winners data"""
     # Removed ambiguous winner card that looks clickable
@@ -6424,12 +6499,12 @@ def render_winners_section():
 
                         # Create tabs based on PDF configuration
                         if show_pdf:
-                            tab1, tab2, tab3, tab4 = st.tabs(["📝 Syair", "🎸 Chord Comparison", "🎵 Lyrics + Chords", "📄 PDF Documents"])
+                            tab1, tab2, tab3, tab4 = st.tabs(["📝 Full Score", "🎸 Chord Comparison", "🎵 Lyrics + Chords", "📄 PDF Documents"])
                         else:
-                            tab1, tab2, tab3 = st.tabs(["📝 Syair", "🎸 Chord Comparison", "🎵 Lyrics + Chords"])
+                            tab1, tab2, tab3 = st.tabs(["📝 Full Score", "🎸 Chord Comparison", "🎵 Lyrics + Chords"])
 
                         with tab1:
-                            st.markdown("##### 📝 Syair (Sama untuk kedua versi)")
+                            st.markdown("##### 📝 Full Score (Sama untuk kedua versi)")
                             if all_song_data[0].get('lyrics_text'):
                                 st.markdown(
                                     f"""
@@ -6594,7 +6669,7 @@ def render_winners_section():
                         render_audio_player(song_data)
 
                     with col2:
-                        st.markdown("##### 📝 Syair")
+                        st.markdown("##### 📝 Full Score")
                         if song_data.get('lyrics_text'):
                             st.markdown(
                                 f"""
@@ -6624,14 +6699,14 @@ def render_winners_section():
                 st.markdown("---")
 
         # Show congratulations message
-        st.markdown("""
-        <div style='background: rgba(46, 204, 113, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #2ecc71;'>
-            <p style='margin: 0; color: #27ae60; font-size: 1.1rem; text-align: center;'>
-                🎉 <strong>Selamat kepada pemenang!</strong> 🎉<br>
-                <span style='font-size: 1rem; color: #666;'>Terima kasih kepada semua peserta yang telah berpartisipasi dalam lomba ini.</span>
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        # st.markdown("""
+        # <div style='background: rgba(46, 204, 113, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #2ecc71;'>
+        #     <p style='margin: 0; color: #27ae60; font-size: 1.1rem; text-align: center;'>
+        #         🎉 <strong>Selamat kepada pemenang!</strong> 🎉<br>
+        #         <span style='font-size: 1rem; color: #666;'>Terima kasih kepada semua peserta yang telah berpartisipasi dalam lomba ini.</span>
+        #     </p>
+        # </div>
+        # """, unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"Error menampilkan pemenang: {str(e)}")
@@ -6993,6 +7068,7 @@ def render_landing_sidebar():
             </div>
         </a>
         """, unsafe_allow_html=True)
+        
 
         # Winner Theme Song
         st.markdown("""
@@ -7018,7 +7094,7 @@ def render_landing_sidebar():
 
         # Song Display Section - Only show if winners are announced
         config = cache_service.get_cached_config()
-        winner_announce_str = config.get('WINNER_ANNOUNCE_DATETIME', '2024-09-14 11:00:00')
+        winner_announce_str = config.get('WINNER_ANNOUNCE_DATETIME', '2025-09-14 11:00:00')
         timezone_str = config.get('TIMEZONE', 'Asia/Jakarta')
 
         try:
@@ -7279,90 +7355,41 @@ def render_landing_page():
             </p>
         </div>
         """, unsafe_allow_html=True)
-
-    # Google Drive Links Section - Beautiful Cards
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; margin: 2rem 0 1rem 0;">
-        <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">📁 Kompilasi Lagu & PDF</h3>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Create 3 columns for the cards
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown("""
-        <a href="https://drive.google.com/drive/folders/1_GltfIbmh1SDMCK7MhGrVcrq_pcby1q1?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="
-                background: linear-gradient(135deg, #4CAF50, #45a049);
-                color: white;
-                padding: 1.5rem;
-                border-radius: 15px;
-                text-align: center;
-                margin: 0.5rem 0;
-                box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-                transition: transform 0.3s ease;
-                cursor: pointer;
-            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎵</div>
-                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Semua Lagu Peserta</h4>
-                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">8 lagu untuk wilayah & PHBG<br></p>
-            </div>
-        </a>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        st.markdown("""
-        <a href="https://drive.google.com/drive/folders/1P12024Z8lKgKw137e5o2zVwPgl787TSC?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="
-                background: linear-gradient(135deg, #FFD700, #FFA500);
-                color: #333;
-                padding: 1.5rem;
-                border-radius: 15px;
-                text-align: center;
-                margin: 0.5rem 0;
-                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-                transition: transform 0.3s ease;
-                cursor: pointer;
-            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
-                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Theme Song 2025</h4>
-                <p style="margin: 0; font-size: 0.85rem; opacity: 0.8;">Lagu Pemenang<br>Audio, Partitur & Video</p>
-            </div>
-        </a>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown("""
-        <a href="https://drive.google.com/drive/folders/16DuWouMrek3tmZbbof9PtoEM749aVLu6?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="
-                background: linear-gradient(135deg, #9C27B0, #7B1FA2);
-                color: white;
-                padding: 1.5rem;
-                border-radius: 15px;
-                text-align: center;
-                margin: 0.5rem 0;
-                box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
-                transition: transform 0.3s ease;
-                cursor: pointer;
-            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎼</div>
-                <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Lagu Penutup Bulkel</h4>
-                <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">by Bpk Parulian<br>Audio & Partitur</p>
-            </div>
-        </a>
-        """, unsafe_allow_html=True)
+        
 
     # Contest status section
     if contest_status['is_closed'] and contest_status['show_winners']:
         # Show winners
         render_winners_section()
+        
+            
+        # Congratulations message
+        st.markdown("""
+        <div style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            margin: 2rem 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        ">
+            <h2 style="margin: 0 0 1rem 0;">🎉 Selamat kepada pemenang! 🎉</h2>
+            <p style="margin: 0; font-size: 1.1rem; opacity: 0.95;">
+                Terima kasih kepada semua peserta yang telah berpartisipasi dalam lomba ini.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Google Drive Links Section - After Winners
+        render_google_drive_section()
+        
         # Show all songs section
         render_all_songs_section(view_mode)
     else:
         # Always show the beautiful theme and contest info
         render_theme_timeline()
+        
 
 def render_theme_timeline():
     """Render beautiful theme timeline card"""
@@ -7724,7 +7751,7 @@ def render_info_section():
         submission_end_dt = config.get('SUBMISSION_END_DATETIME', '2025-08-31 23:59:59')
         form_open_dt = config.get('FORM_OPEN_DATETIME', '2025-09-01 00:00:00')
         form_close_dt = config.get('FORM_CLOSE_DATETIME', '2025-09-30 23:59:59')
-        winner_announce_dt = config.get('WINNER_ANNOUNCE_DATETIME', '2024-09-14 11:00:00')
+        winner_announce_dt = config.get('WINNER_ANNOUNCE_DATETIME', '2025-09-14 11:00:00')
 
         # Format with Indonesian day names
         submission_start = format_date_indonesian(submission_start_dt)
