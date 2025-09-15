@@ -7537,12 +7537,15 @@ def render_landing_sidebar():
 
         # Home button
         if st.button("🏠 Home", type="primary", width='stretch', key="nav_home"):
-            # Already on home page, just refresh
+            # Reset all navigation states to go back to home
+            st.session_state.show_certificate = False
+            st.session_state.show_info = False
             st.rerun()
 
         # Info lomba button
         if st.button("📋 Info Lomba", type="secondary", width='stretch', key="nav_info"):
             st.session_state.show_info = True
+            st.session_state.show_certificate = False  # Reset certificate view
             st.rerun()
 
         # Certificate download button
