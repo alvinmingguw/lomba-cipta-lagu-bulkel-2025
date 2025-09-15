@@ -386,21 +386,16 @@ def render_enhanced_pdf_viewer(pdf_url: str, pdf_type: str = "document", height:
     # Create unique key for this PDF viewer
     viewer_key = f"pdf_viewer_{pdf_type}_{hash(pdf_url) % 10000}"
 
-    # Initialize session state for this viewer - Default to method 0 (Direct Embed)
+    # Initialize session state for this viewer - Default to method 0 (Mozilla PDF Viewer)
     if f"{viewer_key}_method" not in st.session_state:
-        st.session_state[f"{viewer_key}_method"] = 0  # Start with Direct Embed (method 1)
+        st.session_state[f"{viewer_key}_method"] = 0  # Start with Mozilla PDF Viewer (method 1)
     if f"{viewer_key}_loading" not in st.session_state:
         st.session_state[f"{viewer_key}_loading"] = False
 
     current_method = st.session_state[f"{viewer_key}_method"]
 
-    # PDF viewing methods (Direct Embed first as default)
+    # PDF viewing methods (Mozilla PDF Viewer first as default)
     methods = [
-        {
-            "name": "📄 Direct Embed PDF",
-            "url": pdf_url,
-            "short": "Direct Embed"
-        },
         {
             "name": "📄 Mozilla PDF.js Viewer",
             "url": f"https://mozilla.github.io/pdf.js/web/viewer.html?file={pdf_url}",
@@ -410,6 +405,11 @@ def render_enhanced_pdf_viewer(pdf_url: str, pdf_type: str = "document", height:
             "name": "📄 Google Docs Viewer",
             "url": f"https://docs.google.com/viewer?url={pdf_url}&embedded=true",
             "short": "Google Docs"
+        },
+        {
+            "name": "📄 Direct Embed PDF",
+            "url": pdf_url,
+            "short": "Direct Embed"
         },
     ]
 
