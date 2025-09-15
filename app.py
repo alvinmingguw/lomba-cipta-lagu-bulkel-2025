@@ -379,6 +379,116 @@ def get_config_value(key: str, default: Any = None) -> Any:
     config = cache_service.get_cached_config()
     return config.get(key, default)
 
+def render_enhanced_pdf_viewer(pdf_url: str, pdf_type: str = "document", height: int = 600):
+    """Enhanced PDF viewer with multiple fallbacks and better error handling"""
+    import time
+
+    # Create unique key for this PDF viewer
+    viewer_key = f"pdf_viewer_{pdf_type}_{hash(pdf_url) % 10000}"
+
+    # Initialize session state for this viewer - Default to method 0 (Direct Embed)
+    if f"{viewer_key}_method" not in st.session_state:
+        st.session_state[f"{viewer_key}_method"] = 0  # Start with Direct Embed (method 1)
+    if f"{viewer_key}_loading" not in st.session_state:
+        st.session_state[f"{viewer_key}_loading"] = False
+
+    current_method = st.session_state[f"{viewer_key}_method"]
+
+    # PDF viewing methods (Direct Embed first as default)
+    methods = [
+        {
+            "name": "📄 Direct Embed PDF",
+            "url": pdf_url,
+            "short": "Direct Embed"
+        },
+        {
+            "name": "📄 Mozilla PDF.js Viewer",
+            "url": f"https://mozilla.github.io/pdf.js/web/viewer.html?file={pdf_url}",
+            "short": "Mozilla PDF.js"
+        },
+        {
+            "name": "📄 Google Docs Viewer",
+            "url": f"https://docs.google.com/viewer?url={pdf_url}&embedded=true",
+            "short": "Google Docs"
+        },
+    ]
+
+    # Clean compact header with dropdown
+    col1, col2 = st.columns([3, 1])
+
+    with col1:
+        # Method selector dropdown
+        method_options = [f"{method['name']} | Method {i+1}/3" for i, method in enumerate(methods)]
+        selected_index = st.selectbox(
+            "PDF Viewer Method:",
+            options=range(len(methods)),
+            index=current_method,
+            format_func=lambda x: method_options[x],
+            key=f"{viewer_key}_method_select",
+            label_visibility="collapsed"
+        )
+
+        # Update method if changed
+        if selected_index != current_method:
+            st.session_state[f"{viewer_key}_method"] = selected_index
+            st.session_state[f"{viewer_key}_loading"] = True
+            st.rerun()
+
+    with col2:
+        # Compact refresh button
+        if st.button("🔄", key=f"{viewer_key}_refresh", help="Refresh PDF", use_container_width=True):
+            st.session_state[f"{viewer_key}_loading"] = True
+            st.rerun()
+
+    # Show loading indicator
+    if st.session_state[f"{viewer_key}_loading"]:
+        with st.spinner("🔄 Memuat PDF..."):
+            time.sleep(0.5)  # Brief loading simulation
+        st.session_state[f"{viewer_key}_loading"] = False
+
+    # Render PDF
+    if current_method < len(methods):
+        method = methods[current_method]
+
+        # Render iframe with error detection
+        iframe_html = f"""
+        <div style="position: relative; margin: 0.5rem 0;">
+            <iframe
+                src="{method['url']}"
+                width="100%"
+                height="{height}"
+                style="border: 1px solid #ddd; border-radius: 8px;"
+                onload="this.style.backgroundColor='white';"
+                onerror="this.style.backgroundColor='#ffebee'; this.innerHTML='<p style=padding:20px;text-align:center;color:#d32f2f;>❌ Gagal memuat PDF dengan {method['short']}</p>';">
+                <p style="padding: 20px; text-align: center; color: #666;">
+                    ⚠️ Browser tidak mendukung iframe.
+                    <a href="{pdf_url}" target="_blank">Buka PDF di tab baru</a>
+                </p>
+            </iframe>
+        </div>
+        """
+
+        st.markdown(iframe_html, unsafe_allow_html=True)
+
+    else:
+        # Fallback if all methods fail
+        st.error("❌ Semua method loading PDF gagal")
+        st.markdown(f"""
+        <div style="text-align: center; padding: 1rem;">
+            <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
+                <button style="
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                ">📥 Download PDF</button>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+
 def display_banner():
     """Display application banner - configurable"""
     try:
@@ -1618,15 +1728,8 @@ def render_notation_viewer(song_data):
             </div>
             """, unsafe_allow_html=True)
 
-            # Use Google Docs Viewer for better compatibility
-            google_viewer_url = f"https://docs.google.com/viewer?url={pdf_url}&embedded=true"
-            st.markdown(f"""
-            <iframe src="{google_viewer_url}"
-                    width="100%"
-                    height="600"
-                    style="border: 1px solid #ddd; border-radius: 8px;">
-            </iframe>
-            """, unsafe_allow_html=True)
+            # Enhanced PDF viewer with multiple fallbacks
+            render_enhanced_pdf_viewer(pdf_url, "notation", height=600)
 
         return
 
@@ -1687,15 +1790,8 @@ def render_lyrics_viewer(song_data):
             </div>
             """, unsafe_allow_html=True)
 
-            # Use Google Docs Viewer for better compatibility
-            google_viewer_url = f"https://docs.google.com/viewer?url={pdf_url}&embedded=true"
-            st.markdown(f"""
-            <iframe src="{google_viewer_url}"
-                    width="100%"
-                    height="600"
-                    style="border: 1px solid #ddd; border-radius: 8px;">
-            </iframe>
-            """, unsafe_allow_html=True)
+            # Enhanced PDF viewer with multiple fallbacks
+            render_enhanced_pdf_viewer(pdf_url, "lyrics", height=600)
 
     # Show text content if available (fallback or additional)
     if song_data.get('lyrics_text'):
@@ -6735,15 +6831,8 @@ def render_winners_section():
                                                 </div>
                                                 """, unsafe_allow_html=True)
 
-                                                # Use Google Docs Viewer for better compatibility
-                                                google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
-                                                st.markdown(f"""
-                                                <iframe src="{google_viewer_url}"
-                                                        width="100%"
-                                                        height="600"
-                                                        style="border: 1px solid #ddd; border-radius: 8px;">
-                                                </iframe>
-                                                """, unsafe_allow_html=True)
+                                                # Enhanced PDF viewer with multiple fallbacks
+                                                render_enhanced_pdf_viewer(notation_pdf_url, "notation_winner", height=600)
                                         if lyrics_pdf_url:
                                             with st.expander("📝 Syair PDF Preview", expanded=False):
                                                 # Download button
@@ -6764,15 +6853,8 @@ def render_winners_section():
                                                 </div>
                                                 """, unsafe_allow_html=True)
 
-                                                # Use Google Docs Viewer for better compatibility
-                                                google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
-                                                st.markdown(f"""
-                                                <iframe src="{google_viewer_url}"
-                                                        width="100%"
-                                                        height="600"
-                                                        style="border: 1px solid #ddd; border-radius: 8px;">
-                                                </iframe>
-                                                """, unsafe_allow_html=True)
+                                                # Enhanced PDF viewer with multiple fallbacks
+                                                render_enhanced_pdf_viewer(lyrics_pdf_url, "lyrics_winner", height=600)
 
            
                                     else:
@@ -6965,27 +7047,13 @@ def render_winners_section():
                                         # PDF embedded viewers in expanders
                                         if song_data.get('notation_pdf_url'):
                                             with st.expander("🎼 Notasi PDF Preview", expanded=False):
-                                                # Use Google Docs Viewer for better compatibility
-                                                google_viewer_url = f"https://docs.google.com/viewer?url={song_data['notation_pdf_url']}&embedded=true"
-                                                st.markdown(f"""
-                                                <iframe src="{google_viewer_url}"
-                                                        width="100%"
-                                                        height="500"
-                                                        style="border: 1px solid #ddd; border-radius: 8px;">
-                                                </iframe>
-                                                """, unsafe_allow_html=True)
+                                                # Enhanced PDF viewer with multiple fallbacks
+                                                render_enhanced_pdf_viewer(song_data['notation_pdf_url'], f"notation_tabs_{idx}", height=500)
                                                 
                                         if song_data.get('lyrics_pdf_url'):
                                             with st.expander("📝 Syair PDF Preview", expanded=False):
-                                                # Use Google Docs Viewer for better compatibility
-                                                google_viewer_url = f"https://docs.google.com/viewer?url={song_data['lyrics_pdf_url']}&embedded=true"
-                                                st.markdown(f"""
-                                                <iframe src="{google_viewer_url}"
-                                                        width="100%"
-                                                        height="500"
-                                                        style="border: 1px solid #ddd; border-radius: 8px;">
-                                                </iframe>
-                                                """, unsafe_allow_html=True)
+                                                # Enhanced PDF viewer with multiple fallbacks
+                                                render_enhanced_pdf_viewer(song_data['lyrics_pdf_url'], f"lyrics_tabs_{idx}", height=500)
 
                                         
                 else:
@@ -7109,15 +7177,8 @@ def render_winners_section():
                                 </div>
                                 """, unsafe_allow_html=True)
 
-                                # Use Google Docs Viewer for better compatibility
-                                google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
-                                st.markdown(f"""
-                                <iframe src="{google_viewer_url}"
-                                        width="100%"
-                                        height="600"
-                                        style="border: 1px solid #ddd; border-radius: 8px;">
-                                </iframe>
-                                """, unsafe_allow_html=True)
+                                # Enhanced PDF viewer with multiple fallbacks
+                                render_enhanced_pdf_viewer(notation_pdf_url, "notation_single", height=600)
 
                         if lyrics_pdf_url:
                             with st.expander("📝 Syair PDF Preview", expanded=False):
@@ -7139,15 +7200,8 @@ def render_winners_section():
                                 </div>
                                 """, unsafe_allow_html=True)
 
-                                # Use Google Docs Viewer for better compatibility
-                                google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
-                                st.markdown(f"""
-                                <iframe src="{google_viewer_url}"
-                                        width="100%"
-                                        height="600"
-                                        style="border: 1px solid #ddd; border-radius: 8px;">
-                                </iframe>
-                                """, unsafe_allow_html=True)
+                                # Enhanced PDF viewer with multiple fallbacks
+                                render_enhanced_pdf_viewer(lyrics_pdf_url, "lyrics_single", height=600)
 
                         if not lyrics_pdf_url and not notation_pdf_url:
                             st.info("📄 PDF documents tidak tersedia")
@@ -7508,15 +7562,8 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # Use Google Docs Viewer for better compatibility
-                    google_viewer_url = f"https://docs.google.com/viewer?url={notation_pdf_url}&embedded=true"
-                    st.markdown(f"""
-                    <iframe src="{google_viewer_url}"
-                            width="100%"
-                            height="600"
-                            style="border: 1px solid #ddd; border-radius: 8px;">
-                    </iframe>
-                    """, unsafe_allow_html=True)
+                    # Enhanced PDF viewer with multiple fallbacks
+                    render_enhanced_pdf_viewer(notation_pdf_url, "notation_all", height=600)
 
             if lyrics_pdf_url:
                 with st.expander("📝 Syair PDF Preview", expanded=False):
@@ -7538,15 +7585,8 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # Use Google Docs Viewer for better compatibility
-                    google_viewer_url = f"https://docs.google.com/viewer?url={lyrics_pdf_url}&embedded=true"
-                    st.markdown(f"""
-                    <iframe src="{google_viewer_url}"
-                            width="100%"
-                            height="600"
-                            style="border: 1px solid #ddd; border-radius: 8px;">
-                    </iframe>
-                    """, unsafe_allow_html=True)
+                    # Enhanced PDF viewer with multiple fallbacks
+                    render_enhanced_pdf_viewer(lyrics_pdf_url, "lyrics_all", height=600)
 
             if not lyrics_pdf_url and not notation_pdf_url:
                 st.info("📄 PDF documents tidak tersedia")
