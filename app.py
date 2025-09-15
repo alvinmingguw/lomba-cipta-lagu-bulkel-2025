@@ -380,17 +380,30 @@ def get_config_value(key: str, default: Any = None) -> Any:
     return config.get(key, default)
 
 def display_banner():
-    """Display application banner"""
+    """Display application banner - configurable"""
     try:
-        st.image("assets/banner.png", width='stretch')
-    except Exception:
-        # Get theme from config - escape HTML to prevent HTML injection
         config = cache_service.get_cached_config()
-        theme = config.get('THEME', 'LOMBA CIPTA LAGU THEME SONG BULAN KELUARGA GKI PERUMNAS 2025')
-        # Escape HTML tags to prevent HTML injection
-        import html
-        safe_theme = html.escape(str(theme))
-        st.markdown(f"### 🎵 {safe_theme}")
+        show_banner = config.get('SHOW_BANNER', 'TRUE').upper() == 'TRUE'
+        banner_file_path = config.get('BANNER_FILE_PATH', 'assets/banner.png')
+
+        if show_banner:
+            try:
+                st.image(banner_file_path, width='stretch')
+                return  # Successfully displayed banner image
+            except Exception:
+                pass  # Fall through to text banner
+
+        # Show text banner if image banner is disabled or failed to load
+        if show_banner:  # Only show fallback if banner is supposed to be shown
+            # Get theme from config - escape HTML to prevent HTML injection
+            theme = config.get('THEME', 'LOMBA CIPTA LAGU THEME SONG BULAN KELUARGA GKI PERUMNAS 2025')
+            # Escape HTML tags to prevent HTML injection
+            import html
+            safe_theme = html.escape(str(theme))
+            st.markdown(f"### 🎵 {safe_theme}")
+    except Exception as e:
+        # Fallback - always show something
+        st.markdown("### 🎵 LOMBA CIPTA LAGU THEME SONG BULAN KELUARGA GKI PERUMNAS 2025")
 
 # ==================== SIDEBAR ====================
 
@@ -3791,40 +3804,64 @@ def render_hasil_tab(judge_id, judge_name):
     st.markdown("#### 🏆 Pemenang")
 
     if len(song_results) >= 1:
-        # Winner 1
+        # Winner 1 - Centered
         winner1 = song_results[0]
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #FFD700, #FFA500); padding: 1.5rem; border-radius: 15px; margin-bottom: 1rem;">
-            <h3 style="margin: 0; color: #8B4513;">🥇 JUARA 1</h3>
-            <h2 style="margin: 0.5rem 0; color: #8B4513;">{winner1['title']}</h2>
-            <p style="margin: 0; color: #8B4513; font-weight: 600;">Skor: {winner1['score_100']:.1f}/100</p>
-            <p style="margin: 0; color: #8B4513;">Pencipta: {winner1['composer']}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown(f"""
+            <div class="non-clickable-card" style="
+                background: linear-gradient(135deg, #FFD700, #FFA500);
+                padding: 1.5rem;
+                border-radius: 15px;
+                margin-bottom: 1rem;
+                text-align: center;
+            ">
+                <h3 style="margin: 0; color: #8B4513;">🥇 JUARA 1</h3>
+                <h2 style="margin: 0.5rem 0; color: #8B4513;">{winner1['title']}</h2>
+                <p style="margin: 0; color: #8B4513; font-weight: 600;">Skor: {winner1['score_100']:.1f}/100</p>
+                <p style="margin: 0; color: #8B4513;">Pencipta: {winner1['composer']}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     if len(song_results) >= 2:
-        # Winner 2
+        # Winner 2 - Centered
         winner2 = song_results[1]
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #C0C0C0, #A9A9A9); padding: 1.5rem; border-radius: 15px; margin-bottom: 1rem;">
-            <h3 style="margin: 0; color: #2F4F4F;">🥈 JUARA 2</h3>
-            <h2 style="margin: 0.5rem 0; color: #2F4F4F;">{winner2['title']}</h2>
-            <p style="margin: 0; color: #2F4F4F; font-weight: 600;">Skor: {winner2['score_100']:.1f}/100</p>
-            <p style="margin: 0; color: #2F4F4F;">Pencipta: {winner2['composer']}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown(f"""
+            <div class="non-clickable-card" style="
+                background: linear-gradient(135deg, #C0C0C0, #A9A9A9);
+                padding: 1.5rem;
+                border-radius: 15px;
+                margin-bottom: 1rem;
+                text-align: center;
+            ">
+                <h3 style="margin: 0; color: #2F4F4F;">🥈 JUARA 2</h3>
+                <h2 style="margin: 0.5rem 0; color: #2F4F4F;">{winner2['title']}</h2>
+                <p style="margin: 0; color: #2F4F4F; font-weight: 600;">Skor: {winner2['score_100']:.1f}/100</p>
+                <p style="margin: 0; color: #2F4F4F;">Pencipta: {winner2['composer']}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     if len(song_results) >= 3:
-        # Winner 3
+        # Winner 3 - Centered
         winner3 = song_results[2]
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #CD7F32, #A0522D); padding: 1.5rem; border-radius: 15px; margin-bottom: 1rem;">
-            <h3 style="margin: 0; color: white;">🥉 JUARA 3</h3>
-            <h2 style="margin: 0.5rem 0; color: white;">{winner3['title']}</h2>
-            <p style="margin: 0; color: white; font-weight: 600;">Skor: {winner3['score_100']:.1f}/100</p>
-            <p style="margin: 0; color: white;">Pencipta: {winner3['composer']}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown(f"""
+            <div class="non-clickable-card" style="
+                background: linear-gradient(135deg, #CD7F32, #A0522D);
+                padding: 1.5rem;
+                border-radius: 15px;
+                margin-bottom: 1rem;
+                text-align: center;
+            ">
+                <h3 style="margin: 0; color: white;">🥉 JUARA 3</h3>
+                <h2 style="margin: 0.5rem 0; color: white;">{winner3['title']}</h2>
+                <p style="margin: 0; color: white; font-weight: 600;">Skor: {winner3['score_100']:.1f}/100</p>
+                <p style="margin: 0; color: white;">Pencipta: {winner3['composer']}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -6226,11 +6263,32 @@ def get_contest_status(config):
     return status
 
 def render_google_drive_section():
-    """Render Google Drive links section with beautiful cards"""
+    """Render Google Drive links section with beautiful cards and hover effects"""
     st.markdown("---")
     st.markdown("""
+    <style>
+    .clickable-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border: 2px solid transparent;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+    }
+    .clickable-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        border: 2px solid rgba(255,255,255,0.2);
+    }
+    .non-clickable-card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,0,0,0.1);
+        border-radius: 12px;
+    }
+    </style>
     <div style="text-align: center; margin: 2rem 0 1rem 0;">
-        <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">📁 Google Drive Kompilasi Lagu & Partitur</h3>
+        <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">🗂️ Google Drive Kompilasi Lagu & Partitur</h3>
     </div>
     """, unsafe_allow_html=True)
 
@@ -6240,20 +6298,18 @@ def render_google_drive_section():
     with col2:
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/1_GltfIbmh1SDMCK7MhGrVcrq_pcby1q1?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="
+            <div class="clickable-card" style="
                 background: linear-gradient(135deg, #4CAF50, #45a049);
                 color: white;
                 padding: 1.5rem;
                 border-radius: 15px;
                 text-align: center;
                 margin: 0.5rem 0;
-                box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-                transition: transform 0.3s ease;
-                cursor: pointer;
-            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            ">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎵</div>
                 <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Pembagian Lagu Wilayah</h4>
                 <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">8 lagu selain pemenang & penutup<br>Audio & Partitur</p>
+                <small style="opacity: 0.8; font-size: 0.75rem;">📱 Klik untuk membuka</small>
             </div>
         </a>
         """, unsafe_allow_html=True)
@@ -6261,20 +6317,18 @@ def render_google_drive_section():
     with col1:
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/1P12024Z8lKgKw137e5o2zVwPgl787TSC?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="
+            <div class="clickable-card" style="
                 background: linear-gradient(135deg, #FFD700, #FFA500);
                 color: #333;
                 padding: 1.5rem;
                 border-radius: 15px;
                 text-align: center;
                 margin: 0.5rem 0;
-                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-                transition: transform 0.3s ease;
-                cursor: pointer;
-            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            ">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
                 <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Theme Song</h4>
                 <p style="margin: 0; font-size: 0.85rem; opacity: 0.8;">Lagu Pemenang<br>Audio, Partitur & Video</p>
+                <small style="opacity: 0.8; font-size: 0.75rem;">📱 Klik untuk membuka</small>
             </div>
         </a>
         """, unsafe_allow_html=True)
@@ -6282,20 +6336,18 @@ def render_google_drive_section():
     with col3:
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/16DuWouMrek3tmZbbof9PtoEM749aVLu6?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="
+            <div class="clickable-card" style="
                 background: linear-gradient(135deg, #9C27B0, #7B1FA2);
                 color: white;
                 padding: 1.5rem;
                 border-radius: 15px;
                 text-align: center;
                 margin: 0.5rem 0;
-                box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
-                transition: transform 0.3s ease;
-                cursor: pointer;
-            " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            ">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎼</div>
                 <h4 style="margin: 0 0 0.5rem 0; font-weight: bold;">Lagu Penutup</h4>
                 <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">...<br>Audio & Partitur</p>
+                <small style="opacity: 0.8; font-size: 0.75rem;">📱 Klik untuk membuka</small>
             </div>
         </a>
         """, unsafe_allow_html=True)
@@ -6489,8 +6541,8 @@ def render_winners_section():
             if all_song_data:
                 song_data = all_song_data[0]  # Use first version for video
                 if song_data.get('lyric_video_url'):
-                    # Center the video header and content
-                    st.markdown("<div style='text-align: center;'><h5>🎬 Video Lyric</h5></div>", unsafe_allow_html=True)
+                    # Center the video header and content with reduced spacing
+                    st.markdown("<div style='text-align: center; margin: 0.5rem 0 0.2rem 0;'><h5>🎬 Video Lyric</h5></div>", unsafe_allow_html=True)
                     # Better centering with more balanced columns
                     col1, col2, col3 = st.columns([1, 3, 1])
                     with col2:
@@ -7555,13 +7607,21 @@ def render_landing_sidebar():
 
         # Google Drive Links Section
         st.markdown("---")
-        st.markdown("### 📁 Google Drive Kompilasi Lagu & Partitur")
+        st.markdown("### 🗂️ Google Drive Kompilasi Lagu & Partitur")
         
         # Winner Theme Song
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/1P12024Z8lKgKw137e5o2zVwPgl787TSC?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
-                🏆 Theme Song<br>
+            <div class="clickable-card" style="
+                background: linear-gradient(135deg, #FFD700, #FFA500);
+                color: #333;
+                padding: 0.5rem;
+                border-radius: 12px;
+                text-align: left;
+                margin: 0.5rem 0;
+                font-weight: bold;
+            ">
+                🏆 Theme Song
             </div>
         </a>
         """, unsafe_allow_html=True)
@@ -7569,8 +7629,16 @@ def render_landing_sidebar():
         # All Songs (without winner, original order)
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/1_GltfIbmh1SDMCK7MhGrVcrq_pcby1q1?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
-                🎵 Pembagian Lagu Wilayah<br>
+            <div class="clickable-card" style="
+                background: linear-gradient(135deg, #4CAF50, #45a049);
+                color: white;
+                padding: 0.5rem;
+                border-radius: 12px;
+                text-align: left;
+                margin: 0.5rem 0;
+                font-weight: bold;
+            ">
+                🎵 Pembagian Lagu Wilayah
             </div>
         </a>
         """, unsafe_allow_html=True)
@@ -7579,8 +7647,16 @@ def render_landing_sidebar():
         # Closing Song
         st.markdown("""
         <a href="https://drive.google.com/drive/folders/16DuWouMrek3tmZbbof9PtoEM749aVLu6?usp=sharing" target="_blank" style="text-decoration: none;">
-            <div style="background: linear-gradient(135deg, #9C27B0, #7B1FA2); color: white; padding: 0.5rem; border-radius: 8px; text-align: center; margin: 0.5rem 0; font-weight: bold;">
-                🎼 Lagu Penutup<br>
+            <div class="clickable-card" style="
+                background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+                color: white;
+                padding: 0.5rem;
+                border-radius: 12px;
+                text-align: left;
+                margin: 0.5rem 0;
+                font-weight: bold;
+            ">
+                🎼 Lagu Penutup
             </div>
         </a>
         """, unsafe_allow_html=True)
@@ -7773,25 +7849,31 @@ def render_landing_page():
     # <h3 style="color: #7f8c8d; margin-bottom: 2rem;">WAKTU BERSAMA HARTA BERHARGA</h3>
     # """, unsafe_allow_html=True)
 
-    # Display poster
+    # Display poster - configurable
     try:
-        st.markdown('<div class="poster-container">', unsafe_allow_html=True)
-        # Center the image using columns
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.image("assets/FLYER_01.png", caption="Poster Lomba Cipta Lagu Bulan Keluarga 2025", width='stretch')
-        st.markdown('</div>', unsafe_allow_html=True)
-    except:
-        st.warning("⚠️ Poster tidak dapat dimuat")
+        config = cache_service.get_cached_config()
+        show_poster = config.get('SHOW_POSTER', 'TRUE').upper() == 'TRUE'
+        poster_file_path = config.get('POSTER_FILE_PATH', 'assets/FLYER_01.png')
+
+        if show_poster:
+            st.markdown('<div class="poster-container">', unsafe_allow_html=True)
+            # Center the image using columns
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.image(poster_file_path, caption="Poster Lomba Cipta Lagu Bulan Keluarga 2025", width='stretch')
+            st.markdown('</div>', unsafe_allow_html=True)
+    except Exception as e:
+        config = cache_service.get_cached_config()
+        show_poster = config.get('SHOW_POSTER', 'TRUE').upper() == 'TRUE'
+        poster_file_path = config.get('POSTER_FILE_PATH', 'assets/FLYER_01.png')
+        if show_poster:  # Only show warning if poster is supposed to be shown
+            st.warning(f"⚠️ Poster tidak dapat dimuat: {poster_file_path}")
 
     # Winner announcement video section
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; margin: 2rem 0;">
+    <div style="text-align: center; margin: 1rem 0 0.5rem 0;">
         <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">🏆 Pengumuman Pemenang</h3>
-        <div style="background: linear-gradient(135deg, #FFD700, #FFA500);  
-            </span>
-        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -7859,14 +7941,13 @@ def render_landing_page():
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.markdown("""
-            <div style="
+            <div class="non-clickable-card" style="
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
                 padding: 2rem;
                 border-radius: 15px;
                 text-align: center;
                 margin: 2rem 0;
-                box-shadow: 0 8px 25px rgba(0,0,0,0.2);
             ">
                 <h2 style="margin: 0 0 1rem 0;">🎉Selamat kepada pemenang!🎉</h2>
                 <p style="margin: 0; font-size: 1.1rem; opacity: 0.95;">
@@ -7875,7 +7956,55 @@ def render_landing_page():
             </div>
             """, unsafe_allow_html=True)
 
-            # Celebration button with sound effects
+            # Celebration button with sound effects and radiant hover styling
+            st.markdown("""
+            <style>
+            .stButton > button {
+                background: linear-gradient(135deg, #ff6b6b, #ee5a24) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 25px !important;
+                padding: 0.75rem 2rem !important;
+                font-weight: bold !important;
+                font-size: 1.1rem !important;
+                transition: all 0.3s ease !important;
+                box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3) !important;
+                cursor: pointer !important;
+                position: relative !important;
+            }
+            .stButton > button::before {
+                content: '' !important;
+                position: absolute !important;
+                top: -3px !important;
+                left: -3px !important;
+                right: -3px !important;
+                bottom: -3px !important;
+                background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3, #54a0ff) !important;
+                background-size: 400% 400% !important;
+                border-radius: 28px !important;
+                z-index: -1 !important;
+                animation: button-glow 3s ease infinite !important;
+                opacity: 0.7 !important;
+            }
+            @keyframes button-glow {
+                0%, 100% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+            }
+            .stButton > button:hover {
+                transform: translateY(-3px) !important;
+                box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4) !important;
+                background: linear-gradient(135deg, #ee5a24, #ff6b6b) !important;
+            }
+            .stButton > button:hover::before {
+                opacity: 1 !important;
+                animation-duration: 1.5s !important;
+            }
+            .stButton > button:active {
+                transform: translateY(-1px) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
             if st.button("🎊 Lets Celebrate! 🎊", type="primary", use_container_width=True):
                 # Use JavaScript-only effects to avoid stopping audio
                 pass  # No st.balloons() to avoid page refresh

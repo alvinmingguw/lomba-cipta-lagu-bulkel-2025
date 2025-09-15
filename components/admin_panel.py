@@ -474,6 +474,7 @@ def render_configuration_management():
         'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
         'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
         'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
+        'SHOW_POSTER', 'POSTER_FILE_PATH', 'SHOW_BANNER', 'BANNER_FILE_PATH',
 
         # System Settings
         'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
@@ -555,7 +556,8 @@ def render_configuration_management():
         display_configs = config_df[config_df['key'].isin([
             'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
-            'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES'
+            'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
+            'SHOW_POSTER', 'POSTER_FILE_PATH', 'SHOW_BANNER', 'BANNER_FILE_PATH'
         ])]
 
         for _, config in display_configs.iterrows():
@@ -569,7 +571,7 @@ def render_configuration_management():
             with col2:
                 key = f"config_{config['key']}"
 
-                if config['key'] in ['SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'REQUIRE_CONFIRM_PANEL', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES']:
+                if config['key'] in ['SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'REQUIRE_CONFIRM_PANEL', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES', 'SHOW_POSTER', 'SHOW_BANNER']:
                     # Boolean configs
                     current_value = config['value'].lower() == 'true'
                     new_value = st.checkbox("", value=current_value, key=key)
@@ -595,6 +597,13 @@ def render_configuration_management():
                     current_idx = options.index(config['value']) if config['value'] in options else 0
                     new_value_str = st.selectbox("", options=options, index=current_idx, key=key)
                     st.caption("TABS: Current tabbed layout | COLUMNS: Side-by-side with full score")
+                elif config['key'] in ['POSTER_FILE_PATH', 'BANNER_FILE_PATH']:
+                    # File path configs
+                    new_value_str = st.text_input("", value=config['value'], key=key)
+                    if config['key'] == 'POSTER_FILE_PATH':
+                        st.caption("Path to poster image file (e.g., assets/FLYER_01.png)")
+                    elif config['key'] == 'BANNER_FILE_PATH':
+                        st.caption("Path to banner image file (e.g., assets/banner.png)")
                 else:
                     # Text configs
                     new_value_str = st.text_input("", value=config['value'], key=key)
@@ -826,6 +835,7 @@ def render_configuration_management():
             'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
+            'SHOW_POSTER', 'POSTER_FILE_PATH', 'SHOW_BANNER', 'BANNER_FILE_PATH',
             # System Settings
             'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
             'LOCK_FINAL_EVALUATIONS', 'DETECT_CHORDS_FALLBACK',
@@ -988,6 +998,7 @@ def render_configuration_cleanup_tab(config_df):
             'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
+            'SHOW_POSTER', 'POSTER_FILE_PATH', 'SHOW_BANNER', 'BANNER_FILE_PATH',
 
             # System Settings
             'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
@@ -1108,6 +1119,10 @@ def render_configuration_cleanup_tab(config_df):
                     'SHOW_PDF_DOCUMENTS': 'False',
                     'SHOW_WINNER_SCORES': 'True',
                     'SHOW_ALL_SONGS_SCORES': 'False',
+                    'SHOW_POSTER': 'True',
+                    'POSTER_FILE_PATH': 'assets/FLYER_01.png',
+                    'SHOW_BANNER': 'True',
+                    'BANNER_FILE_PATH': 'assets/banner.png',
 
                     # System Settings
                     'CERTIFICATE_MODE': 'STORAGE',
