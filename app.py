@@ -413,32 +413,76 @@ def render_enhanced_pdf_viewer(pdf_url: str, pdf_type: str = "document", height:
         },
     ]
 
-    # Clean compact header with dropdown
-    col1, col2 = st.columns([3, 1])
+    # Responsive layout: mobile-friendly single row
+    # Check if we should show PDF viewer controls (configurable)
+    try:
+        config = cache_service.get_cached_config()
+        show_pdf_controls = config.get('SHOW_PDF_VIEWER_CONTROLS', 'TRUE').upper() == 'TRUE'
+        default_pdf_viewer = config.get('DEFAULT_PDF_VIEWER', 'Mozilla PDF.js Viewer')
 
-    with col1:
-        # Method selector dropdown
-        method_options = [f"{method['name']} | Method {i+1}/3" for i, method in enumerate(methods)]
-        selected_index = st.selectbox(
-            "PDF Viewer Method:",
-            options=range(len(methods)),
-            index=current_method,
-            format_func=lambda x: method_options[x],
-            key=f"{viewer_key}_method_select",
-            label_visibility="collapsed"
-        )
+        # Set default based on config
+        if f"{viewer_key}_method" not in st.session_state:
+            # Find index of default viewer
+            default_index = 0
+            for i, method in enumerate(methods):
+                if default_pdf_viewer in method['name']:
+                    default_index = i
+                    break
+            st.session_state[f"{viewer_key}_method"] = default_index
+    except:
+        show_pdf_controls = True
 
-        # Update method if changed
-        if selected_index != current_method:
-            st.session_state[f"{viewer_key}_method"] = selected_index
-            st.session_state[f"{viewer_key}_loading"] = True
-            st.rerun()
+    if show_pdf_controls:
+        # Mobile-friendly single row layout
+        col1, col2, col3 = st.columns([2, 1, 1])
 
-    with col2:
-        # Compact refresh button
-        if st.button("🔄", key=f"{viewer_key}_refresh", help="Refresh PDF", use_container_width=True):
-            st.session_state[f"{viewer_key}_loading"] = True
-            st.rerun()
+        with col1:
+            # Method selector dropdown
+            method_options = [f"{method['name']}" for i, method in enumerate(methods)]
+            selected_index = st.selectbox(
+                "PDF Viewer Method:",
+                options=range(len(methods)),
+                index=current_method,
+                format_func=lambda x: method_options[x],
+                key=f"{viewer_key}_method_select",
+                label_visibility="collapsed"
+            )
+
+            # Update method if changed
+            if selected_index != current_method:
+                st.session_state[f"{viewer_key}_method"] = selected_index
+                st.session_state[f"{viewer_key}_loading"] = True
+                st.rerun()
+
+        with col2:
+            # Compact refresh button
+            if st.button("🔄", key=f"{viewer_key}_refresh", help="Refresh PDF", use_container_width=True):
+                st.session_state[f"{viewer_key}_loading"] = True
+                st.rerun()
+
+        with col3:
+            # Download button (since Mozilla has it but might be hard to find)
+            st.markdown(f"""
+            <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
+                <button style="
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 6px 8px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 0.8rem;
+                    width: 100%;
+                ">📥</button>
+            </a>
+            """, unsafe_allow_html=True)
+    else:
+        # Minimal mode - just refresh button
+        col1, col2 = st.columns([4, 1])
+        with col2:
+            if st.button("🔄", key=f"{viewer_key}_refresh", help="Refresh PDF", use_container_width=True):
+                st.session_state[f"{viewer_key}_loading"] = True
+                st.rerun()
 
     # Show loading indicator
     if st.session_state[f"{viewer_key}_loading"]:
@@ -488,6 +532,315 @@ def render_enhanced_pdf_viewer(pdf_url: str, pdf_type: str = "document", height:
             </a>
         </div>
         """, unsafe_allow_html=True)
+
+def render_tabs_content_layout(song_data: dict, song_key: str = "song", use_minus_one: bool = False):
+    """Render content with tabs layout: Audio player + 3 tabs below"""
+
+    # Audio player at the top
+    if use_minus_one:
+        render_audio_player_with_minus_one(song_data, song_key)
+    else:
+        render_audio_player(song_data)
+
+    # 3 tabs below
+    # Add CSS to center tabs
+    st.markdown("""
+    <style>
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        justify-content: center;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: rgb(49, 51, 63);
+        font-size: 14px;
+        font-weight: 500;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: rgb(255, 255, 255);
+        color: rgb(49, 51, 63);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    tab1, tab2, tab3 = st.tabs(["🎼 Syair + Chord", "🎼 Notasi PDF", "📝 Syair PDF"])
+
+    with tab1:
+            # Syair + Chord content - use correct database fields
+            # Try lyrics_with_chords first, then fallback to lyrics_text, then chords_list
+            content_to_show = ""
+
+            if song_data.get('lyrics_with_chords'):
+                content_to_show = song_data['lyrics_with_chords']
+            elif song_data.get('lyrics_text'):
+                content_to_show = song_data['lyrics_text']
+            elif song_data.get('chords_list'):
+                content_to_show = song_data['chords_list']
+            elif song_data.get('full_score'):
+                content_to_show = song_data['full_score']
+
+            if content_to_show:
+                st.markdown(
+                    f"""
+                    <div style="
+                        background-color: #fff8e1;
+                        padding: 1rem;
+                        border-radius: 8px;
+                        border-left: 3px solid #ff9800;
+                        font-family: 'Courier New', monospace;
+                        white-space: pre-wrap;
+                        font-size: 0.8rem;
+                        line-height: 1.4;
+                    ">
+                        {content_to_show}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown("""
+                <div style="text-align: center; padding: 2rem; color: #666;">
+                    <h4>🎼 Syair & Chord</h4>
+                    <p>Syair dan chord belum tersedia untuk lagu ini</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+    with tab2:
+        # Notasi PDF
+        try:
+            from services.file_service import file_service
+            notation_pdf_url = None
+
+            if song_data.get('notation_file_id'):
+                notation_pdf_url = file_service.get_file_url(song_data['notation_file_id'])
+            elif song_data.get('notation_file_path'):
+                notation_pdf_url = file_service.get_public_url(song_data['notation_file_path'])
+
+            if notation_pdf_url:
+                # Enhanced PDF viewer
+                render_enhanced_pdf_viewer(notation_pdf_url, f"notation_{song_key}", height=500)
+            else:
+                st.markdown("""
+                <div style="text-align: center; padding: 2rem; color: #666;">
+                    <h4>🎼 Notasi Musik</h4>
+                    <p>Notasi PDF belum tersedia untuk lagu ini</p>
+                </div>
+                """, unsafe_allow_html=True)
+        except Exception as e:
+            st.markdown("""
+            <div style="text-align: center; padding: 2rem; color: #666;">
+                <h4>🎼 Notasi Musik</h4>
+                <p>Notasi PDF belum tersedia untuk lagu ini</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with tab3:
+        # Syair PDF
+        try:
+            from services.file_service import file_service
+            lyrics_pdf_url = None
+
+            if song_data.get('lyrics_file_id'):
+                lyrics_pdf_url = file_service.get_file_url(song_data['lyrics_file_id'])
+            elif song_data.get('lyrics_file_path'):
+                lyrics_pdf_url = file_service.get_public_url(song_data['lyrics_file_path'])
+
+            if lyrics_pdf_url:
+                # Enhanced PDF viewer
+                render_enhanced_pdf_viewer(lyrics_pdf_url, f"lyrics_{song_key}", height=500)
+            else:
+                st.markdown("""
+                <div style="text-align: center; padding: 2rem; color: #666;">
+                    <h4>📝 Syair PDF</h4>
+                    <p>Syair PDF belum tersedia untuk lagu ini</p>
+                </div>
+                """, unsafe_allow_html=True)
+        except Exception as e:
+            st.markdown("""
+            <div style="text-align: center; padding: 2rem; color: #666;">
+                <h4>📝 Syair PDF</h4>
+                <p>Syair PDF belum tersedia untuk lagu ini</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+def render_playlist_audio_player(songs_data: list, player_key: str = "main_playlist"):
+    """Render a playlist-style audio player similar to foobar2000"""
+
+    # Initialize playlist state
+    if f"{player_key}_current_track" not in st.session_state:
+        st.session_state[f"{player_key}_current_track"] = 0
+    if f"{player_key}_is_playing" not in st.session_state:
+        st.session_state[f"{player_key}_is_playing"] = False
+    if f"{player_key}_shuffle" not in st.session_state:
+        st.session_state[f"{player_key}_shuffle"] = False
+    if f"{player_key}_repeat" not in st.session_state:
+        st.session_state[f"{player_key}_repeat"] = False
+    if f"{player_key}_play_counts" not in st.session_state:
+        st.session_state[f"{player_key}_play_counts"] = {}
+
+    if not songs_data:
+        st.info("📭 Tidak ada lagu dalam playlist")
+        return
+
+    current_track_idx = st.session_state[f"{player_key}_current_track"]
+    current_song = songs_data[current_track_idx] if current_track_idx < len(songs_data) else songs_data[0]
+
+    # Main player header
+    # st.markdown("### 🎵 **Playlist Audio Player**")
+
+    # Current track info and main controls
+    col1, col2, col3 = st.columns([2, 1, 1])
+
+    with col1:
+        # Get play count from database
+        song_data = current_song.get('song_data', {})
+        play_count = song_data.get('play_count', 0)
+
+        st.markdown(f"""
+        <div style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+        ">
+            <h4 style="margin: 0; font-size: 1.1rem;">🎵 {current_song.get('title', 'Unknown Title')}</h4>
+            <p style="margin: 0.2rem 0 0 0; opacity: 0.9; font-size: 0.9rem;">
+                👤 {current_song.get('composer', 'Unknown Artist')} |
+                🏆 Track {current_track_idx + 1}/{len(songs_data)} |
+                ▶️ Played {play_count}x
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        # Previous/Next controls
+        col_prev, col_next = st.columns(2)
+        with col_prev:
+            if st.button("⏮️", key=f"{player_key}_prev", help="Previous Track", use_container_width=True):
+                if st.session_state[f"{player_key}_shuffle"]:
+                    # Shuffle mode: random track
+                    import random
+                    available_tracks = list(range(len(songs_data)))
+                    available_tracks.remove(current_track_idx)
+                    if available_tracks:
+                        st.session_state[f"{player_key}_current_track"] = random.choice(available_tracks)
+                else:
+                    # Normal mode: previous track
+                    if current_track_idx > 0:
+                        st.session_state[f"{player_key}_current_track"] = current_track_idx - 1
+                    elif st.session_state[f"{player_key}_repeat"]:
+                        # Repeat mode: go to last track
+                        st.session_state[f"{player_key}_current_track"] = len(songs_data) - 1
+                st.rerun()
+        with col_next:
+            if st.button("⏭️", key=f"{player_key}_next", help="Next Track", use_container_width=True):
+                if st.session_state[f"{player_key}_shuffle"]:
+                    # Shuffle mode: random track
+                    import random
+                    available_tracks = list(range(len(songs_data)))
+                    available_tracks.remove(current_track_idx)
+                    if available_tracks:
+                        st.session_state[f"{player_key}_current_track"] = random.choice(available_tracks)
+                else:
+                    # Normal mode: next track
+                    if current_track_idx < len(songs_data) - 1:
+                        st.session_state[f"{player_key}_current_track"] = current_track_idx + 1
+                    elif st.session_state[f"{player_key}_repeat"]:
+                        # Repeat mode: go to first track
+                        st.session_state[f"{player_key}_current_track"] = 0
+                st.rerun()
+
+    with col3:
+        # Shuffle and repeat controls with visual state
+        col_shuffle, col_repeat = st.columns(2)
+        with col_shuffle:
+            shuffle_active = st.session_state[f"{player_key}_shuffle"]
+            shuffle_help = "Shuffle: ON" if shuffle_active else "Shuffle: OFF"
+
+            # Use different button type for active state
+            if shuffle_active:
+                if st.button("🔀", key=f"{player_key}_shuffle_btn", help=shuffle_help, use_container_width=True, type="primary"):
+                    st.session_state[f"{player_key}_shuffle"] = not shuffle_active
+                    st.rerun()
+            else:
+                if st.button("🔀", key=f"{player_key}_shuffle_btn", help=shuffle_help, use_container_width=True):
+                    st.session_state[f"{player_key}_shuffle"] = not shuffle_active
+                    st.rerun()
+
+        with col_repeat:
+            repeat_active = st.session_state[f"{player_key}_repeat"]
+            repeat_help = "Repeat: ON" if repeat_active else "Repeat: OFF"
+
+            # Use different button type for active state
+            if repeat_active:
+                if st.button("🔁", key=f"{player_key}_repeat_btn", help=repeat_help, use_container_width=True, type="primary"):
+                    st.session_state[f"{player_key}_repeat"] = not repeat_active
+                    st.rerun()
+            else:
+                if st.button("🔁", key=f"{player_key}_repeat_btn", help=repeat_help, use_container_width=True):
+                    st.session_state[f"{player_key}_repeat"] = not repeat_active
+                    st.rerun()
+
+    # Main audio player
+    if current_song.get('audio_url'):
+        # Check if this is a new track selection (increment global play count)
+        last_track_key = f"{player_key}_last_track"
+        if last_track_key not in st.session_state or st.session_state[last_track_key] != current_track_idx:
+            # Update play count in database
+            try:
+                song_data = current_song.get('song_data')
+                if song_data is not None:
+                    song_id = song_data.get('id')
+                    if song_id is not None:
+                        # Handle both pandas Series and regular values
+                        if hasattr(song_id, 'iloc'):
+                            song_id = song_id.iloc[0] if len(song_id) > 0 else None
+                        if song_id:
+                            db_service.increment_play_count(int(song_id))
+            except Exception as e:
+                st.warning(f"Error updating play count: {e}")
+
+            st.session_state[last_track_key] = current_track_idx
+
+        # Audio player with auto-advance functionality
+        st.audio(current_song['audio_url'], format='audio/mp3', start_time=0)
+
+        # Auto-advance logic (simplified - in real app would need audio end detection)
+        # For now, we'll add manual next button functionality
+        st.markdown("*Note: Click Next (⏭️) to advance to next track*")
+
+    else:
+        st.warning("🔇 Audio tidak tersedia untuk track ini")
+
+    # Playlist view
+    with st.expander("📋 **Playlist** (Click to expand)", expanded=False):
+        st.markdown("**🎵 All Tracks:**")
+
+        for idx, song in enumerate(songs_data):
+            # Highlight current track
+            is_current = idx == current_track_idx
+            bg_color = "#e3f2fd" if is_current else "#f9f9f9"
+            border = "2px solid #2196F3" if is_current else "1px solid #ddd"
+            text_color = "#1976D2" if is_current else "#333"
+
+            # Get play count from database
+            song_data = song.get('song_data', {})
+            play_count = song_data.get('play_count', 0)
+
+            # Make entire track clickable with custom styling
+            if st.button(f"{'🎵 ' if is_current else '🎶 '}{song.get('title', 'Unknown Title')}\n👤 {song.get('composer', 'Unknown Artist')} • ▶️ {play_count}x",
+                       key=f"{player_key}_track_{idx}",
+                       help="Click to play this track",
+                       use_container_width=True):
+                if not is_current:
+                    st.session_state[f"{player_key}_current_track"] = idx
+                    st.rerun()
 
 def display_banner():
     """Display application banner - configurable"""
@@ -610,11 +963,89 @@ def render_audio_player(song_data, player_id=None):
         encoded_path = urllib.parse.quote(clean_path)
         audio_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
 
+        # Check if play counting is enabled and increment if needed
+        try:
+            from services.database_service import db_service
+            config = db_service.get_config()
+            enable_play_count = config.get('ENABLE_PLAY_COUNT', 'FALSE').upper() == 'TRUE'
+
+            if enable_play_count and player_id:
+                last_track_key = f"{player_id}_last_played"
+                song_id = song_data.get('id')
+
+                if song_id and (last_track_key not in st.session_state or st.session_state[last_track_key] != song_id):
+                    # Update play count in database
+                    try:
+                        db_service.increment_play_count(song_id)
+                        st.session_state[last_track_key] = song_id
+                    except Exception as e:
+                        st.warning(f"Error updating play count: {e}")
+        except Exception:
+            pass  # Silently fail if config not available
+
         # SIMPLE Streamlit audio widget
         st.audio(audio_url)
 
     except Exception as e:
         st.error(f"❌ Error loading audio: {e}")
+
+
+def render_audio_player_with_minus_one(song_data, player_id=None):
+    """Render audio player with minus one option for winners"""
+
+    # Get audio paths
+    main_audio_path = song_data.get('audio_file_path', '')
+    minus_one_path = song_data.get('minus_one_file_path', '')
+
+    if not main_audio_path:
+        st.info("🎵 Audio belum tersedia")
+        return
+
+    # Center the audio header with same styling as Lyric Video
+    st.markdown("<div style='text-align: center; margin: 0.5rem 0 0.2rem 0;'><h5>🎵 Audio</h5></div>", unsafe_allow_html=True)
+
+    # Audio selection tabs if minus one is available
+    if minus_one_path:
+        # Add CSS to center tabs
+        st.markdown("""
+        <style>
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 8px;
+            justify-content: center;
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 50px;
+            white-space: pre-wrap;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: rgb(49, 51, 63);
+            font-size: 14px;
+            font-weight: 500;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: rgb(255, 255, 255);
+            color: rgb(49, 51, 63);
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        audio_tab1, audio_tab2 = st.tabs(["🎵 Original", "🎤 Minus One"])
+
+        with audio_tab1:
+            st.markdown("<div style='text-align: center;'><strong>🎵 Full Song</strong></div>", unsafe_allow_html=True)
+            render_audio_player(song_data, f"{player_id}_original" if player_id else None)
+
+        with audio_tab2:
+            st.markdown("<div style='text-align: center;'><strong>🎤 Minus One (Iringan Jemaat)</strong></div>", unsafe_allow_html=True)
+            # Create temporary song data for minus one
+            minus_one_data = song_data.copy()
+            minus_one_data['audio_file_path'] = minus_one_path
+            render_audio_player(minus_one_data, f"{player_id}_minus_one" if player_id else None)
+    else:
+        # Only original audio available
+        render_audio_player(song_data, player_id)
 
 
 def render_comprehensive_rubric_analysis(rubric, song_data, ai_suggestions, ai_explanations):
@@ -1711,22 +2142,22 @@ def render_notation_viewer(song_data):
 
         with st.expander("🎼 Notasi PDF Preview", expanded=False):
             # Download button
-            st.markdown(f"""
-            <div style="text-align: center; margin-bottom: 10px;">
-                <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
-                    <button style="
-                        background-color: #4CAF50;
-                        color: white;
-                        padding: 8px 16px;
-                        border: none;
-                        border-radius: 6px;
-                        cursor: pointer;
-                        font-size: 0.9rem;
-                        font-weight: bold;
-                    ">📥 Download / Open in New Tab</button>
-                </a>
-            </div>
-            """, unsafe_allow_html=True)
+            # st.markdown(f"""
+            # <div style="text-align: center; margin-bottom: 10px;">
+            #     <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
+            #         <button style="
+            #             background-color: #4CAF50;
+            #             color: white;
+            #             padding: 8px 16px;
+            #             border: none;
+            #             border-radius: 6px;
+            #             cursor: pointer;
+            #             font-size: 0.9rem;
+            #             font-weight: bold;
+            #         ">📥 Download / Open in New Tab</button>
+            #     </a>
+            # </div>
+            # """, unsafe_allow_html=True)
 
             # Enhanced PDF viewer with multiple fallbacks
             render_enhanced_pdf_viewer(pdf_url, "notation", height=600)
@@ -1773,22 +2204,22 @@ def render_lyrics_viewer(song_data):
 
         with st.expander("📝 Syair PDF Preview", expanded=False):
             # Download button
-            st.markdown(f"""
-            <div style="text-align: center; margin-bottom: 10px;">
-                <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
-                    <button style="
-                        background-color: #2196F3;
-                        color: white;
-                        padding: 8px 16px;
-                        border: none;
-                        border-radius: 6px;
-                        cursor: pointer;
-                        font-size: 0.9rem;
-                        font-weight: bold;
-                    ">📥 Download / Open in New Tab</button>
-                </a>
-            </div>
-            """, unsafe_allow_html=True)
+            # st.markdown(f"""
+            # <div style="text-align: center; margin-bottom: 10px;">
+            #     <a href="{pdf_url}" target="_blank" style="text-decoration: none;">
+            #         <button style="
+            #             background-color: #2196F3;
+            #             color: white;
+            #             padding: 8px 16px;
+            #             border: none;
+            #             border-radius: 6px;
+            #             cursor: pointer;
+            #             font-size: 0.9rem;
+            #             font-weight: bold;
+            #         ">📥 Download / Open in New Tab</button>
+            #     </a>
+            # </div>
+            # """, unsafe_allow_html=True)
 
             # Enhanced PDF viewer with multiple fallbacks
             render_enhanced_pdf_viewer(pdf_url, "lyrics", height=600)
@@ -6371,16 +6802,45 @@ def render_google_drive_section():
         border-radius: 12px;
         overflow: hidden;
         position: relative;
+        animation: cardFloat 6s ease-in-out infinite;
     }
     .clickable-card:hover {
-        transform: translateY(-3px);
+        transform: translateY(-3px) scale(1.02);
         box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         border: 2px solid rgba(255,255,255,0.2);
+        animation-play-state: paused;
     }
     .non-clickable-card {
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         border: 1px solid rgba(0,0,0,0.1);
         border-radius: 12px;
+    }
+
+    /* Mobile-friendly scroll animation */
+    @keyframes cardFloat {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        25% { transform: translateY(-2px) rotate(0.5deg); }
+        50% { transform: translateY(0px) rotate(0deg); }
+        75% { transform: translateY(-1px) rotate(-0.5deg); }
+    }
+
+    /* Enhanced hover for desktop */
+    @media (hover: hover) {
+        .clickable-card:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+        }
+    }
+
+    /* Touch-friendly animation for mobile */
+    @media (hover: none) {
+        .clickable-card:active {
+            transform: scale(0.98);
+            transition: transform 0.1s ease;
+        }
+        .clickable-card {
+            animation-duration: 8s;
+        }
     }
     </style>
     <div style="text-align: center; margin: 2rem 0 1rem 0;">
@@ -6638,7 +7098,7 @@ def render_winners_section():
                 song_data = all_song_data[0]  # Use first version for video
                 if song_data.get('lyric_video_url'):
                     # Center the video header and content with reduced spacing
-                    st.markdown("<div style='text-align: center; margin: 0.5rem 0 0.2rem 0;'><h5>🎬 Video Lyric</h5></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='text-align: center; margin: 0.5rem 0 0.2rem 0;'><h5>🎬 Lyric Video</h5></div>", unsafe_allow_html=True)
                     # Better centering with more balanced columns
                     col1, col2, col3 = st.columns([1, 3, 1])
                     with col2:
@@ -6668,6 +7128,9 @@ def render_winners_section():
                             """, unsafe_allow_html=True)
 
             if all_song_data:
+                # Get layout configuration first
+                content_layout_mode = get_config_value('CONTENT_LAYOUT_MODE', 'EXPANDER')
+
                 # Show multiple audio versions if available
                 if len(all_song_data) > 1:
                     # st.markdown("##### 🎵 Pilihan Audio (Voting Internal)")
@@ -6714,9 +7177,8 @@ def render_winners_section():
                                 </div>
                                 """, unsafe_allow_html=True)
 
-                                # Audio player with unique ID
-                                st.markdown("**🎵 Audio**")
-                                render_audio_player(song_data, f"winner_{i}_{idx}")
+                                # Audio player with minus one option for winners
+                                render_audio_player_with_minus_one(song_data, f"winner_{i}_{idx}")
 
                                 # Syair + Chord in expander (collapsed by default)
                                 # Determine content and header dynamically
@@ -6814,44 +7276,44 @@ def render_winners_section():
                                         if notation_pdf_url:
                                             with st.expander("🎼 Notasi PDF Preview", expanded=False):
                                                 # Download button
-                                                st.markdown(f"""
-                                                <div style="text-align: center; margin-bottom: 10px;">
-                                                    <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
-                                                        <button style="
-                                                            background-color: #4CAF50;
-                                                            color: white;
-                                                            padding: 8px 16px;
-                                                            border: none;
-                                                            border-radius: 6px;
-                                                            cursor: pointer;
-                                                            font-size: 0.9rem;
-                                                            font-weight: bold;
-                                                        ">📥 Download / Open in New Tab</button>
-                                                    </a>
-                                                </div>
-                                                """, unsafe_allow_html=True)
+                                                # st.markdown(f"""
+                                                # <div style="text-align: center; margin-bottom: 10px;">
+                                                #     <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
+                                                #         <button style="
+                                                #             background-color: #4CAF50;
+                                                #             color: white;
+                                                #             padding: 8px 16px;
+                                                #             border: none;
+                                                #             border-radius: 6px;
+                                                #             cursor: pointer;
+                                                #             font-size: 0.9rem;
+                                                #             font-weight: bold;
+                                                #         ">📥 Download / Open in New Tab</button>
+                                                #     </a>
+                                                # </div>
+                                                # """, unsafe_allow_html=True)
 
                                                 # Enhanced PDF viewer with multiple fallbacks
                                                 render_enhanced_pdf_viewer(notation_pdf_url, "notation_winner", height=600)
                                         if lyrics_pdf_url:
                                             with st.expander("📝 Syair PDF Preview", expanded=False):
                                                 # Download button
-                                                st.markdown(f"""
-                                                <div style="text-align: center; margin-bottom: 10px;">
-                                                    <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
-                                                        <button style="
-                                                            background-color: #2196F3;
-                                                            color: white;
-                                                            padding: 8px 16px;
-                                                            border: none;
-                                                            border-radius: 6px;
-                                                            cursor: pointer;
-                                                            font-size: 0.9rem;
-                                                            font-weight: bold;
-                                                        ">📥 Download / Open in New Tab</button>
-                                                    </a>
-                                                </div>
-                                                """, unsafe_allow_html=True)
+                                                # st.markdown(f"""
+                                                # <div style="text-align: center; margin-bottom: 10px;">
+                                                #     <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
+                                                #         <button style="
+                                                #             background-color: #2196F3;
+                                                #             color: white;
+                                                #             padding: 8px 16px;
+                                                #             border: none;
+                                                #             border-radius: 6px;
+                                                #             cursor: pointer;
+                                                #             font-size: 0.9rem;
+                                                #             font-weight: bold;
+                                                #         ">📥 Download / Open in New Tab</button>
+                                                #     </a>
+                                                # </div>
+                                                # """, unsafe_allow_html=True)
 
                                                 # Enhanced PDF viewer with multiple fallbacks
                                                 render_enhanced_pdf_viewer(lyrics_pdf_url, "lyrics_winner", height=600)
@@ -6892,9 +7354,8 @@ def render_winners_section():
                                 </div>
                                 """, unsafe_allow_html=True)
 
-                                # Audio player with unique ID
-                                st.markdown("**🎵 Audio**")
-                                render_audio_player(song_data, f"winner_{i}_{idx}")
+                                # Audio player with minus one option for winners
+                                render_audio_player_with_minus_one(song_data, f"winner_{i}_{idx}")
 
                         # Show comprehensive score comparison for TABS layout
                         st.markdown("---")
@@ -7044,69 +7505,74 @@ def render_winners_section():
                                     with col:
                                         st.markdown(f"**{version_name}**")
 
-                                        # PDF embedded viewers in expanders
+                                        # PDF viewers directly (no expanders in tabs)
                                         if song_data.get('notation_pdf_url'):
-                                            with st.expander("🎼 Notasi PDF Preview", expanded=False):
-                                                # Enhanced PDF viewer with multiple fallbacks
-                                                render_enhanced_pdf_viewer(song_data['notation_pdf_url'], f"notation_tabs_{idx}", height=500)
-                                                
+                                            st.markdown("**🎼 Notasi PDF**")
+                                            # Enhanced PDF viewer with multiple fallbacks
+                                            render_enhanced_pdf_viewer(song_data['notation_pdf_url'], f"notation_tabs_{idx}", height=500)
+
                                         if song_data.get('lyrics_pdf_url'):
-                                            with st.expander("📝 Syair PDF Preview", expanded=False):
-                                                # Enhanced PDF viewer with multiple fallbacks
-                                                render_enhanced_pdf_viewer(song_data['lyrics_pdf_url'], f"lyrics_tabs_{idx}", height=500)
+                                            st.markdown("**📝 Syair PDF**")
+                                            # Enhanced PDF viewer with multiple fallbacks
+                                            render_enhanced_pdf_viewer(song_data['lyrics_pdf_url'], f"lyrics_tabs_{idx}", height=500)
 
                                         
                 else:
                     # Single version display - 1 column layout
                     song_data = all_song_data[0]
 
-                    # Audio player
-                    st.markdown("**🎵 Audio**")
-                    render_audio_player(song_data)
-
-                    # Syair + Chord in expander (collapsed by default)
-                    # Determine content and header dynamically
-                    if song_data.get('lyrics_with_chords'):
-                        content_to_show = song_data['lyrics_with_chords']
-                        expander_title = "🎼 Syair + Chord"
-                    elif song_data.get('lyrics_text'):
-                        content_to_show = song_data['lyrics_text']
-                        expander_title = "🎼 Syair Only (Chord tidak tersedia)"
-                    elif song_data.get('chords_list'):
-                        content_to_show = song_data['chords_list']
-                        expander_title = "🎼 Chord Only (Syair tidak tersedia)"
-                    elif song_data.get('full_score'):
-                        content_to_show = song_data['full_score']
-                        expander_title = "🎼 Full Score"
+                    # Use tabs layout if configured
+                    if content_layout_mode == 'TABS':
+                        render_tabs_content_layout(song_data, f"winner_single_{i}", use_minus_one=True)
                     else:
-                        content_to_show = None
-                        expander_title = "🎼 Syair + Chord"
+                        # Original expander layout
+                        # Audio player
+                        st.markdown("**🎵 Audio**")
+                        render_audio_player(song_data)
 
-                    if content_to_show:
-                        with st.expander(expander_title, expanded=False):
-                            st.markdown(
-                                f"""
-                                <div style="
-                                    background-color: #fff8e1;
-                                    padding: 1rem;
-                                    border-radius: 8px;
-                                    border-left: 3px solid #ff9800;
-                                    font-family: 'Courier New', monospace;
-                                    white-space: pre-wrap;
-                                    font-size: 0.8rem;
-                                    line-height: 1.4;
-                                ">
-                                    {content_to_show}
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
-                    else:
-                        with st.expander(expander_title, expanded=False):
-                            st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
+                        # Syair + Chord in expander (collapsed by default)
+                        # Determine content and header dynamically
+                        if song_data.get('lyrics_with_chords'):
+                            content_to_show = song_data['lyrics_with_chords']
+                            expander_title = "🎼 Syair + Chord"
+                        elif song_data.get('lyrics_text'):
+                            content_to_show = song_data['lyrics_text']
+                            expander_title = "🎼 Syair Only (Chord tidak tersedia)"
+                        elif song_data.get('chords_list'):
+                            content_to_show = song_data['chords_list']
+                            expander_title = "🎼 Chord Only (Syair tidak tersedia)"
+                        elif song_data.get('full_score'):
+                            content_to_show = song_data['full_score']
+                            expander_title = "🎼 Full Score"
+                        else:
+                            content_to_show = None
+                            expander_title = "🎼 Syair + Chord"
 
-                    # Show PDF documents below
-                    if show_pdf:
+                        if content_to_show:
+                            with st.expander(expander_title, expanded=False):
+                                st.markdown(
+                                    f"""
+                                    <div style="
+                                        background-color: #fff8e1;
+                                        padding: 1rem;
+                                        border-radius: 8px;
+                                        border-left: 3px solid #ff9800;
+                                        font-family: 'Courier New', monospace;
+                                        white-space: pre-wrap;
+                                        font-size: 0.8rem;
+                                        line-height: 1.4;
+                                    ">
+                                        {content_to_show}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                        else:
+                            with st.expander(expander_title, expanded=False):
+                                st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
+
+                    # Show PDF documents below (only in EXPANDER mode, not TABS)
+                    if show_pdf and content_layout_mode != 'TABS':
                         st.markdown("---")
                         st.markdown("##### 📄 PDF Documents")
 
@@ -7160,22 +7626,22 @@ def render_winners_section():
                         if notation_pdf_url:
                             with st.expander("🎼 Notasi PDF Preview", expanded=False):
                                 # Download button
-                                st.markdown(f"""
-                                <div style="text-align: center; margin-bottom: 10px;">
-                                    <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
-                                        <button style="
-                                            background-color: #4CAF50;
-                                            color: white;
-                                            padding: 8px 16px;
-                                            border: none;
-                                            border-radius: 6px;
-                                            cursor: pointer;
-                                            font-size: 0.9rem;
-                                            font-weight: bold;
-                                        ">📥 Download / Open in New Tab</button>
-                                    </a>
-                                </div>
-                                """, unsafe_allow_html=True)
+                                # st.markdown(f"""
+                                # <div style="text-align: center; margin-bottom: 10px;">
+                                #     <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
+                                #         <button style="
+                                #             background-color: #4CAF50;
+                                #             color: white;
+                                #             padding: 8px 16px;
+                                #             border: none;
+                                #             border-radius: 6px;
+                                #             cursor: pointer;
+                                #             font-size: 0.9rem;
+                                #             font-weight: bold;
+                                #         ">📥 Download / Open in New Tab</button>
+                                #     </a>
+                                # </div>
+                                # """, unsafe_allow_html=True)
 
                                 # Enhanced PDF viewer with multiple fallbacks
                                 render_enhanced_pdf_viewer(notation_pdf_url, "notation_single", height=600)
@@ -7183,22 +7649,22 @@ def render_winners_section():
                         if lyrics_pdf_url:
                             with st.expander("📝 Syair PDF Preview", expanded=False):
                                 # Download button
-                                st.markdown(f"""
-                                <div style="text-align: center; margin-bottom: 10px;">
-                                    <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
-                                        <button style="
-                                            background-color: #2196F3;
-                                            color: white;
-                                            padding: 8px 16px;
-                                            border: none;
-                                            border-radius: 6px;
-                                            cursor: pointer;
-                                            font-size: 0.9rem;
-                                            font-weight: bold;
-                                        ">📥 Download / Open in New Tab</button>
-                                    </a>
-                                </div>
-                                """, unsafe_allow_html=True)
+                                # st.markdown(f"""
+                                # <div style="text-align: center; margin-bottom: 10px;">
+                                #     <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
+                                #         <button style="
+                                #             background-color: #2196F3;
+                                #             color: white;
+                                #             padding: 8px 16px;
+                                #             border: none;
+                                #             border-radius: 6px;
+                                #             cursor: pointer;
+                                #             font-size: 0.9rem;
+                                #             font-weight: bold;
+                                #         ">📥 Download / Open in New Tab</button>
+                                #     </a>
+                                # </div>
+                                # """, unsafe_allow_html=True)
 
                                 # Enhanced PDF viewer with multiple fallbacks
                                 render_enhanced_pdf_viewer(lyrics_pdf_url, "lyrics_single", height=600)
@@ -7251,9 +7717,11 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
             config = db_service.get_config()
             winners_count = int(config.get('WINNERS_TOP_N', 3))
             show_scores = config.get('SHOW_ALL_SONGS_SCORES', 'FALSE').upper() == 'TRUE'
+            show_pdf = config.get('SHOW_PDF_DOCUMENTS', 'FALSE').upper() == 'TRUE'
         except:
             winners_count = 3
             show_scores = False
+            show_pdf = True
 
         # Don't exclude winners - show ALL songs with winner emoji
         # Get top winners for emoji marking
@@ -7281,8 +7749,178 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
             expander_title = "🎵 **Dengarkan langsung semua lagu peserta**"
             subtitle = f"*Menampilkan {len(filtered_df)} lagu peserta*"
 
-        # Song selection with expander - cleaner UI
-        with st.expander(expander_title, expanded=True):
+        # Check if playlist mode is enabled
+        use_playlist_mode = get_config_value('USE_PLAYLIST_MODE', 'FALSE').upper() == 'TRUE'
+
+        if use_playlist_mode:
+            # Playlist mode - show all songs in playlist player
+            st.markdown(f"<div style='text-align: center;'><h3>🎵 {expander_title}</h3></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align: center; font-style: italic; margin-bottom: 1rem;'>{subtitle}</div>", unsafe_allow_html=True)
+
+            # Prepare songs data for playlist
+            playlist_songs = []
+            for _, song_row in filtered_df.iterrows():
+                # Get full song data
+                songs_df = db_service.get_songs()
+                matching_songs = songs_df[songs_df['title'] == song_row['title']]
+
+                if not matching_songs.empty:
+                    song_data = matching_songs.iloc[0]
+                    # Get audio URL
+                    audio_url = None
+                    if song_data.get('audio_file_path'):
+                        try:
+                            from services.file_service import file_service
+                            audio_url = file_service.get_public_url(song_data['audio_file_path'])
+                        except:
+                            pass
+
+                    playlist_songs.append({
+                        'title': song_row['title'],
+                        'composer': song_row['composer'],
+                        'audio_url': audio_url,
+                        'song_data': song_data  # Store full data for tabs
+                    })
+
+            # Render playlist player
+            render_playlist_audio_player(playlist_songs, "all_songs_playlist")
+
+            # Show tabs for current selected song
+            if playlist_songs:
+                current_track_idx = st.session_state.get("all_songs_playlist_current_track", 0)
+                if current_track_idx < len(playlist_songs):
+                    current_song = playlist_songs[current_track_idx]
+
+                    st.markdown("---")
+                    st.markdown(f"### 📋 **Content for: {current_song['title']}**")
+
+                    # Use tabs layout for current song content
+                    content_layout_mode = get_config_value('CONTENT_LAYOUT_MODE', 'EXPANDER')
+                    if content_layout_mode == 'TABS':
+                        # Don't show audio again since it's in playlist player
+                        # Add CSS to center tabs
+                        st.markdown("""
+                        <style>
+                        .stTabs [data-baseweb="tab-list"] {
+                            gap: 8px;
+                            justify-content: center;
+                        }
+                        .stTabs [data-baseweb="tab"] {
+                            height: 50px;
+                            white-space: pre-wrap;
+                            background-color: rgba(255, 255, 255, 0.2);
+                            border-radius: 8px;
+                            color: rgb(49, 51, 63);
+                            font-size: 14px;
+                            font-weight: 500;
+                            padding-left: 20px;
+                            padding-right: 20px;
+                        }
+                        .stTabs [aria-selected="true"] {
+                            background-color: rgb(255, 255, 255);
+                            color: rgb(49, 51, 63);
+                        }
+                        </style>
+                        """, unsafe_allow_html=True)
+
+                        tab1, tab2, tab3 = st.tabs(["🎼 Syair + Chord", "🎼 Notasi PDF", "📝 Syair PDF"])
+
+                        with tab1:
+                            # Syair + Chord content - use correct database fields
+                            song_data_current = current_song['song_data']
+                            content_to_show = ""
+
+                            if song_data_current.get('lyrics_with_chords'):
+                                content_to_show = song_data_current['lyrics_with_chords']
+                            elif song_data_current.get('lyrics_text'):
+                                content_to_show = song_data_current['lyrics_text']
+                            elif song_data_current.get('chords_list'):
+                                content_to_show = song_data_current['chords_list']
+                            elif song_data_current.get('full_score'):
+                                content_to_show = song_data_current['full_score']
+
+                            if content_to_show:
+                                st.markdown(
+                                    f"""
+                                    <div style="
+                                        background-color: #fff8e1;
+                                        padding: 1rem;
+                                        border-radius: 8px;
+                                        border-left: 3px solid #ff9800;
+                                        font-family: 'Courier New', monospace;
+                                        white-space: pre-wrap;
+                                        font-size: 0.8rem;
+                                        line-height: 1.4;
+                                    ">
+                                        {content_to_show}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                            else:
+                                st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
+
+                        with tab2:
+                            # Notasi PDF (same logic as render_tabs_content_layout)
+                            try:
+                                from services.file_service import file_service
+                                notation_pdf_url = None
+                                song_data = current_song['song_data']
+
+                                if song_data.get('notation_file_id'):
+                                    notation_pdf_url = file_service.get_file_url(song_data['notation_file_id'])
+                                elif song_data.get('notation_file_path'):
+                                    notation_pdf_url = file_service.get_public_url(song_data['notation_file_path'])
+
+                                if notation_pdf_url:
+                                    # st.markdown(f"""
+                                    # <div style="text-align: center; margin-bottom: 10px;">
+                                    #     <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
+                                    #         <button style="
+                                    #             background-color: #4CAF50;
+                                    #             color: white;
+                                    #             padding: 8px 16px;
+                                    #             border: none;
+                                    #             border-radius: 6px;
+                                    #             cursor: pointer;
+                                    #             font-size: 0.9rem;
+                                    #             font-weight: bold;
+                                    #         ">📥 Download / Open in New Tab</button>
+                                    #     </a>
+                                    # </div>
+                                    # """, unsafe_allow_html=True)
+
+                                    render_enhanced_pdf_viewer(notation_pdf_url, f"notation_playlist_{current_track_idx}", height=500)
+                                else:
+                                    st.info("🎼 Notasi PDF tidak tersedia untuk lagu ini")
+                            except Exception as e:
+                                st.warning(f"Error loading notation PDF: {e}")
+
+                        with tab3:
+                            # Syair PDF (same logic as render_tabs_content_layout)
+                            try:
+                                from services.file_service import file_service
+                                lyrics_pdf_url = None
+                                song_data = current_song['song_data']
+
+                                if song_data.get('lyrics_file_id'):
+                                    lyrics_pdf_url = file_service.get_file_url(song_data['lyrics_file_id'])
+                                elif song_data.get('lyrics_file_path'):
+                                    lyrics_pdf_url = file_service.get_public_url(song_data['lyrics_file_path'])
+
+                                if lyrics_pdf_url:
+                                    render_enhanced_pdf_viewer(lyrics_pdf_url, f"lyrics_playlist_{current_track_idx}", height=500)
+                                else:
+                                    st.info("📝 Syair PDF tidak tersedia untuk lagu ini")
+                            except Exception as e:
+                                st.warning(f"Error loading lyrics PDF: {e}")
+                    else:
+                        # Show expander layout for current song
+                        render_tabs_content_layout(current_song['song_data'], f"playlist_current_{current_track_idx}")
+        else:
+            # Original dropdown mode
+            # Song selection without expander - direct UI
+            st.markdown(f"### 🎵 {expander_title}")
             st.markdown(subtitle)
 
             # Create song options with winner emoji
@@ -7310,36 +7948,40 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                 score_text = f" - Skor: {song_row['avg_score']:.1f}/100" if show_scores else ""
                 song_options.append(f"{winner_emoji}{song_row['title']} - {song_row['composer']}{score_text}")
 
-            # Simple dropdown selection
-            selected_idx = st.selectbox(
-                "Pilih lagu:",
-                range(len(song_options) + 1),
-                format_func=lambda x: "Pilih lagu..." if x == 0 else song_options[x-1],
-                key="landing_song_selector",
-                label_visibility="collapsed"
-            )
+            # Center the dropdown selection
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                selected_idx = st.selectbox(
+                    "Pilih lagu:",
+                    range(len(song_options) + 1),
+                    format_func=lambda x: "Pilih lagu..." if x == 0 else song_options[x-1],
+                    key="landing_song_selector",
+                    label_visibility="collapsed"
+                )
 
-        # Force refresh when selection changes
-        current_selection = selected_idx
-        if hasattr(st.session_state, 'last_landing_selection') and st.session_state.last_landing_selection != current_selection:
-            # Clear audio cache when song changes
-            if hasattr(st.session_state, 'landing_audio_cache'):
-                del st.session_state.landing_audio_cache
-        st.session_state.last_landing_selection = current_selection
+        # Only process dropdown selection if not in playlist mode
+        if not use_playlist_mode:
+            # Force refresh when selection changes
+            current_selection = selected_idx
+            if hasattr(st.session_state, 'last_landing_selection') and st.session_state.last_landing_selection != current_selection:
+                # Clear audio cache when song changes
+                if hasattr(st.session_state, 'landing_audio_cache'):
+                    del st.session_state.landing_audio_cache
+            st.session_state.last_landing_selection = current_selection
 
-        # Ensure we stay on landing page when dropdown changes
-        if 'show_dashboard' in st.session_state:
-            st.session_state.show_dashboard = False
+            # Ensure we stay on landing page when dropdown changes
+            if 'show_dashboard' in st.session_state:
+                st.session_state.show_dashboard = False
 
-        if selected_idx > 0:
-            # Get selected song
-            selected_song = filtered_df.iloc[selected_idx - 1]
+            if selected_idx > 0:
+                # Get selected song
+                selected_song = filtered_df.iloc[selected_idx - 1]
 
-            # Check if this is a winner song and show celebration
-            if selected_song['title'] in winner_titles:
-                if should_show_winner_song_celebration(selected_song['title']):
-                    # Use Streamlit balloons for winner song selection
-                    st.balloons()
+                # Check if this is a winner song and show celebration
+                if selected_song['title'] in winner_titles:
+                    if should_show_winner_song_celebration(selected_song['title']):
+                        # Use Streamlit balloons for winner song selection
+                        st.balloons()
 
                     # Find the rank for celebration message
                     # original_df_sorted = all_songs_df.sort_values('avg_score', ascending=False).reset_index(drop=True)
@@ -7415,181 +8057,160 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                     # except:
                     #     st.success("🏆 Selamat! Anda memilih lagu pemenang!")
 
-            # Get song data from songs table (same as Winners section)
-            songs_df = db_service.get_songs()
-            matching_songs = songs_df[songs_df['title'] == selected_song['title']]
+                # Get song data from songs table (same as Winners section)
+                songs_df = db_service.get_songs()
+                matching_songs = songs_df[songs_df['title'] == selected_song['title']]
 
-            if not matching_songs.empty:
-                song_data = matching_songs.iloc[0]
-            else:
-                # Fallback to constructed data
-                song_data = get_available_content({
-                    'id': selected_song['song_id'],
-                    'title': selected_song['title'],
-                    'composer': selected_song['composer'],
-                    'audio_file_path': selected_song.get('audio_file_path'),
-                    'lyrics_text': selected_song.get('lyrics_text'),
-                    'full_score': selected_song.get('full_score'),
-                    'chords_list': selected_song.get('chords_list'),
-                    'lyrics_with_chords': selected_song.get('lyrics_with_chords'),
-                    'key_signature': selected_song.get('key_signature'),
-                    'notation_file_path': selected_song.get('notation_file_path'),
-                    'lyrics_file_path': selected_song.get('lyrics_file_path')
-                })
+                if not matching_songs.empty:
+                    song_data = matching_songs.iloc[0]
+                else:
+                    # Fallback to constructed data
+                    song_data = get_available_content({
+                        'id': selected_song['song_id'],
+                        'title': selected_song['title'],
+                        'composer': selected_song['composer'],
+                        'audio_file_path': selected_song.get('audio_file_path'),
+                        'lyrics_text': selected_song.get('lyrics_text'),
+                        'full_score': selected_song.get('full_score'),
+                        'chords_list': selected_song.get('chords_list'),
+                        'lyrics_with_chords': selected_song.get('lyrics_with_chords'),
+                        'key_signature': selected_song.get('key_signature'),
+                        'notation_file_path': selected_song.get('notation_file_path'),
+                        'lyrics_file_path': selected_song.get('lyrics_file_path')
+                    })
 
-            # Display selected song
-            st.markdown("---")
-            key_text = f" (Key {song_data.get('key_signature', 'N/A')})" if song_data.get('key_signature') else ""
-            st.markdown(f"### 🎵 {selected_song['title']}{key_text}")
-            st.markdown(f"**Pencipta:** {selected_song['composer']}")
+                # Display selected song
+                # st.markdown("---")
+                # key_text = f" (Key {song_data.get('key_signature', 'N/A')})" if song_data.get('key_signature') else ""
+                # st.markdown(f"### 🎵 {selected_song['title']}{key_text}")
+                # st.markdown(f"**Pencipta:** {selected_song['composer']}")
 
-            if show_scores:
-                st.metric("📊 Skor Rata-rata", f"{selected_song['avg_score']:.1f}/100")
+                # Show play count if enabled
+                try:
+                    config = db_service.get_config()
+                    enable_play_count = config.get('ENABLE_PLAY_COUNT', 'FALSE').upper() == 'TRUE'
+                    if enable_play_count:
+                        play_count = song_data.get('play_count', 0)
+                        st.markdown(f"**▶️ Diputar:** {play_count}x")
+                except Exception:
+                    pass  # Silently fail if config not available
 
-            # Audio player
-            st.markdown("**🎵 Audio**")
-            render_audio_player(song_data, f"landing_{selected_song['song_id']}")
+                if show_scores:
+                    st.metric("📊 Skor Rata-rata", f"{selected_song['avg_score']:.1f}/100")
 
-            # Syair + Chord in expander (collapsed by default)
-            # Determine content and header dynamically
-            if song_data.get('lyrics_with_chords'):
-                content_to_show = song_data['lyrics_with_chords']
-                expander_title = "🎼 Syair + Chord"
-            elif song_data.get('lyrics_text'):
-                content_to_show = song_data['lyrics_text']
-                expander_title = "🎼 Syair Only (Chord tidak tersedia)"
-            elif song_data.get('chords_list'):
-                content_to_show = song_data['chords_list']
-                expander_title = "🎼 Chord Only (Syair tidak tersedia)"
-            elif song_data.get('full_score'):
-                content_to_show = song_data['full_score']
-                expander_title = "🎼 Full Score"
-            else:
-                content_to_show = None
-                expander_title = "🎼 Syair + Chord"
+                # Use tabs layout if configured
+                content_layout_mode = get_config_value('CONTENT_LAYOUT_MODE', 'EXPANDER')
 
-            if content_to_show:
-                with st.expander(expander_title, expanded=False):
-                    st.markdown(
-                        f"""
-                        <div style="
-                            background-color: #fff8e1;
-                            padding: 1rem;
-                            border-radius: 8px;
-                            border-left: 3px solid #ff9800;
-                            font-family: 'Courier New', monospace;
-                            white-space: pre-wrap;
-                            font-size: 0.8rem;
-                            line-height: 1.4;
-                        ">
-                            {content_to_show}
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-            else:
-                with st.expander(expander_title, expanded=False):
-                    st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
+                if content_layout_mode == 'TABS':
+                    render_tabs_content_layout(song_data, f"all_songs_{selected_song['song_id']}")
+                else:
+                    # Original expander layout
+                    # Audio player
+                    st.markdown("**🎵 Audio**")
+                    render_audio_player(song_data, f"landing_{selected_song['song_id']}")
 
-            # PDF Documents section
-            st.markdown("---")
-            st.markdown("**📄 PDF Documents**")
+                    # Syair + Chord in expander (collapsed by default)
+                    # Determine content and header dynamically
+                    if song_data.get('lyrics_with_chords'):
+                        content_to_show = song_data['lyrics_with_chords']
+                        expander_title = "🎼 Syair + Chord"
+                    elif song_data.get('lyrics_text'):
+                        content_to_show = song_data['lyrics_text']
+                        expander_title = "🎼 Syair Only (Chord tidak tersedia)"
+                    elif song_data.get('chords_list'):
+                        content_to_show = song_data['chords_list']
+                        expander_title = "🎼 Chord Only (Syair tidak tersedia)"
+                    elif song_data.get('full_score'):
+                        content_to_show = song_data['full_score']
+                        expander_title = "🎼 Full Score"
+                    else:
+                        content_to_show = None
+                        expander_title = "🎼 Syair + Chord"
 
-            # Get PDF URLs using file service
-            lyrics_pdf_url = None
-            notation_pdf_url = None
+                    if content_to_show:
+                        with st.expander(expander_title, expanded=False):
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background-color: #fff8e1;
+                                    padding: 1rem;
+                                    border-radius: 8px;
+                                    border-left: 3px solid #ff9800;
+                                    font-family: 'Courier New', monospace;
+                                    white-space: pre-wrap;
+                                    font-size: 0.8rem;
+                                    line-height: 1.4;
+                                ">
+                                    {content_to_show}
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                    else:
+                        with st.expander(expander_title, expanded=False):
+                            st.info("📝 Syair dan chord tidak tersedia untuk lagu ini")
 
-            # Try to get lyrics PDF URL
-            if song_data.get('lyrics_file_id'):
-                lyrics_pdf_url = file_service.get_file_url(song_data['lyrics_file_id'])
-            elif song_data.get('lyrics_file_path'):
-                lyrics_path = song_data['lyrics_file_path']
-                if lyrics_path:
-                    try:
-                        if lyrics_path.startswith('files/'):
-                            clean_path = lyrics_path
+                    # Show PDF documents below (only in EXPANDER mode, not TABS)
+                    if show_pdf:
+                        st.markdown("---")
+                        st.markdown("##### 📄 PDF Documents")
+
+                        # Get PDF URLs using file service
+                        try:
+                            from services.file_service import file_service
+                        except ImportError:
+                            st.error("File service not available")
+                            return
+
+                        lyrics_pdf_url = None
+                        notation_pdf_url = None
+
+                        # Try to get lyrics PDF URL
+                        if song_data.get('lyrics_file_id'):
+                            lyrics_pdf_url = file_service.get_file_url(song_data['lyrics_file_id'])
+                        elif song_data.get('lyrics_file_path'):
+                            lyrics_path = song_data['lyrics_file_path']
+                            if lyrics_path:
+                                try:
+                                    if lyrics_path.startswith('files/'):
+                                        clean_path = lyrics_path
+                                    else:
+                                        clean_path = f"files/{lyrics_path}"
+                                    lyrics_pdf_url = file_service.get_public_url(clean_path)
+                                except Exception as e:
+                                    st.warning(f"Error getting lyrics PDF URL: {e}")
+
+                        # Try to get notation PDF URL
+                        if song_data.get('notation_file_id'):
+                            notation_pdf_url = file_service.get_file_url(song_data['notation_file_id'])
+                        elif song_data.get('notation_file_path'):
+                            notation_path = song_data['notation_file_path']
+                            if notation_path:
+                                try:
+                                    if notation_path.startswith('files/'):
+                                        clean_path = notation_path
+                                    else:
+                                        clean_path = f"files/{notation_path}"
+                                    notation_pdf_url = file_service.get_public_url(clean_path)
+                                except Exception as e:
+                                    st.warning(f"Error getting notation PDF URL: {e}")
+
+                        # Display PDF sections
+                        if notation_pdf_url:
+                            st.markdown("**🎼 Notasi PDF Preview**")
+                            render_enhanced_pdf_viewer(notation_pdf_url, f"notation_all_songs_{selected_song['song_id']}", height=400)
                         else:
-                            clean_path = f"files/{lyrics_path}"
-                        lyrics_pdf_url = file_service.get_public_url(clean_path)
-                        if not lyrics_pdf_url:
-                            import urllib.parse
-                            supabase_project_url = st.secrets["supabase_url"]
-                            bucket_name = "song-contest-files"
-                            encoded_path = urllib.parse.quote(clean_path)
-                            lyrics_pdf_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
-                    except:
-                        pass
+                            st.info("🎼 Notasi PDF belum tersedia")
 
-            # Try to get notation PDF URL
-            if song_data.get('notation_file_id'):
-                notation_pdf_url = file_service.get_file_url(song_data['notation_file_id'])
-            elif song_data.get('notation_file_path'):
-                notation_path = song_data['notation_file_path']
-                if notation_path:
-                    try:
-                        if notation_path.startswith('files/'):
-                            clean_path = notation_path
+                        if lyrics_pdf_url:
+                            st.markdown("**📝 Syair PDF Preview**")
+                            render_enhanced_pdf_viewer(lyrics_pdf_url, f"lyrics_all_songs_{selected_song['song_id']}", height=400)
                         else:
-                            clean_path = f"files/{notation_path}"
-                        notation_pdf_url = file_service.get_public_url(clean_path)
-                        if not notation_pdf_url:
-                            import urllib.parse
-                            supabase_project_url = st.secrets["supabase_url"]
-                            bucket_name = "song-contest-files"
-                            encoded_path = urllib.parse.quote(clean_path)
-                            notation_pdf_url = f"{supabase_project_url}/storage/v1/object/public/{bucket_name}/{encoded_path}"
-                    except:
-                        pass
-
-            # Display PDF embedded viewers in expanders with download buttons
-            if notation_pdf_url:
-                with st.expander("🎼 Notasi PDF Preview", expanded=False):
-                    # Download button
-                    st.markdown(f"""
-                    <div style="text-align: center; margin-bottom: 10px;">
-                        <a href="{notation_pdf_url}" target="_blank" style="text-decoration: none;">
-                            <button style="
-                                background-color: #4CAF50;
-                                color: white;
-                                padding: 8px 16px;
-                                border: none;
-                                border-radius: 6px;
-                                cursor: pointer;
-                                font-size: 0.9rem;
-                                font-weight: bold;
-                            ">📥 Download / Open in New Tab</button>
-                        </a>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    # Enhanced PDF viewer with multiple fallbacks
-                    render_enhanced_pdf_viewer(notation_pdf_url, "notation_all", height=600)
-
-            if lyrics_pdf_url:
-                with st.expander("📝 Syair PDF Preview", expanded=False):
-                    # Download button
-                    st.markdown(f"""
-                    <div style="text-align: center; margin-bottom: 10px;">
-                        <a href="{lyrics_pdf_url}" target="_blank" style="text-decoration: none;">
-                            <button style="
-                                background-color: #2196F3;
-                                color: white;
-                                padding: 8px 16px;
-                                border: none;
-                                border-radius: 6px;
-                                cursor: pointer;
-                                font-size: 0.9rem;
-                                font-weight: bold;
-                            ">📥 Download / Open in New Tab</button>
-                        </a>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    # Enhanced PDF viewer with multiple fallbacks
-                    render_enhanced_pdf_viewer(lyrics_pdf_url, "lyrics_all", height=600)
-
-            if not lyrics_pdf_url and not notation_pdf_url:
-                st.info("📄 PDF documents tidak tersedia")
+                            st.info("📝 Syair PDF belum tersedia")
+            else:
+                pass
+                # No song selected
+                # st.info("🎵 Pilih lagu dari dropdown di atas untuk melihat detail dan mendengarkan audio.")
 
     except Exception as e:
         st.error(f"Error loading songs: {e}")

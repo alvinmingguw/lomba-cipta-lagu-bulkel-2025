@@ -99,7 +99,43 @@ class DatabaseService:
         except Exception as e:
             logger.error(f"Error fetching songs: {e}")
             return pd.DataFrame()
-    
+
+    def increment_play_count(self, song_id: int) -> bool:
+        """Increment play count for a song"""
+        try:
+            # Get current play count
+            response = self.client.table('songs').select('play_count').eq('id', song_id).execute()
+            if response.data and len(response.data) > 0:
+                current_count = response.data[0].get('play_count') or 0
+                new_count = current_count + 1
+
+                # Update play count
+                update_response = self.client.table('songs').update({
+                    'play_count': new_count
+                }).eq('id', song_id).execute()
+
+                # Clear cache to refresh data
+                st.cache_data.clear()
+
+                logger.info(f"Incremented play count for song {song_id}: {current_count} -> {new_count}")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error incrementing play count for song {song_id}: {e}")
+            return False
+
+    def add_minus_one_column(self) -> bool:
+        """Add minus_one_file_path column to songs table if it doesn't exist"""
+        try:
+            # Try to add the column (will fail silently if it already exists)
+            response = self.client.rpc('add_minus_one_column').execute()
+            logger.info("Added minus_one_file_path column to songs table")
+            return True
+        except Exception as e:
+            # Column might already exist, which is fine
+            logger.info(f"Minus one column might already exist: {e}")
+            return True
+
     def add_song(self, title: str, composer: str, **kwargs) -> Optional[int]:
         """Add a new song"""
         try:

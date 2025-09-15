@@ -475,6 +475,10 @@ def render_configuration_management():
         'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
         'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
         'SHOW_POSTER', 'POSTER_FILE_PATH', 'SHOW_BANNER', 'BANNER_FILE_PATH',
+        # PDF Viewer Settings
+        'SHOW_PDF_VIEWER_CONTROLS', 'DEFAULT_PDF_VIEWER',
+        # Content Layout Settings
+        'CONTENT_LAYOUT_MODE', 'USE_PLAYLIST_MODE',
 
         # System Settings
         'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
@@ -557,7 +561,8 @@ def render_configuration_management():
             'SHOW_HL_IN_TAB1', 'SHOW_NILAI_CHIP', 'SHOW_AUTHOR', 'DEFAULT_TEXT_VIEW',
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
-            'SHOW_POSTER', 'POSTER_FILE_PATH', 'SHOW_BANNER', 'BANNER_FILE_PATH'
+            'SHOW_POSTER', 'POSTER_FILE_PATH', 'SHOW_BANNER', 'BANNER_FILE_PATH',
+            'SHOW_PDF_VIEWER_CONTROLS', 'DEFAULT_PDF_VIEWER', 'CONTENT_LAYOUT_MODE', 'USE_PLAYLIST_MODE'
         ])]
 
         for _, config in display_configs.iterrows():
@@ -597,6 +602,28 @@ def render_configuration_management():
                     current_idx = options.index(config['value']) if config['value'] in options else 0
                     new_value_str = st.selectbox("", options=options, index=current_idx, key=key)
                     st.caption("TABS: Current tabbed layout | COLUMNS: Side-by-side with full score")
+                elif config['key'] == 'DEFAULT_PDF_VIEWER':
+                    # PDF Viewer dropdown config
+                    options = ['📄 Mozilla PDF.js Viewer', '📄 Google Docs Viewer', '📄 Direct Embed PDF']
+                    current_idx = 0
+                    for i, option in enumerate(options):
+                        if config['value'] in option:
+                            current_idx = i
+                            break
+                    new_value_str = st.selectbox("", options=options, index=current_idx, key=key)
+                    st.caption("Default PDF viewer method for all PDF previews")
+                elif config['key'] == 'CONTENT_LAYOUT_MODE':
+                    # Content Layout dropdown config
+                    options = ['EXPANDER', 'TABS']
+                    current_idx = options.index(config['value']) if config['value'] in options else 0
+                    new_value_str = st.selectbox("", options=options, index=current_idx, key=key)
+                    st.caption("EXPANDER: Current expandable sections | TABS: Tab-based navigation")
+                elif config['key'] == 'USE_PLAYLIST_MODE':
+                    # Boolean config for playlist mode
+                    options = ['TRUE', 'FALSE']
+                    current_idx = options.index(config['value']) if config['value'] in options else 1
+                    new_value_str = st.selectbox("", options=options, index=current_idx, key=key)
+                    st.caption("TRUE: Use playlist player for All Songs | FALSE: Use dropdown selection")
                 elif config['key'] in ['POSTER_FILE_PATH', 'BANNER_FILE_PATH']:
                     # File path configs
                     new_value_str = st.text_input("", value=config['value'], key=key)
@@ -836,6 +863,7 @@ def render_configuration_management():
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
             'SHOW_POSTER', 'POSTER_FILE_PATH', 'SHOW_BANNER', 'BANNER_FILE_PATH',
+            'SHOW_PDF_VIEWER_CONTROLS', 'DEFAULT_PDF_VIEWER',
             # System Settings
             'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',
             'LOCK_FINAL_EVALUATIONS', 'DETECT_CHORDS_FALLBACK',
@@ -999,6 +1027,7 @@ def render_configuration_cleanup_tab(config_df):
             'RUBRIK_INPUT_STYLE', 'SLIDER_LAYOUT', 'REQUIRE_CONFIRM_PANEL',
             'WINNER_DISPLAY_LAYOUT', 'SHOW_PDF_DOCUMENTS', 'SHOW_WINNER_SCORES', 'SHOW_ALL_SONGS_SCORES',
             'SHOW_POSTER', 'POSTER_FILE_PATH', 'SHOW_BANNER', 'BANNER_FILE_PATH',
+            'SHOW_PDF_VIEWER_CONTROLS', 'DEFAULT_PDF_VIEWER',
 
             # System Settings
             'CERTIFICATE_MODE', 'CERTIFICATE_BUCKET', 'CERTIFICATE_FOLDER',

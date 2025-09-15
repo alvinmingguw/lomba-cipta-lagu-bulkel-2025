@@ -34,12 +34,15 @@ streamlit run app.py
 
 ## ✨ Key Features
 
-- 🎵 **Complete Song Management** - Audio, notation, lyrics
+- 🎵 **Complete Song Management** - Audio, notation, lyrics with minus one tracks
 - 🏆 **Certificate Download** - Both PARTICIPANT and SONG modes
 - 📊 **Advanced Analytics** - Real-time scoring and insights
-- ⚙️ **Admin Panel** - 39 configurations across 6 organized tabs
+- ⚙️ **Admin Panel** - 26 configurations across 6 organized tabs
 - 🔐 **Secure Authentication** - Google OAuth + Magic Links
 - 📱 **Responsive Design** - Works on all devices
+- 🎤 **Minus One Audio** - Karaoke tracks for winners
+- 🎛️ **Flexible Layout** - TABS vs EXPANDER content modes
+- 📊 **Optional Play Counter** - YouTube-style view tracking
 
 ## 📁 Project Architecture
 
@@ -139,8 +142,10 @@ themesong-gki-perumnas/
 - **🎯 Detailed Rubric Breakdown**: Per-aspect analysis with strengths/weaknesses identification
 
 ### 🌐 **Public Features**
-- **Winners Showcase**: Display contest winners with audio players
+- **Winners Showcase**: Display contest winners with audio players and minus one tracks
 - **All Songs Browser**: Search and listen to all contest entries
+- **Flexible Layout**: TABS vs EXPANDER content display modes
+- **Optional Play Counter**: YouTube-style view tracking (configurable)
 - **Responsive Design**: Works on desktop and mobile
 - **Audio Streaming**: Direct audio playback from Supabase Storage
 
@@ -173,7 +178,7 @@ The application uses **26 configuration keys** organized in the `configuration` 
 | `SHOW_WINNERS_AUTOMATIC` | Auto-show winners after announcement | true/false |
 | `TIMEZONE` | Application timezone | String (e.g., Asia/Jakarta) |
 
-#### **Display Settings (11 configs)**
+#### **Display Settings (14 configs)**
 | Config Key | Description | Values |
 |------------|-------------|---------|
 | `SHOW_HL_IN_TAB1` | Show highlights in main tab | true/false |
@@ -187,6 +192,9 @@ The application uses **26 configuration keys** organized in the `configuration` 
 | `SHOW_PDF_DOCUMENTS` | Show PDF document links | true/false |
 | `SHOW_WINNER_SCORES` | Show scores in winner display | true/false |
 | `SHOW_ALL_SONGS_SCORES` | Show scores for all songs | true/false |
+| `CONTENT_LAYOUT_MODE` | Content display mode | TABS/EXPANDER |
+| `USE_PLAYLIST_MODE` | Enable playlist-style player | true/false |
+| `ENABLE_PLAY_COUNT` | Enable YouTube-style play counter | true/false |
 
 #### **System Settings (5 configs)**
 | Config Key | Description | Values |
@@ -208,7 +216,7 @@ The application uses **7 core tables** in PostgreSQL:
 
 | Table | Description | Key Fields | Status |
 |-------|-------------|------------|---------|
-| `songs` | Contest songs with metadata | title, composer, audio_file_path, is_active | ✅ Active |
+| `songs` | Contest songs with metadata | title, composer, audio_file_path, minus_one_file_path, play_count, is_active | ✅ Active |
 | `judges` | Judge information | name, email, auth_user_id, role, is_active | ✅ Active |
 | `rubrics` | Evaluation criteria | rubric_key, aspect_name, weight, is_ai_assisted | ✅ Active |
 | `evaluations` | Judge evaluations | judge_id, song_id, rubric_scores, total_score | ✅ Active |
@@ -267,10 +275,17 @@ The application uses **7 core tables** in PostgreSQL:
 
 ## 🆕 Recent Updates (Latest Version)
 
+### **🎵 Audio & Layout Enhancements**
+- **🎤 Minus One Audio**: Added support for karaoke tracks in winners section
+- **🎛️ Flexible Content Layout**: TABS vs EXPANDER display modes for better UX
+- **📊 Optional Play Counter**: YouTube-style view tracking with configuration toggle
+- **🎨 Centered Audio Headers**: Consistent styling with video sections
+- **🗄️ Database Schema**: Added `minus_one_file_path` and `play_count` columns to songs table
+
 ### **🧹 Project Organization & Cleanup**
 - **📁 Testing Files**: Moved OAuth debug scripts to `testing/` folder for better organization
 - **🗄️ Database Cleanup**: Removed unused tables (`winners`, `meta`, `file_metadata`)
-- **⚙️ Configuration Audit**: Verified all **26 configuration keys** are properly documented (not 38)
+- **⚙️ Configuration Audit**: Verified all **29 configuration keys** are properly documented
 - **📚 Documentation Update**: Updated README with accurate schema and configuration info
 - **🔧 Google Login Fix**: Resolved redirect issues after successful OAuth authentication
 - **🧹 File Organization**: Confirmed `login_simple_clean.py` is the active component (not `login_simple.py`)
