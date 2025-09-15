@@ -7746,8 +7746,8 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
             subtitle = f"*Menampilkan {len(filtered_df)} lagu peserta (selain pemenang)*"
         else:
             # Show all songs (default)
-            expander_title = "🎵 **Dengarkan langsung semua lagu peserta**"
-            subtitle = f"*Menampilkan {len(filtered_df)} lagu peserta*"
+            expander_title = "🎵 Dengarkan langsung semua lagu peserta"
+            subtitle = f"Menampilkan {len(filtered_df)} lagu peserta"
 
         # Check if playlist mode is enabled
         use_playlist_mode = get_config_value('USE_PLAYLIST_MODE', 'FALSE').upper() == 'TRUE'
@@ -7920,8 +7920,8 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
         else:
             # Original dropdown mode
             # Song selection without expander - direct UI
-            st.markdown(f"### 🎵 {expander_title}")
-            st.markdown(subtitle)
+            st.markdown(f"<div style='text-align: center;'><h3>🎵 {expander_title}</h3></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align: center; font-style: italic; margin-bottom: 1rem;'>{subtitle}</div>", unsafe_allow_html=True)
 
             # Create song options with winner emoji
             song_options = []
@@ -7948,8 +7948,26 @@ def render_all_songs_section(view_mode="📋 Semua Lagu"):
                 score_text = f" - Skor: {song_row['avg_score']:.1f}/100" if show_scores else ""
                 song_options.append(f"{winner_emoji}{song_row['title']} - {song_row['composer']}{score_text}")
 
-            # Center the dropdown selection
-            col1, col2, col3 = st.columns([1, 2, 1])
+            # Center the dropdown selection with wider column for longer titles
+            # Add CSS to prevent text truncation in dropdown
+            st.markdown("""
+            <style>
+            .stSelectbox > div > div > div {
+                white-space: nowrap !important;
+                overflow: visible !important;
+                text-overflow: unset !important;
+            }
+            .stSelectbox [data-baseweb="select"] {
+                min-width: 100% !important;
+            }
+            .stSelectbox [data-baseweb="popover"] {
+                min-width: max-content !important;
+                width: auto !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            col1, col2, col3 = st.columns([0.5, 3, 0.5])
             with col2:
                 selected_idx = st.selectbox(
                     "Pilih lagu:",
